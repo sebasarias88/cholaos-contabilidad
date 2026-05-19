@@ -1,13 +1,13 @@
 import type { HTMLAttributes } from 'react'
 
-type BadgeVariant = 'dueno' | 'empleado' | 'activo' | 'inactivo'
+type BadgeVariant = 'admin' | 'empleado' | 'activo' | 'inactivo'
 
 interface BadgeProps extends HTMLAttributes<HTMLSpanElement> {
   variant?: BadgeVariant
 }
 
 const variants: Record<BadgeVariant, string> = {
-  dueno: 'bg-accent-cyan-dim text-accent-cyan',
+  admin: 'bg-accent-cyan-dim text-accent-cyan',
   empleado: 'bg-bg-elevated text-text-secondary',
   activo: 'bg-accent-green-dim text-accent-green',
   inactivo: 'bg-accent-red-dim text-accent-red',

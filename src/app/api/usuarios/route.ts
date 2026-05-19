@@ -1,10 +1,10 @@
 import { NextResponse } from 'next/server'
-import { requireDuenoApi } from '@/lib/api-auth'
+import { requireAdminApi } from '@/lib/api-auth'
 import { createAdminClient } from '@/lib/supabase/admin'
 import type { CrearEmpleadoInput, CrearEmpleadoResponse, Usuario } from '@/types'
 
 export async function GET() {
-  const auth = await requireDuenoApi()
+  const auth = await requireAdminApi()
   if (!auth.ok) return auth.response
 
   const { supabase } = auth.ctx
@@ -22,7 +22,7 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  const auth = await requireDuenoApi()
+  const auth = await requireAdminApi()
   if (!auth.ok) return auth.response
 
   const { email, nombre, password } = (await request.json()) as CrearEmpleadoInput

@@ -77,7 +77,7 @@ export function LoginForm() {
 
     if (!perfil.activo) {
       await supabase.auth.signOut()
-      toast.error('Tu cuenta está desactivada. Contacta al dueño.', { id })
+      toast.error('Tu cuenta está desactivada. Contacta al admin.', { id })
       setLoading(false)
       return
     }

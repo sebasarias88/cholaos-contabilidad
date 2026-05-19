@@ -38,9 +38,9 @@ export async function requireAuth(): Promise<Usuario> {
   return usuario
 }
 
-/** Rutas solo dueño (productos, reportes, configuración) */
-export async function requireDueno(): Promise<Usuario> {
+/** Rutas solo admin (productos, reportes, configuración) */
+export async function requireAdmin(): Promise<Usuario> {
   const usuario = await requireAuth()
-  if (usuario.rol !== 'dueno') redirect('/dashboard')
+  if (usuario.rol !== 'admin') redirect('/dashboard')
   return usuario
 }

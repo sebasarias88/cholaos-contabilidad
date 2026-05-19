@@ -15,11 +15,11 @@ This version has breaking changes — APIs, conventions, and file structure may 
 ## Rutas protegidas
 
 ```typescript
-import { requireDueno } from '@/lib/auth'   // solo dueño → redirect /dashboard
+import { requireAdmin } from '@/lib/auth'   // solo admin → redirect /dashboard
 import { requireAuth } from '@/lib/auth'   // sesión → redirect /login
 
 export default async function ProductosPage() {
-  await requireDueno()
+  await requireAdmin()
   return <GestionProductos />
 }
 ```
@@ -85,10 +85,10 @@ Preferir `@/components/ui/*` (Button, Input, Card, Badge, Modal, StatCard, Skele
 ## APIs
 
 - Productos activos: `GET /api/productos`
-- Gestión productos (dueño): `GET /api/productos?todos=true`
+- Gestión productos (admin): `GET /api/productos?todos=true`
 - Ventas: `GET/POST /api/ventas`, detalle en joins
 - Reportes: `GET /api/reportes?desde=&hasta=` (ambos requeridos)
-- Usuarios (solo dueño; cookie de sesión SSR; POST requiere `SUPABASE_SERVICE_ROLE_KEY`):
+- Usuarios (solo admin; cookie de sesión SSR; POST requiere `SUPABASE_SERVICE_ROLE_KEY`):
   - `GET /api/usuarios` → `Usuario[]` (`{ id, nombre, rol, activo, created_at }`)
   - `POST /api/usuarios` body `{ email, nombre, password }` → `{ mensaje, usuario }`
   - `PUT /api/usuarios/[id]` body parcial `{ nombre?, activo? }` → `Usuario`
@@ -96,7 +96,7 @@ Preferir `@/components/ui/*` (Button, Input, Card, Badge, Modal, StatCard, Skele
 
 ## Empleados
 
-El dueño crea cuentas en `/dashboard/configuracion` → pestaña Equipo. No hay registro público en `/login`.
+El admin crea cuentas en `/dashboard/configuracion` → pestaña Equipo. No hay registro público en `/login`.
 
 ## Assets del negocio (`public/images/`)
 

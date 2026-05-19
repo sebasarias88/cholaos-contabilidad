@@ -78,6 +78,7 @@ export function ReportesDashboard() {
   const [customHasta, setCustomHasta] = useState('')
   const [resumen, setResumen] = useState<ResumenDia[]>([])
   const [topProductos, setTopProductos] = useState<ProductoVendido[]>([])
+  const [nombreNegocio, setNombreNegocio] = useState('Cholao Oscar')
   const [loading, setLoading] = useState(true)
 
   const rango = useMemo(() => {
@@ -113,6 +114,15 @@ export function ReportesDashboard() {
     cargar()
   }, [cargar, preset, customDesde, customHasta])
 
+  useEffect(() => {
+    fetch('/api/configuracion')
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (data?.nombre_negocio) setNombreNegocio(data.nombre_negocio)
+      })
+      .catch(() => {})
+  }, [])
+
   const totalIngresos = resumen.reduce((s, r) => s + r.ingresos, 0)
   const totalVasos = resumen.reduce((s, r) => s + r.total_vasos, 0)
   const diasPeriodo =
@@ -138,6 +148,7 @@ export function ReportesDashboard() {
       initial="hidden"
       animate="visible"
     >
+      <p className="text-sm text-text-secondary">{nombreNegocio}</p>
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex flex-wrap gap-2">
           {PERIODOS.map((p) => (

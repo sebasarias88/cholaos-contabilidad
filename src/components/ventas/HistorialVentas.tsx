@@ -32,10 +32,10 @@ function RolBadge({ rol }: { rol: Rol }) {
   return (
     <span
       className={
-        rol === 'dueno' ? 'badge-cyan ml-2 shrink-0' : 'badge-green ml-2 shrink-0'
+        rol === 'admin' ? 'badge-cyan ml-2 shrink-0' : 'badge-green ml-2 shrink-0'
       }
     >
-      {rol === 'dueno' ? 'Dueño' : 'Empleado'}
+      {rol === 'admin' ? 'Admin' : 'Empleado'}
     </span>
   )
 }
@@ -189,7 +189,7 @@ export function HistorialVentas({ usuarioId, rol }: HistorialVentasProps) {
             placeholder="Buscar por fecha o empleado..."
             value={busqueda}
             onChange={(e) => setBusqueda(e.target.value)}
-            className="select-field w-full pl-10"
+            className="select-field select-field--with-icon w-full"
           />
         </div>
 

@@ -3,16 +3,16 @@ import { NextResponse } from 'next/server'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { User } from '@supabase/supabase-js'
 
-type DuenoApiContext = {
+type AdminApiContext = {
   supabase: SupabaseClient
   user: User
 }
 
-type DuenoApiResult =
-  | { ok: true; ctx: DuenoApiContext }
+type AdminApiResult =
+  | { ok: true; ctx: AdminApiContext }
   | { ok: false; response: NextResponse }
 
-export async function requireDuenoApi(): Promise<DuenoApiResult> {
+export async function requireAdminApi(): Promise<AdminApiResult> {
   const supabase = await createClient()
   const {
     data: { user },
@@ -31,7 +31,7 @@ export async function requireDuenoApi(): Promise<DuenoApiResult> {
     .eq('id', user.id)
     .single()
 
-  if (miUsuario?.rol !== 'dueno') {
+  if (miUsuario?.rol !== 'admin') {
     return {
       ok: false,
       response: NextResponse.json({ error: 'No autorizado' }, { status: 403 }),

@@ -1,4 +1,4 @@
-export type Rol = "dueno" | "empleado";
+export type Rol = "admin" | "empleado";
 
 export interface Usuario {
   id: string;
@@ -25,6 +25,16 @@ export interface CrearEmpleadoResponse {
 export interface UsuarioUpdateInput {
   nombre?: string;
   activo?: boolean;
+}
+
+/** GET/PUT /api/configuracion */
+export interface ConfiguracionNegocio {
+  nombre_negocio: string;
+  updated_at?: string;
+}
+
+export interface ConfiguracionNegocioInput {
+  nombre_negocio: string;
 }
 
 export interface Producto {
