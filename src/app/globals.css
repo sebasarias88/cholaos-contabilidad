@@ -1,26 +1,243 @@
-@import "tailwindcss";
+@import 'tailwindcss';
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --bg-base: #080c10;
+  --bg-surface: #0f1520;
+  --bg-elevated: #162033;
+  --bg-border: #1e2d45;
+
+  --text-primary: #e8edf5;
+  --text-secondary: #7a8ba3;
+  --text-muted: #3d5068;
+
+  --accent-cyan: #00d4ff;
+  --accent-cyan-dim: #00d4ff20;
+  --accent-green: #00e5a0;
+  --accent-green-dim: #00e5a020;
+  --accent-red: #ff4566;
+  --accent-red-dim: #ff456620;
+  --accent-amber: #ffb547;
+
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+
+  --shadow-glow-cyan: 0 0 20px #00d4ff15;
+  --shadow-glow-cyan-strong: 0 0 32px #00d4ff25;
+
+  /* aliases para compatibilidad */
+  --background: var(--bg-base);
+  --foreground: var(--text-primary);
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-bg-base: var(--bg-base);
+  --color-bg-surface: var(--bg-surface);
+  --color-bg-elevated: var(--bg-elevated);
+  --color-bg-border: var(--bg-border);
+  --color-text-primary: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
+  --color-text-muted: var(--text-muted);
+  --color-accent-cyan: var(--accent-cyan);
+  --color-accent-cyan-dim: var(--accent-cyan-dim);
+  --color-accent-green: var(--accent-green);
+  --color-accent-green-dim: var(--accent-green-dim);
+  --color-accent-red: var(--accent-red);
+  --color-accent-red-dim: var(--accent-red-dim);
+  --color-accent-amber: var(--accent-amber);
+  --font-sans: var(--font-dm-sans);
+  --font-display: var(--font-syne);
+  --radius-sm: var(--radius-sm);
+  --radius-md: var(--radius-md);
+  --radius-lg: var(--radius-lg);
+  --radius-xl: var(--radius-xl);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+@layer utilities {
+  .font-display {
+    font-family: var(--font-syne), 'Syne', sans-serif;
+  }
+
+  .font-body {
+    font-family: var(--font-dm-sans), 'DM Sans', sans-serif;
   }
 }
 
+@layer components {
+  .card {
+    @apply rounded-[var(--radius-lg)] border border-bg-border bg-bg-surface;
+  }
+
+  .card-hover {
+    @apply rounded-[var(--radius-lg)] border border-bg-border bg-bg-surface transition-colors duration-150 hover:border-accent-cyan/30;
+  }
+
+  .input {
+    @apply rounded-[var(--radius-md)] border border-bg-border bg-bg-elevated px-3 py-2 text-sm text-text-primary transition-colors duration-150 placeholder:text-text-muted focus:border-accent-cyan focus:outline-none focus:ring-2 focus:ring-accent-cyan/20;
+  }
+
+  .btn-primary {
+    @apply rounded-[var(--radius-md)] bg-accent-cyan px-4 py-2 text-sm font-medium text-bg-base transition-opacity duration-150 hover:opacity-90 disabled:opacity-40;
+  }
+
+  .btn-secondary {
+    @apply rounded-[var(--radius-md)] border border-bg-border px-4 py-2 text-sm text-text-secondary transition-colors duration-150 hover:bg-bg-elevated;
+  }
+
+  .btn-danger {
+    @apply rounded-[var(--radius-md)] bg-accent-red-dim px-4 py-2 text-sm text-accent-red transition-opacity duration-150 hover:opacity-80;
+  }
+}
+
+html.lenis,
+html.lenis body {
+  height: auto;
+}
+
+.lenis.lenis-smooth {
+  scroll-behavior: auto !important;
+}
+
+.lenis.lenis-smooth [data-lenis-prevent] {
+  overscroll-behavior: contain;
+}
+
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--bg-base);
+  color: var(--text-primary);
+  font-family: var(--font-dm-sans), system-ui, sans-serif;
+  font-weight: 400;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Glow cyan */
+.shadow-glow-cyan {
+  box-shadow: var(--shadow-glow-cyan);
+}
+
+.shadow-glow-cyan-strong {
+  box-shadow: var(--shadow-glow-cyan-strong);
+}
+
+/* Glassmorphism — solo modales */
+.glass-modal {
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  background: rgb(255 255 255 / 0.05);
+  border: 1px solid var(--bg-border);
+}
+
+/* Header de sección con gradiente sutil */
+.section-header-gradient {
+  background: linear-gradient(
+    135deg,
+    var(--bg-surface) 0%,
+    color-mix(in srgb, var(--accent-cyan) 8%, var(--bg-surface)) 100%
+  );
+  border-bottom: 1px solid var(--bg-border);
+}
+
+/* Focus ring cyan */
+.focus-ring-cyan:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--bg-base), 0 0 0 4px var(--accent-cyan);
+}
+
+/* Transición estándar hover */
+.transition-surface {
+  transition: background-color 150ms ease, border-color 150ms ease, color 150ms ease;
+}
+
+/* Tablas */
+.table-surface {
+  border: 1px solid var(--bg-border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  background: var(--bg-surface);
+}
+
+.table-surface thead {
+  background: var(--bg-elevated);
+}
+
+.table-surface th {
+  color: var(--text-secondary);
+  font-weight: 500;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.table-surface tbody tr {
+  border-top: 1px solid var(--bg-border);
+  transition: background-color 150ms ease;
+}
+
+.table-surface tbody tr:hover {
+  background: var(--bg-elevated);
+}
+
+/* Badge utilidades */
+.badge-cyan {
+  background: var(--accent-cyan-dim);
+  color: var(--accent-cyan);
+  border-radius: var(--radius-sm);
+  padding: 0.125rem 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.badge-green {
+  background: var(--accent-green-dim);
+  color: var(--accent-green);
+  border-radius: var(--radius-sm);
+  padding: 0.125rem 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+/* Select nativo */
+.select-field {
+  width: 100%;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--bg-border);
+  background: var(--bg-base);
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+  color: var(--text-primary);
+  transition: background-color 150ms ease, border-color 150ms ease;
+}
+
+.select-field:focus {
+  outline: none;
+  border-color: var(--accent-cyan);
+  box-shadow: 0 0 0 2px var(--bg-base), 0 0 0 4px var(--accent-cyan);
+}
+
+/* Pills de filtro (reportes) */
+.filter-pill {
+  border-radius: var(--radius-md);
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  text-transform: capitalize;
+  transition: background-color 150ms ease, color 150ms ease, box-shadow 150ms ease;
+}
+
+.filter-pill-active {
+  background: var(--accent-cyan-dim);
+  color: var(--accent-cyan);
+  box-shadow: var(--shadow-glow-cyan);
+}
+
+.filter-pill-inactive {
+  background: var(--bg-surface);
+  color: var(--text-secondary);
+  border: 1px solid var(--bg-border);
+}
+
+.filter-pill-inactive:hover {
+  background: var(--bg-elevated);
+  color: var(--text-primary);
 }

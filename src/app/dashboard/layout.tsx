@@ -1,14 +1,12 @@
-import { Sidebar } from "@/components/layout/Sidebar";
+import { getMiUsuario } from '@/lib/auth'
+import { DashboardShell } from '@/components/layout/DashboardShell'
 
-export default function DashboardLayout({
+export default async function DashboardLayout({
   children,
 }: {
-  children: React.ReactNode;
+  children: React.ReactNode
 }) {
-  return (
-    <div className="flex min-h-screen">
-      <Sidebar />
-      <main className="flex flex-1 flex-col">{children}</main>
-    </div>
-  );
+  const usuario = await getMiUsuario()
+
+  return <DashboardShell usuario={usuario}>{children}</DashboardShell>
 }

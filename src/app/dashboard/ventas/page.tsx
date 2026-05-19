@@ -1,22 +1,12 @@
-import { Header } from "@/components/layout/Header";
-import { FormVenta } from "@/components/ventas/FormVenta";
-import { createClient } from "@/lib/supabase/server";
+import { FormVenta } from '@/components/ventas/FormVenta'
+import { requireAuth } from '@/lib/auth'
 
 export default async function VentasPage() {
-  const supabase = await createClient();
-  const { data: productos } = await supabase
-    .from("productos")
-    .select("*")
-    .eq("activo", true)
-    .order('nombre')
-    .order('onzas');
+  await requireAuth()
 
   return (
-    <>
-      <Header title="Nueva venta" />
-      <div className="p-6">
-        <FormVenta productos={productos ?? []} />
-      </div>
-    </>
-  );
+    <div className="p-6">
+      <FormVenta />
+    </div>
+  )
 }

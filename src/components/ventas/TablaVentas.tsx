@@ -12,33 +12,34 @@ function totalVasos(venta: Venta) {
 export function TablaVentas({ ventas }: TablaVentasProps) {
   if (ventas.length === 0) {
     return (
-      <p className="text-sm text-zinc-500">No hay ventas registradas aún.</p>
+      <p className="text-sm text-text-muted">No hay ventas registradas aún.</p>
     )
   }
 
   return (
-    <div className="overflow-x-auto rounded-xl border border-zinc-200 dark:border-zinc-800">
+    <div className="table-surface overflow-x-auto">
       <table className="w-full text-left text-sm">
-        <thead className="bg-zinc-50 dark:bg-zinc-900">
+        <thead>
           <tr>
-            <th className="px-4 py-3 font-medium">Fecha</th>
-            <th className="px-4 py-3 font-medium">Vendedor</th>
-            <th className="px-4 py-3 font-medium">Vasos</th>
-            <th className="px-4 py-3 font-medium">Total</th>
+            <th className="px-4 py-3">Fecha</th>
+            <th className="px-4 py-3">Vendedor</th>
+            <th className="px-4 py-3">Vasos</th>
+            <th className="px-4 py-3">Total</th>
           </tr>
         </thead>
         <tbody>
           {ventas.map((venta) => (
-            <tr
-              key={venta.id}
-              className="border-t border-zinc-200 dark:border-zinc-800"
-            >
-              <td className="px-4 py-3">{formatFecha(venta.fecha)}</td>
-              <td className="px-4 py-3">
+            <tr key={venta.id}>
+              <td className="px-4 py-3 text-text-primary">
+                {formatFecha(venta.fecha)}
+              </td>
+              <td className="px-4 py-3 text-text-secondary">
                 {venta.usuario?.nombre ?? venta.usuario_id}
               </td>
-              <td className="px-4 py-3">{totalVasos(venta)}</td>
-              <td className="px-4 py-3 font-medium">
+              <td className="px-4 py-3">
+                <span className="badge-cyan">{totalVasos(venta)}</span>
+              </td>
+              <td className="px-4 py-3 font-medium text-accent-cyan">
                 {formatPesos(venta.total)}
               </td>
             </tr>

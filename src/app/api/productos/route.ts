@@ -1,15 +1,15 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 
-export async function GET() {
+export async function GET(request: Request) {
   const supabase = await createClient()
+  const todos = new URL(request.url).searchParams.get('todos') === 'true'
 
-  const { data, error } = await supabase
-    .from('productos')
-    .select('*')
-    .eq('activo', true)
-    .order('nombre')
-    .order('onzas')
+  let query = supabase.from('productos').select('*').order('nombre').order('onzas')
+
+  if (!todos) query = query.eq('activo', true)
+
+  const { data, error } = await query
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   return NextResponse.json(data)

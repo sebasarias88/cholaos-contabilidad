@@ -21,7 +21,6 @@ export async function DELETE(_: Request, { params }: { params: Promise<{ id: str
   const { id } = await params
   const supabase = await createClient()
 
-  // Soft delete: marcar como inactivo, no borrar físicamente
   const { error } = await supabase
     .from('productos')
     .update({ activo: false })

@@ -1,38 +1,67 @@
-import type { ButtonHTMLAttributes } from "react";
+'use client'
 
-type ButtonVariant = "primary" | "secondary" | "ghost" | "danger";
+import { motion } from 'framer-motion'
+import type { ButtonHTMLAttributes } from 'react'
+
+type ButtonVariant = 'primary' | 'secondary' | 'danger' | 'ghost'
+type ButtonSize = 'sm' | 'md' | 'lg'
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: ButtonVariant;
+  variant?: ButtonVariant
+  size?: ButtonSize
+  loading?: boolean
 }
 
 const variants: Record<ButtonVariant, string> = {
   primary:
-    "bg-zinc-900 text-white hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200",
+    'bg-accent-cyan text-bg-base shadow-glow-cyan hover:brightness-110 font-medium',
   secondary:
-    "border border-zinc-300 bg-white hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900 dark:hover:bg-zinc-800",
-  ghost: "hover:bg-zinc-100 dark:hover:bg-zinc-800",
-  danger: "bg-red-600 text-white hover:bg-red-700",
-};
+    'border border-bg-border bg-transparent text-text-primary hover:bg-bg-elevated',
+  ghost: 'text-text-secondary hover:bg-bg-elevated hover:text-text-primary',
+  danger:
+    'bg-accent-red-dim text-accent-red border border-accent-red/30 hover:bg-accent-red/20',
+}
+
+const sizes: Record<ButtonSize, string> = {
+  sm: 'h-8 px-3 text-xs gap-1.5',
+  md: 'h-10 px-4 text-sm gap-2',
+  lg: 'h-12 px-6 text-base gap-2',
+}
 
 export function Button({
   className,
-  variant = "primary",
+  variant = 'primary',
+  size = 'md',
+  loading = false,
+  disabled,
   children,
   ...props
 }: ButtonProps) {
+  const isDisabled = disabled || loading
+
   return (
     <button
       className={[
-        "inline-flex items-center justify-center rounded-lg px-4 py-2 text-sm font-medium transition-colors disabled:opacity-50",
+        'focus-ring-cyan inline-flex items-center justify-center rounded-[var(--radius-md)] transition-surface disabled:cursor-not-allowed disabled:opacity-50',
         variants[variant],
+        sizes[size],
         className,
       ]
         .filter(Boolean)
-        .join(" ")}
+        .join(' ')}
+      disabled={isDisabled}
+      aria-busy={loading}
       {...props}
     >
+      {loading ? (
+        <motion.span
+          className="inline-block h-4 w-4 shrink-0 rounded-full border-2 border-current border-t-transparent"
+          animate={{ rotate: 360 }}
+          transition={{ repeat: Infinity, duration: 0.75, ease: 'linear' }}
+          aria-hidden
+        />
+      ) : null}
       {children}
     </button>
-  );
+  )
 }

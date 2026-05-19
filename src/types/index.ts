@@ -19,6 +19,35 @@ export interface Producto {
   updated_at: string;
 }
 
+/** Body POST /api/productos */
+export interface ProductoCreateInput {
+  nombre: string;
+  descripcion?: string;
+  onzas: number;
+  precio: number;
+}
+
+/** Body PUT /api/productos/[id] */
+export interface ProductoUpdateInput {
+  nombre?: string;
+  descripcion?: string;
+  onzas?: number;
+  precio?: number;
+  activo?: boolean;
+}
+
+/** Join en GET /api/ventas */
+export interface UsuarioResumen {
+  nombre: string;
+  rol: Rol;
+}
+
+/** Join en detalle de venta */
+export interface ProductoResumen {
+  nombre: string;
+  onzas: number;
+}
+
 export interface Venta {
   id: string;
   fecha: string; // 'YYYY-MM-DD'
@@ -26,8 +55,7 @@ export interface Venta {
   total: number;
   observaciones?: string;
   created_at: string;
-  // joins opcionales
-  usuario?: Usuario;
+  usuario?: UsuarioResumen;
   detalle?: DetalleVenta[];
 }
 
@@ -38,11 +66,16 @@ export interface DetalleVenta {
   cantidad: number;
   precio_unitario: number;
   subtotal: number; // campo generado por Postgres
-  // joins
-  producto?: Producto;
+  producto?: ProductoResumen;
 }
 
-// Para crear una venta desde el formulario
+/** Body PUT /api/ventas/[id] — solo cabecera */
+export interface VentaUpdateInput {
+  observaciones?: string | null;
+  total?: number;
+}
+
+/** Body POST /api/ventas */
 export interface NuevaVentaPayload {
   observaciones?: string;
   items: {

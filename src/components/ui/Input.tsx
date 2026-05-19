@@ -1,35 +1,40 @@
-import type { InputHTMLAttributes } from "react";
+import type { InputHTMLAttributes } from 'react'
 
 interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
-  label?: string;
-  error?: string;
+  label?: string
+  error?: string
 }
 
+const fieldClass =
+  'w-full rounded-[var(--radius-md)] border border-bg-border bg-bg-elevated px-3 py-2 text-sm text-text-primary placeholder:text-text-muted transition-surface focus:border-accent-cyan focus:outline-none focus:ring-2 focus:ring-accent-cyan/20'
+
 export function Input({ className, label, error, id, ...props }: InputProps) {
-  const inputId = id ?? props.name;
+  const inputId = id ?? props.name
 
   return (
-    <div className="flex flex-col gap-1">
+    <div className="flex flex-col gap-1.5">
       {label && (
         <label
           htmlFor={inputId}
-          className="text-sm font-medium text-zinc-700 dark:text-zinc-300"
+          className="text-sm font-medium text-text-secondary"
         >
           {label}
         </label>
       )}
       <input
         id={inputId}
-        className={[
-          "rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm outline-none focus:border-zinc-500 focus:ring-1 focus:ring-zinc-500 dark:border-zinc-700 dark:bg-zinc-900",
-          error && "border-red-500",
-          className,
-        ]
+        aria-invalid={error ? true : undefined}
+        aria-describedby={error ? `${inputId}-error` : undefined}
+        className={[fieldClass, error && 'border-accent-red focus:ring-accent-red/20 focus:border-accent-red', className]
           .filter(Boolean)
-          .join(" ")}
+          .join(' ')}
         {...props}
       />
-      {error && <span className="text-xs text-red-600">{error}</span>}
+      {error && (
+        <span id={`${inputId}-error`} className="text-xs text-accent-red">
+          {error}
+        </span>
+      )}
     </div>
-  );
+  )
 }

@@ -1,14 +1,21 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
+import type { ResumenDia } from '@/types'
 
 export async function GET(request: Request) {
   const supabase = await createClient()
   const { searchParams } = new URL(request.url)
-  const desde = searchParams.get('desde') ?? new Date().toISOString().split('T')[0]
-  const hasta = searchParams.get('hasta') ?? desde
+  const desde = searchParams.get('desde')
+  const hasta = searchParams.get('hasta')
 
-  // Resumen agrupado por día
-  const { data: porDia, error } = await supabase
+  if (!desde || !hasta) {
+    return NextResponse.json(
+      { error: 'desde y hasta son requeridos (YYYY-MM-DD)' },
+      { status: 400 }
+    )
+  }
+
+  const { data: ventas, error } = await supabase
     .from('ventas')
     .select(`
       fecha,
@@ -21,15 +28,29 @@ export async function GET(request: Request) {
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
-  // Agrupar por fecha
-  const agrupado = porDia.reduce((acc: Record<string, any>, venta) => {
-    const f = venta.fecha
-    if (!acc[f]) acc[f] = { fecha: f, ingresos: 0, total_ventas: 0, total_vasos: 0 }
-    acc[f].ingresos += venta.total
-    acc[f].total_ventas += 1
-    acc[f].total_vasos += venta.detalle.reduce((s: number, d: any) => s + d.cantidad, 0)
+  const agrupado = (ventas ?? []).reduce<Record<string, ResumenDia>>((acc, venta) => {
+    const f = venta.fecha as string
+    const prev = acc[f] ?? {
+      fecha: f,
+      ingresos: 0,
+      total_ventas: 0,
+      total_vasos: 0,
+    }
+    const vasos =
+      (venta.detalle as { cantidad: number }[] | null)?.reduce(
+        (s, d) => s + Number(d.cantidad),
+        0
+      ) ?? 0
+    acc[f] = {
+      fecha: f,
+      total_ventas: prev.total_ventas + 1,
+      total_vasos: prev.total_vasos + vasos,
+      ingresos: prev.ingresos + Number(venta.total),
+    }
     return acc
   }, {})
 
-  return NextResponse.json(Object.values(agrupado))
+  return NextResponse.json(
+    Object.values(agrupado).sort((a, b) => a.fecha.localeCompare(b.fecha))
+  )
 }

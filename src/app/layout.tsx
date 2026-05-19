@@ -1,35 +1,59 @@
-import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
-import "./globals.css";
+import type { Metadata } from 'next'
+import { DM_Sans, Syne } from 'next/font/google'
+import { LenisProvider } from '@/components/providers/LenisProvider'
+import { Toaster } from 'react-hot-toast'
+import './globals.css'
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
+const syne = Syne({
+  variable: '--font-syne',
+  subsets: ['latin'],
+  weight: ['600', '700', '800'],
+})
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
+const dmSans = DM_Sans({
+  variable: '--font-dm-sans',
+  subsets: ['latin'],
+  weight: ['300', '400', '500'],
+})
 
 export const metadata: Metadata = {
-  title: "Cholaos Contabilidad",
-  description: "Sistema de contabilidad y ventas para Cholaos",
-};
+  title: 'Cholaos Contabilidad',
+  description: 'Sistema de contabilidad y ventas para Cholaos',
+}
 
 export default function RootLayout({
   children,
 }: Readonly<{
-  children: React.ReactNode;
+  children: React.ReactNode
 }>) {
   return (
     <html
       lang="es"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${syne.variable} ${dmSans.variable} h-full antialiased`}
     >
-      <body className="min-h-full bg-zinc-50 text-zinc-900 dark:bg-zinc-950 dark:text-zinc-50">
-        {children}
+      <body className="min-h-full bg-bg-base font-sans text-text-primary">
+        <LenisProvider>
+          {children}
+          <Toaster
+            position="bottom-right"
+            toastOptions={{
+              style: {
+                background: '#0F1520',
+                color: '#E8EDF5',
+                border: '1px solid #1E2D45',
+                borderRadius: '10px',
+                fontSize: '14px',
+              },
+              success: {
+                iconTheme: { primary: '#00E5A0', secondary: '#0F1520' },
+              },
+              error: {
+                iconTheme: { primary: '#FF4566', secondary: '#0F1520' },
+              },
+            }}
+          />
+        </LenisProvider>
       </body>
     </html>
-  );
+  )
 }

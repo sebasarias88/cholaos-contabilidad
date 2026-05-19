@@ -24,27 +24,40 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'No autenticado' }, { status: 401 })
 
-  const body: NuevaVentaPayload = await request.json()
+  const body = (await request.json()) as NuevaVentaPayload
 
-  // Calcular total
+  if (!body.items?.length) {
+    return NextResponse.json(
+      { error: 'Debes incluir al menos un ítem en la venta' },
+      { status: 400 }
+    )
+  }
+
   const total = body.items.reduce(
-    (acc, item) => acc + item.cantidad * item.precio_unitario, 0
+    (acc, item) => acc + item.cantidad * item.precio_unitario,
+    0
   )
 
-  // Crear la venta (cabecera)
   const { data: venta, error: errorVenta } = await supabase
     .from('ventas')
-    .insert({ usuario_id: user.id, total, observaciones: body.observaciones })
+    .insert({
+      usuario_id: user.id,
+      total,
+      observaciones: body.observaciones,
+    })
     .select()
     .single()
 
-  if (errorVenta) return NextResponse.json({ error: errorVenta.message }, { status: 400 })
+  if (errorVenta) {
+    return NextResponse.json({ error: errorVenta.message }, { status: 400 })
+  }
 
-  // Insertar el detalle
-  const detalles = body.items.map(item => ({
+  const detalles = body.items.map((item) => ({
     venta_id: venta.id,
     producto_id: item.producto_id,
     cantidad: item.cantidad,
@@ -55,7 +68,10 @@ export async function POST(request: Request) {
     .from('detalle_ventas')
     .insert(detalles)
 
-  if (errorDetalle) return NextResponse.json({ error: errorDetalle.message }, { status: 400 })
+  if (errorDetalle) {
+    await supabase.from('ventas').delete().eq('id', venta.id)
+    return NextResponse.json({ error: errorDetalle.message }, { status: 400 })
+  }
 
   return NextResponse.json(venta, { status: 201 })
 }

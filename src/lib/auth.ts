@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { redirect } from 'next/navigation'
 import type { Rol, Usuario } from '@/types'
 
 export async function getSession() {
@@ -27,5 +28,19 @@ export async function requireRol(rol: Rol) {
   if (!usuario || usuario.rol !== rol) {
     throw new Error('No autorizado')
   }
+  return usuario
+}
+
+/** Rutas del dashboard — requiere sesión */
+export async function requireAuth(): Promise<Usuario> {
+  const usuario = await getMiUsuario()
+  if (!usuario) redirect('/login')
+  return usuario
+}
+
+/** Rutas solo dueño (productos, reportes) */
+export async function requireDueno(): Promise<Usuario> {
+  const usuario = await getMiUsuario()
+  if (!usuario || usuario.rol !== 'dueno') redirect('/dashboard')
   return usuario
 }

@@ -1,42 +1,114 @@
-import type { HTMLAttributes } from "react";
+import type { HTMLAttributes, ReactNode } from 'react'
 
 interface CardProps extends HTMLAttributes<HTMLDivElement> {
-  title?: string;
-  description?: string;
+  title?: string
+  description?: string
+  header?: ReactNode
+  footer?: ReactNode
+  hover?: boolean
+  glow?: boolean
+}
+
+export function CardHeader({
+  className,
+  children,
+  ...props
+}: HTMLAttributes<HTMLDivElement>) {
+  return (
+    <div
+      className={['border-b border-bg-border px-6 py-4', className]
+        .filter(Boolean)
+        .join(' ')}
+      {...props}
+    >
+      {children}
+    </div>
+  )
+}
+
+export function CardBody({
+  className,
+  children,
+  ...props
+}: HTMLAttributes<HTMLDivElement>) {
+  return (
+    <div className={['px-6 py-4', className].filter(Boolean).join(' ')} {...props}>
+      {children}
+    </div>
+  )
+}
+
+export function CardFooter({
+  className,
+  children,
+  ...props
+}: HTMLAttributes<HTMLDivElement>) {
+  return (
+    <div
+      className={['border-t border-bg-border px-6 py-4', className]
+        .filter(Boolean)
+        .join(' ')}
+      {...props}
+    >
+      {children}
+    </div>
+  )
 }
 
 export function Card({
   className,
   title,
   description,
+  header,
+  footer,
+  hover = false,
+  glow = false,
   children,
   ...props
 }: CardProps) {
+  const resolvedHeader =
+    header ??
+    (title || description ? (
+      <>
+        {title && (
+          <h2 className="font-display text-lg font-semibold text-text-primary">
+            {title}
+          </h2>
+        )}
+        {description && (
+          <p className="mt-1 text-sm text-text-secondary">{description}</p>
+        )}
+      </>
+    ) : null)
+
+  const useCompoundSlots = Boolean(header || footer)
+
   return (
     <div
       className={[
-        "rounded-xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-950",
+        'overflow-hidden rounded-[var(--radius-lg)] border border-bg-border bg-bg-surface transition-surface',
+        hover && 'hover:border-accent-cyan/30',
+        glow && 'shadow-glow-cyan',
+        !useCompoundSlots && !resolvedHeader && 'p-6',
         className,
       ]
         .filter(Boolean)
-        .join(" ")}
+        .join(' ')}
       {...props}
     >
-      {(title || description) && (
-        <div className="mb-4">
-          {title && (
-            <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">
-              {title}
-            </h2>
-          )}
-          {description && (
-            <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-              {description}
-            </p>
-          )}
-        </div>
+      {resolvedHeader && (
+        <CardHeader className={!useCompoundSlots ? 'border-b-0 pb-0' : undefined}>
+          {resolvedHeader}
+        </CardHeader>
       )}
-      {children}
+      {useCompoundSlots ? (
+        children
+      ) : resolvedHeader ? (
+        <CardBody className="pt-4">{children}</CardBody>
+      ) : (
+        children
+      )}
+      {footer && <CardFooter>{footer}</CardFooter>}
     </div>
-  );
+  )
 }

@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { VENTA_SELECT } from '@/lib/supabase/queries'
 import { NextResponse } from 'next/server'
+import type { VentaUpdateInput } from '@/types'
 
 export async function GET(_: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -19,13 +20,21 @@ export async function GET(_: Request, { params }: { params: Promise<{ id: string
 export async function PUT(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   const supabase = await createClient()
-  const body = await request.json()
+  const body = (await request.json()) as VentaUpdateInput
+
+  const updates: VentaUpdateInput = {}
+  if (body.observaciones !== undefined) updates.observaciones = body.observaciones
+  if (body.total !== undefined) updates.total = body.total
+
+  if (Object.keys(updates).length === 0) {
+    return NextResponse.json({ error: 'No hay campos para actualizar' }, { status: 400 })
+  }
 
   const { data, error } = await supabase
     .from('ventas')
-    .update(body)
+    .update(updates)
     .eq('id', id)
-    .select()
+    .select(VENTA_SELECT)
     .single()
 
   if (error) return NextResponse.json({ error: error.message }, { status: 400 })

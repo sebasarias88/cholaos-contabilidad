@@ -1,22 +1,12 @@
-import { Header } from '@/components/layout/Header'
-import { TablaVentas } from '@/components/ventas/TablaVentas'
-import { createClient } from '@/lib/supabase/server'
-import { VENTA_SELECT } from '@/lib/supabase/queries'
+import { HistorialVentas } from '@/components/ventas/HistorialVentas'
+import { requireAuth } from '@/lib/auth'
 
 export default async function HistorialVentasPage() {
-  const supabase = await createClient()
-  const { data: ventas } = await supabase
-    .from('ventas')
-    .select(VENTA_SELECT)
-    .order('created_at', { ascending: false })
-    .limit(100)
+  const usuario = await requireAuth()
 
   return (
-    <>
-      <Header title="Historial de ventas" />
-      <div className="p-6">
-        <TablaVentas ventas={ventas ?? []} />
-      </div>
-    </>
+    <div className="p-6">
+      <HistorialVentas usuarioId={usuario.id} rol={usuario.rol} />
+    </div>
   )
 }
