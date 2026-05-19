@@ -12,7 +12,7 @@ export type NavLinkConfig = {
   href: string
   label: string
   icon: LucideIcon
-  duenoOnly?: boolean
+  adminOnly?: boolean
   /** Solo coincide con la ruta exacta (evita conflicto ventas / historial) */
   exact?: boolean
 }
@@ -30,19 +30,19 @@ export const NAV_LINKS: NavLinkConfig[] = [
     href: '/dashboard/productos',
     label: 'Productos',
     icon: Package,
-    duenoOnly: true,
+    adminOnly: true,
   },
   {
     href: '/dashboard/reportes',
     label: 'Reportes',
     icon: BarChart3,
-    duenoOnly: true,
+    adminOnly: true,
   },
   {
     href: '/dashboard/configuracion',
     label: 'Configuración',
     icon: Settings,
-    duenoOnly: true,
+    adminOnly: true,
   },
 ]
 

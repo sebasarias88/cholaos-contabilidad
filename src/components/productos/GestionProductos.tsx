@@ -1,11 +1,13 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Pencil, Plus, Search, Trash2 } from 'lucide-react'
+import { MoreHorizontal, Plus, Search } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { Button } from '@/components/ui/Button'
 import { Modal } from '@/components/ui/Modal'
+import { MenuAccionesPortal } from '@/components/ui/MenuAccionesPortal'
 import { SkeletonTabla } from '@/components/ui/Skeleton'
+import { useMenuAcciones } from '@/hooks/useMenuAcciones'
 import {
   ProductoSlideOver,
   type ProductoFormState,
@@ -17,8 +19,7 @@ import toast from 'react-hot-toast'
 import { toastError, toastLoading, toastSuccess } from '@/lib/toast'
 import type { Producto } from '@/types'
 
-const FILTRO_ONZAS = ['todos', 8, 12, 16, 20] as const
-type FiltroOnzas = (typeof FILTRO_ONZAS)[number]
+type FiltroOnzas = 'todos' | number
 
 const formVacio = (): ProductoFormState => ({
   nombre: '',
@@ -53,6 +54,8 @@ export function GestionProductos() {
   const [eliminarId, setEliminarId] = useState<string | null>(null)
   const [eliminando, setEliminando] = useState(false)
 
+  const { menuId, menuPos, menuRef, toggle, close, isOpen } = useMenuAcciones()
+
   const cargarProductos = useCallback(() => {
     setLoading(true)
     fetch('/api/productos?todos=true')
@@ -65,6 +68,22 @@ export function GestionProductos() {
   useEffect(() => {
     cargarProductos()
   }, [cargarProductos])
+
+  const onzasDisponibles = useMemo(() => {
+    const unicas = new Set(productos.map((p) => Number(p.onzas)))
+    return Array.from(unicas).sort((a, b) => a - b)
+  }, [productos])
+
+  const opcionesOnzas = useMemo(
+    (): FiltroOnzas[] => ['todos', ...onzasDisponibles],
+    [onzasDisponibles]
+  )
+
+  useEffect(() => {
+    if (filtroOnzas !== 'todos' && !onzasDisponibles.includes(filtroOnzas)) {
+      setFiltroOnzas('todos')
+    }
+  }, [onzasDisponibles, filtroOnzas])
 
   const filtrados = useMemo(() => {
     const q = busqueda.trim().toLowerCase()
@@ -191,6 +210,22 @@ export function GestionProductos() {
   }
 
   const productoEliminar = productos.find((p) => p.id === eliminarId)
+  const productoMenu = filtrados.find((p) => p.id === menuId)
+
+  function abrirDesdeMenu(p: Producto) {
+    close()
+    setEliminarId(p.id)
+  }
+
+  function editarDesdeMenu(p: Producto) {
+    close()
+    abrirEditar(p)
+  }
+
+  async function activarDesdeMenu(p: Producto) {
+    close()
+    await toggleActivo(p)
+  }
 
   return (
     <motion.div
@@ -211,7 +246,7 @@ export function GestionProductos() {
             placeholder="Buscar por nombre..."
             value={busqueda}
             onChange={(e) => setBusqueda(e.target.value)}
-            className="select-field w-full pl-10"
+            className="select-field select-field--with-icon w-full"
           />
         </div>
         <Button type="button" onClick={abrirNuevo} className="shrink-0">
@@ -220,22 +255,24 @@ export function GestionProductos() {
         </Button>
       </div>
 
-      <div className="flex flex-wrap gap-2">
-        {FILTRO_ONZAS.map((oz) => (
-          <button
-            key={String(oz)}
-            type="button"
-            onClick={() => setFiltroOnzas(oz)}
-            className={
-              filtroOnzas === oz
-                ? 'filter-pill filter-pill-active'
-                : 'filter-pill filter-pill-inactive'
-            }
-          >
-            {oz === 'todos' ? 'Todos' : `${oz}oz`}
-          </button>
-        ))}
-      </div>
+      {opcionesOnzas.length > 1 && (
+        <div className="flex flex-wrap gap-2">
+          {opcionesOnzas.map((oz) => (
+            <button
+              key={String(oz)}
+              type="button"
+              onClick={() => setFiltroOnzas(oz)}
+              className={
+                filtroOnzas === oz
+                  ? 'filter-pill filter-pill-active'
+                  : 'filter-pill filter-pill-inactive'
+              }
+            >
+              {oz === 'todos' ? 'Todos' : `${oz}oz`}
+            </button>
+          ))}
+        </div>
+      )}
 
       {loading ? (
         <SkeletonTabla filas={6} />
@@ -250,7 +287,7 @@ export function GestionProductos() {
                 <th className="px-4 py-3">Onzas</th>
                 <th className="px-4 py-3">Precio</th>
                 <th className="px-4 py-3">Estado</th>
-                <th className="px-4 py-3 text-right">Acciones</th>
+                <th className="px-4 py-3 text-right">Acción</th>
               </tr>
             </thead>
             <tbody>
@@ -308,25 +345,17 @@ export function GestionProductos() {
                       </span>
                     </div>
                   </td>
-                  <td className="px-4 py-3">
-                    <div className="flex justify-end gap-1">
-                      <button
-                        type="button"
-                        aria-label="Editar producto"
-                        onClick={() => abrirEditar(p)}
-                        className="focus-ring-cyan rounded-[var(--radius-md)] p-2 text-text-secondary hover:bg-bg-elevated hover:text-text-primary"
-                      >
-                        <Pencil size={16} />
-                      </button>
-                      <button
-                        type="button"
-                        aria-label="Eliminar producto"
-                        onClick={() => setEliminarId(p.id)}
-                        className="focus-ring-cyan rounded-[var(--radius-md)] p-2 text-accent-red hover:bg-accent-red-dim"
-                      >
-                        <Trash2 size={16} />
-                      </button>
-                    </div>
+                  <td className="px-4 py-3 text-right">
+                    <button
+                      type="button"
+                      data-menu-accion
+                      aria-label="Acciones del producto"
+                      aria-expanded={isOpen(p.id)}
+                      onClick={(e) => toggle(p.id, e)}
+                      className="focus-ring-cyan rounded-[var(--radius-md)] p-2 text-text-secondary hover:bg-bg-elevated hover:text-text-primary"
+                    >
+                      <MoreHorizontal size={16} />
+                    </button>
                   </td>
                 </tr>
               ))}
@@ -334,6 +363,44 @@ export function GestionProductos() {
           </table>
         </div>
       )}
+
+      <MenuAccionesPortal
+        open={!!productoMenu}
+        position={menuPos}
+        menuRef={menuRef}
+      >
+        {productoMenu && (
+          <>
+            <button
+              type="button"
+              role="menuitem"
+              className="w-full px-3 py-2 text-left text-sm text-text-primary hover:bg-bg-elevated"
+              onClick={() => editarDesdeMenu(productoMenu)}
+            >
+              Editar
+            </button>
+            {productoMenu.activo ? (
+              <button
+                type="button"
+                role="menuitem"
+                className="w-full px-3 py-2 text-left text-sm text-accent-red hover:bg-bg-elevated"
+                onClick={() => abrirDesdeMenu(productoMenu)}
+              >
+                Desactivar
+              </button>
+            ) : (
+              <button
+                type="button"
+                role="menuitem"
+                className="w-full px-3 py-2 text-left text-sm text-accent-green hover:bg-bg-elevated"
+                onClick={() => activarDesdeMenu(productoMenu)}
+              >
+                Activar
+              </button>
+            )}
+          </>
+        )}
+      </MenuAccionesPortal>
 
       <ProductoSlideOver
         open={panelOpen}

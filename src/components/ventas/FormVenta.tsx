@@ -133,7 +133,7 @@ export function FormVenta() {
               placeholder="Buscar producto por nombre..."
               value={busqueda}
               onChange={(e) => setBusqueda(e.target.value)}
-              className="select-field pl-10"
+              className="select-field select-field--with-icon w-full"
             />
           </div>
         </motion.div>

@@ -1,15 +1,23 @@
 import type { Metadata } from 'next'
 import { ConfiguracionPanel } from '@/components/configuracion/ConfiguracionPanel'
-import { requireDueno } from '@/lib/auth'
+import { requireAdmin } from '@/lib/auth'
+import { createClient } from '@/lib/supabase/server'
 
 export const metadata: Metadata = { title: 'Configuración' }
 
 export default async function ConfiguracionPage() {
-  await requireDueno()
+  const usuario = await requireAdmin()
+  const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
 
   return (
     <div className="p-6">
-      <ConfiguracionPanel />
+      <ConfiguracionPanel
+        usuario={usuario}
+        email={user?.email ?? ''}
+      />
     </div>
   )
 }

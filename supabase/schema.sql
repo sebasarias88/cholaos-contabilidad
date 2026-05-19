@@ -1,7 +1,7 @@
 -- Cholaos Contabilidad — schema alineado con src/types
 -- Ejecutar en el SQL Editor de Supabase
 
-create type rol as enum ('dueno', 'empleado');
+create type rol as enum ('admin', 'empleado');
 
 -- Usuarios del negocio (vinculados a auth.users)
 create table public.usuarios (
@@ -11,6 +11,17 @@ create table public.usuarios (
   activo boolean not null default true,
   created_at timestamptz not null default now()
 );
+
+-- Configuración del negocio (fila única)
+create table public.configuracion_negocio (
+  id int primary key default 1 check (id = 1),
+  nombre_negocio text not null default 'Cholao Oscar',
+  updated_at timestamptz not null default now()
+);
+
+insert into public.configuracion_negocio (id, nombre_negocio)
+values (1, 'Cholao Oscar')
+on conflict (id) do nothing;
 
 -- Productos del menú
 create table public.productos (
@@ -77,6 +88,7 @@ create trigger on_auth_user_created
 
 -- Row Level Security
 alter table public.usuarios enable row level security;
+alter table public.configuracion_negocio enable row level security;
 alter table public.productos enable row level security;
 alter table public.ventas enable row level security;
 alter table public.detalle_ventas enable row level security;
@@ -92,12 +104,28 @@ create policy "Usuario actualiza su perfil"
   to authenticated
   using (auth.uid() = id);
 
-create policy "Dueño gestiona usuarios"
+create policy "Admin gestiona usuarios"
   on public.usuarios for all
   using (
     exists (
       select 1 from public.usuarios u
-      where u.id = auth.uid() and u.rol = 'dueno'
+      where u.id = auth.uid() and u.rol = 'admin'
+    )
+  );
+
+-- Configuración negocio
+create policy "Autenticados leen configuracion negocio"
+  on public.configuracion_negocio for select
+  to authenticated
+  using (true);
+
+create policy "Admin actualiza configuracion negocio"
+  on public.configuracion_negocio for update
+  to authenticated
+  using (
+    exists (
+      select 1 from public.usuarios u
+      where u.id = auth.uid() and u.rol = 'admin'
     )
   );
 
@@ -107,23 +135,23 @@ create policy "Autenticados leen productos"
   to authenticated
   using (true);
 
-create policy "Dueño gestiona productos"
+create policy "Admin gestiona productos"
   on public.productos for insert
   to authenticated
   with check (
     exists (
       select 1 from public.usuarios u
-      where u.id = auth.uid() and u.rol = 'dueno'
+      where u.id = auth.uid() and u.rol = 'admin'
     )
   );
 
-create policy "Dueño actualiza productos"
+create policy "Admin actualiza productos"
   on public.productos for update
   to authenticated
   using (
     exists (
       select 1 from public.usuarios u
-      where u.id = auth.uid() and u.rol = 'dueno'
+      where u.id = auth.uid() and u.rol = 'admin'
     )
   );
 
@@ -138,21 +166,21 @@ create policy "Autenticados crean ventas"
   to authenticated
   with check (auth.uid() = usuario_id);
 
-create policy "Dueño modifica ventas"
+create policy "Admin modifica ventas"
   on public.ventas for update
   using (
     exists (
       select 1 from public.usuarios u
-      where u.id = auth.uid() and u.rol = 'dueno'
+      where u.id = auth.uid() and u.rol = 'admin'
     )
   );
 
-create policy "Dueño elimina ventas"
+create policy "Admin elimina ventas"
   on public.ventas for delete
   using (
     exists (
       select 1 from public.usuarios u
-      where u.id = auth.uid() and u.rol = 'dueno'
+      where u.id = auth.uid() and u.rol = 'admin'
     )
   );
 
@@ -172,12 +200,12 @@ create policy "Autenticados insertan detalle"
     )
   );
 
-create policy "Dueño gestiona detalle"
+create policy "Admin gestiona detalle"
   on public.detalle_ventas for all
   using (
     exists (
       select 1 from public.usuarios u
-      where u.id = auth.uid() and u.rol = 'dueno'
+      where u.id = auth.uid() and u.rol = 'admin'
     )
   );
 

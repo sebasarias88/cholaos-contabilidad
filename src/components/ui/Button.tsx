@@ -42,7 +42,7 @@ export function Button({
   return (
     <button
       className={[
-        'focus-ring-cyan inline-flex items-center justify-center rounded-[var(--radius-md)] transition-surface disabled:cursor-not-allowed disabled:opacity-50',
+        'focus-ring-cyan inline-flex cursor-pointer items-center justify-center rounded-[var(--radius-md)] transition-surface disabled:cursor-not-allowed disabled:opacity-50',
         variants[variant],
         sizes[size],
         className,

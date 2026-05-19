@@ -36,7 +36,7 @@ function SidebarPanel({
   return (
     <aside
       data-lenis-prevent
-      className="flex h-full w-60 shrink-0 flex-col border-r border-bg-border bg-bg-surface"
+      className="flex h-full w-full flex-col border-r border-bg-border bg-bg-surface"
     >
       <div className="flex items-center gap-3 border-b border-bg-border px-5 py-5">
         <div className="flex h-10 w-10 items-center justify-center rounded-[var(--radius-md)] bg-accent-cyan-dim shadow-glow-cyan">
@@ -104,8 +104,8 @@ function SidebarPanel({
 export function Sidebar({ usuario, open, onClose }: SidebarProps) {
   const pathname = usePathname()
   const router = useRouter()
-  const esDueno = usuario?.rol === 'dueno'
-  const links = NAV_LINKS.filter((link) => !link.duenoOnly || esDueno)
+  const esAdmin = usuario?.rol === 'admin'
+  const links = NAV_LINKS.filter((link) => !link.adminOnly || esAdmin)
 
   async function handleLogout() {
     const supabase = createClient()
@@ -126,7 +126,7 @@ export function Sidebar({ usuario, open, onClose }: SidebarProps) {
 
   return (
     <>
-      <div className="hidden h-screen shrink-0 md:block">
+      <div className="fixed inset-y-0 left-0 z-40 hidden h-dvh w-60 md:block">
         <SidebarPanel {...panelProps} />
       </div>
 

@@ -4,15 +4,13 @@ import { usePathname } from 'next/navigation'
 import { Menu } from 'lucide-react'
 import { formatFechaHoy } from '@/lib/utils'
 import { getPageTitle } from '@/lib/navigation'
-import type { Usuario } from '@/types'
 
 interface HeaderProps {
-  usuario: Usuario | null
   title?: string
   onMenuClick?: () => void
 }
 
-export function Header({ usuario, title, onMenuClick }: HeaderProps) {
+export function Header({ title, onMenuClick }: HeaderProps) {
   const pathname = usePathname()
   const pageTitle = title ?? getPageTitle(pathname)
   const fechaHoy = formatFechaHoy()
@@ -36,27 +34,9 @@ export function Header({ usuario, title, onMenuClick }: HeaderProps) {
           </h1>
         </div>
 
-        <div className="flex shrink-0 flex-col items-end gap-1 sm:flex-row sm:items-center sm:gap-4">
-          <p className="hidden text-sm capitalize text-text-secondary sm:block">
-            {fechaHoy}
-          </p>
-          <div className="flex items-center gap-2">
-            <span className="max-w-[120px] truncate text-sm font-medium text-text-primary sm:max-w-[180px]">
-              {usuario?.nombre ?? 'Usuario'}
-            </span>
-            {usuario && (
-              <span
-                className={
-                  usuario.rol === 'dueno'
-                    ? 'badge-cyan text-[10px] uppercase'
-                    : 'rounded-[var(--radius-sm)] bg-bg-elevated px-2 py-0.5 text-[10px] uppercase text-text-secondary'
-                }
-              >
-                {usuario.rol === 'dueno' ? 'Dueño' : 'Empleado'}
-              </span>
-            )}
-          </div>
-        </div>
+        <p className="shrink-0 text-sm capitalize text-text-secondary">
+          {fechaHoy}
+        </p>
       </div>
     </header>
   )

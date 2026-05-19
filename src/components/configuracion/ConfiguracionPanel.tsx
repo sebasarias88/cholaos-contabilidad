@@ -2,18 +2,31 @@
 
 import { useState } from 'react'
 import { motion } from 'framer-motion'
-import { Settings, Users } from 'lucide-react'
+import { Building2, Settings, User, Users } from 'lucide-react'
+import { ConfiguracionNegocio } from '@/components/configuracion/ConfiguracionNegocio'
 import { GestionEquipo } from '@/components/configuracion/GestionEquipo'
+import { MiCuenta } from '@/components/configuracion/MiCuenta'
 import { fadeUp, staggerContainer } from '@/lib/animations'
+import type { Usuario } from '@/types'
 
-type Tab = 'equipo'
+type Tab = 'equipo' | 'cuenta' | 'negocio'
 
 const TABS: { id: Tab; label: string; icon: typeof Users }[] = [
   { id: 'equipo', label: 'Equipo', icon: Users },
+  { id: 'cuenta', label: 'Mi cuenta', icon: User },
+  { id: 'negocio', label: 'Negocio', icon: Building2 },
 ]
 
-export function ConfiguracionPanel() {
+interface ConfiguracionPanelProps {
+  usuario: Usuario
+  email: string
+}
+
+export function ConfiguracionPanel({ usuario: usuarioInicial, email }: ConfiguracionPanelProps) {
   const [tab, setTab] = useState<Tab>('equipo')
+  const [nombrePerfil, setNombrePerfil] = useState(usuarioInicial.nombre)
+
+  const usuario = { ...usuarioInicial, nombre: nombrePerfil }
 
   return (
     <motion.div
@@ -27,14 +40,14 @@ export function ConfiguracionPanel() {
         <h1 className="font-display text-xl text-text-primary">Configuración</h1>
       </motion.div>
 
-      <motion.div variants={fadeUp} className="flex gap-2 border-b border-bg-border pb-px">
+      <motion.div variants={fadeUp} className="flex gap-2 overflow-x-auto border-b border-bg-border pb-px">
         {TABS.map(({ id, label, icon: Icon }) => (
           <button
             key={id}
             type="button"
             onClick={() => setTab(id)}
             className={[
-              'flex items-center gap-2 border-b-2 px-4 py-2 text-sm font-medium transition-colors -mb-px',
+              'flex shrink-0 items-center gap-2 border-b-2 px-4 py-2 text-sm font-medium transition-colors -mb-px',
               tab === id
                 ? 'border-accent-cyan text-accent-cyan'
                 : 'border-transparent text-text-secondary hover:text-text-primary',
@@ -46,7 +59,17 @@ export function ConfiguracionPanel() {
         ))}
       </motion.div>
 
-      {tab === 'equipo' && <GestionEquipo />}
+      {tab === 'equipo' && (
+        <GestionEquipo usuarioActualId={usuario.id} />
+      )}
+      {tab === 'cuenta' && (
+        <MiCuenta
+          usuario={usuario}
+          email={email}
+          onNombreActualizado={setNombrePerfil}
+        />
+      )}
+      {tab === 'negocio' && <ConfiguracionNegocio />}
     </motion.div>
   )
 }
