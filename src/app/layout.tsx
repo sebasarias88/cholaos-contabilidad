@@ -1,4 +1,4 @@
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import { DM_Sans, Syne } from 'next/font/google'
 import { LenisProvider } from '@/components/providers/LenisProvider'
 import { Toaster } from 'react-hot-toast'
@@ -17,8 +17,37 @@ const dmSans = DM_Sans({
 })
 
 export const metadata: Metadata = {
-  title: 'Cholaos Contabilidad',
-  description: 'Sistema de contabilidad y ventas para Cholaos',
+  title: {
+    default: 'Cholao Oscar — Sistema de Gestión',
+    template: '%s — Cholao Oscar',
+  },
+  description:
+    'Sistema interno de gestión y contabilidad para Cholao Oscar Armenia, Quindío.',
+  robots: {
+    index: false,
+    follow: false,
+    googleBot: { index: false, follow: false },
+  },
+  applicationName: 'Cholao Oscar',
+  authors: [{ name: 'Cholao Oscar' }],
+  icons: {
+    icon: '/favicon.ico',
+    apple: '/apple-touch-icon.png',
+  },
+  openGraph: {
+    title: 'Cholao Oscar — Sistema de Gestión',
+    description: 'Sistema interno de gestión para Cholao Oscar Armenia',
+    type: 'website',
+    locale: 'es_CO',
+    siteName: 'Cholao Oscar',
+  },
+  manifest: '/manifest.json',
+}
+
+export const viewport: Viewport = {
+  themeColor: '#080C10',
+  width: 'device-width',
+  initialScale: 1,
 }
 
 export default function RootLayout({

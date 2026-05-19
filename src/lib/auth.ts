@@ -31,16 +31,16 @@ export async function requireRol(rol: Rol) {
   return usuario
 }
 
-/** Rutas del dashboard — requiere sesión */
+/** Rutas del dashboard — requiere sesión activa */
 export async function requireAuth(): Promise<Usuario> {
   const usuario = await getMiUsuario()
-  if (!usuario) redirect('/login')
+  if (!usuario || !usuario.activo) redirect('/login')
   return usuario
 }
 
-/** Rutas solo dueño (productos, reportes) */
+/** Rutas solo dueño (productos, reportes, configuración) */
 export async function requireDueno(): Promise<Usuario> {
-  const usuario = await getMiUsuario()
-  if (!usuario || usuario.rol !== 'dueno') redirect('/dashboard')
+  const usuario = await requireAuth()
+  if (usuario.rol !== 'dueno') redirect('/dashboard')
   return usuario
 }

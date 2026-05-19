@@ -4,6 +4,7 @@ import {
   History,
   LayoutDashboard,
   Package,
+  Settings,
   ShoppingCart,
 } from 'lucide-react'
 
@@ -37,6 +38,12 @@ export const NAV_LINKS: NavLinkConfig[] = [
     icon: BarChart3,
     duenoOnly: true,
   },
+  {
+    href: '/dashboard/configuracion',
+    label: 'Configuración',
+    icon: Settings,
+    duenoOnly: true,
+  },
 ]
 
 export const PAGE_TITLES: Record<string, string> = {
@@ -45,6 +52,7 @@ export const PAGE_TITLES: Record<string, string> = {
   '/dashboard/ventas/historial': 'Historial',
   '/dashboard/productos': 'Productos',
   '/dashboard/reportes': 'Reportes',
+  '/dashboard/configuracion': 'Configuración',
 }
 
 export function isNavActive(pathname: string, link: NavLinkConfig) {

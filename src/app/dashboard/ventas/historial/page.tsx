@@ -1,5 +1,8 @@
+import type { Metadata } from 'next'
 import { HistorialVentas } from '@/components/ventas/HistorialVentas'
 import { requireAuth } from '@/lib/auth'
+
+export const metadata: Metadata = { title: 'Historial de Ventas' }
 
 export default async function HistorialVentasPage() {
   const usuario = await requireAuth()

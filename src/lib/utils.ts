@@ -28,6 +28,14 @@ export function getIniciales(nombre: string) {
     .join('')
 }
 
+export function generarPassword(longitud = 12): string {
+  const chars =
+    'abcdefghijkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789!@#$'
+  const arr = new Uint8Array(longitud)
+  crypto.getRandomValues(arr)
+  return Array.from(arr, (b) => chars[b % chars.length]).join('')
+}
+
 /** Lunes de la semana actual → hoy (para reportes del dashboard) */
 export function getSemanaHastaHoy() {
   const hoy = new Date()

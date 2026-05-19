@@ -88,3 +88,43 @@ Preferir `@/components/ui/*` (Button, Input, Card, Badge, Modal, StatCard, Skele
 - Gestión productos (dueño): `GET /api/productos?todos=true`
 - Ventas: `GET/POST /api/ventas`, detalle en joins
 - Reportes: `GET /api/reportes?desde=&hasta=` (ambos requeridos)
+- Usuarios (solo dueño; cookie de sesión SSR; POST requiere `SUPABASE_SERVICE_ROLE_KEY`):
+  - `GET /api/usuarios` → `Usuario[]` (`{ id, nombre, rol, activo, created_at }`)
+  - `POST /api/usuarios` body `{ email, nombre, password }` → `{ mensaje, usuario }`
+  - `PUT /api/usuarios/[id]` body parcial `{ nombre?, activo? }` → `Usuario`
+  - `DELETE /api/usuarios/[id]` → soft delete (`activo: false`), `{ ok: true }`
+
+## Empleados
+
+El dueño crea cuentas en `/dashboard/configuracion` → pestaña Equipo. No hay registro público en `/login`.
+
+## Assets del negocio (`public/images/`)
+
+Imágenes del negocio para UI, marketing o branding. **Ruta en código:** `/images/<archivo>` (carpeta `public/images/`, no `src/public`).
+
+| Archivo | Uso típico |
+|---------|------------|
+| `logo.JPG` | Logo principal, favicon, sidebar |
+| `cholao.JPG`, `cholao2.JPG` | Fotos del producto/local |
+| `delivery.JPG`, `cholaoDelivery.JPG` | Delivery |
+| `maracuyazo.JPG` | Producto destacado |
+
+```tsx
+import Image from 'next/image'
+
+<Image src="/images/logo.JPG" alt="Cholao Oscar" width={120} height={120} />
+```
+
+### Favicon e iconos PWA (desde `logo.JPG`)
+
+1. Ir a [favicon.io](https://favicon.io) → **PNG to Favicon** (o subir `logo.JPG`)
+2. Subir `public/images/logo.JPG`
+3. Descargar el paquete
+4. Copiar a `public/`:
+   - `favicon.ico`
+   - `apple-touch-icon.png`
+   - `favicon-16x16.png`, `favicon-32x32.png` (si vienen)
+5. Iconos PWA 192/512 → `public/icons/icon-192.png` y `icon-512.png`
+6. `manifest.json` ya apunta a esas rutas; `layout.tsx` usa `icons.icon` y `icons.apple`
+
+Los iconos actuales en `public/` se generaron con `sips` desde el logo; reemplázalos con el paquete de favicon.io para mejor calidad.

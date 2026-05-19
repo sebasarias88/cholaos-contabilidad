@@ -8,6 +8,25 @@ export interface Usuario {
   created_at: string;
 }
 
+/** Body POST /api/usuarios */
+export interface CrearEmpleadoInput {
+  email: string;
+  nombre: string;
+  password: string;
+}
+
+/** Response POST /api/usuarios */
+export interface CrearEmpleadoResponse {
+  mensaje: string;
+  usuario: Usuario;
+}
+
+/** Body PUT /api/usuarios/[id] */
+export interface UsuarioUpdateInput {
+  nombre?: string;
+  activo?: boolean;
+}
+
 export interface Producto {
   id: string;
   nombre: string;
