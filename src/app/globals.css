@@ -187,6 +187,12 @@ body {
   background: var(--bg-surface);
 }
 
+/* Tablas con filas expandibles (historial): evita recorte del detalle */
+.table-surface--expandable {
+  overflow-x: auto;
+  overflow-y: visible;
+}
+
 .table-surface thead {
   background: var(--bg-elevated);
 }

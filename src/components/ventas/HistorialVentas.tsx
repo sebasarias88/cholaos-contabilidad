@@ -81,23 +81,72 @@ function VentaDetallePanel({ venta }: { venta: Venta }) {
 function BotonExpandir({
   abierta,
   onToggle,
+  compacto = false,
 }: {
   abierta: boolean
   onToggle: (e: React.MouseEvent) => void
+  compacto?: boolean
 }) {
   return (
     <button
       type="button"
       aria-label={abierta ? 'Ocultar detalle' : 'Ver detalle'}
       aria-expanded={abierta}
-      className="focus-ring-cyan inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-[var(--radius-md)] text-text-secondary hover:bg-bg-elevated hover:text-text-primary"
+      className={[
+        'focus-ring-cyan inline-flex shrink-0 items-center justify-center rounded-[var(--radius-md)] text-text-secondary hover:bg-bg-elevated hover:text-text-primary',
+        compacto
+          ? 'p-1.5'
+          : 'min-h-11 min-w-11',
+      ].join(' ')}
       onClick={onToggle}
     >
       <ChevronDown
-        size={20}
+        size={compacto ? 18 : 20}
         className={`transition-transform ${abierta ? 'rotate-180' : ''}`}
       />
     </button>
+  )
+}
+
+/** Detalle en tabla (escritorio) */
+function VentaDetalleTabla({ venta }: { venta: Venta }) {
+  if (!venta.detalle?.length) {
+    return (
+      <p className="text-sm text-text-muted">Sin detalle de productos.</p>
+    )
+  }
+
+  return (
+    <table className="w-full text-left text-sm">
+      <thead>
+        <tr className="text-text-secondary">
+          <th className="pb-2 pr-4 font-medium">Producto</th>
+          <th className="pb-2 pr-4 font-medium">Onzas</th>
+          <th className="pb-2 pr-4 font-medium">Cantidad</th>
+          <th className="pb-2 pr-4 font-medium">Precio unit.</th>
+          <th className="pb-2 font-medium text-right">Subtotal</th>
+        </tr>
+      </thead>
+      <tbody>
+        {venta.detalle.map((d) => (
+          <tr key={d.id} className="border-t border-bg-border/50">
+            <td className="py-2 pr-4 text-text-primary">
+              {d.producto?.nombre ?? '—'}
+            </td>
+            <td className="py-2 pr-4 text-text-secondary tabular-nums">
+              {d.producto?.onzas ?? '—'} oz
+            </td>
+            <td className="py-2 pr-4 tabular-nums">{d.cantidad}</td>
+            <td className="py-2 pr-4 text-text-secondary tabular-nums">
+              {formatPesos(d.precio_unitario)}
+            </td>
+            <td className="py-2 text-right font-medium text-accent-cyan tabular-nums">
+              {formatPesos(d.subtotal)}
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
   )
 }
 
@@ -347,7 +396,7 @@ export function HistorialVentas({ usuarioId, rol }: HistorialVentasProps) {
           </ul>
 
           {/* Vista escritorio: tabla */}
-          <div className="table-surface hidden overflow-x-auto md:block">
+          <div className="table-surface table-surface--expandable hidden md:block">
             <table className="w-full min-w-[36rem] text-left text-sm">
               <thead>
                 <tr>
@@ -396,6 +445,7 @@ export function HistorialVentas({ usuarioId, rol }: HistorialVentasProps) {
                         <td className="px-4 py-3 text-right">
                           <BotonExpandir
                             abierta={abierta}
+                            compacto
                             onToggle={(e) => {
                               e.stopPropagation()
                               toggleExpand(venta.id)
@@ -403,36 +453,26 @@ export function HistorialVentas({ usuarioId, rol }: HistorialVentasProps) {
                           />
                         </td>
                       </tr>
-                      <AnimatePresence initial={false}>
-                        {abierta && (
-                          <tr key={`${venta.id}-detalle`}>
-                            <td
-                              colSpan={colSpan}
-                              className="border-t border-bg-border p-0"
-                            >
-                              <motion.div
-                                initial={{ height: 0, opacity: 0 }}
-                                animate={{ height: 'auto', opacity: 1 }}
-                                exit={{ height: 0, opacity: 0 }}
-                                transition={{ duration: 0.25, ease: 'easeOut' }}
-                                className="overflow-hidden bg-bg-elevated/30"
-                              >
-                                <div className="max-w-2xl px-4 py-4">
-                                  <VentaDetallePanel venta={venta} />
-                                  {venta.observaciones && (
-                                    <p className="mt-3 text-sm text-text-secondary">
-                                      <span className="font-medium text-text-primary">
-                                        Nota:
-                                      </span>{' '}
-                                      {venta.observaciones}
-                                    </p>
-                                  )}
-                                </div>
-                              </motion.div>
-                            </td>
-                          </tr>
-                        )}
-                      </AnimatePresence>
+                      {abierta && (
+                        <tr className="bg-bg-elevated/30">
+                          <td
+                            colSpan={colSpan}
+                            className="border-t border-bg-border p-0"
+                          >
+                            <div className="px-4 py-4">
+                              <VentaDetalleTabla venta={venta} />
+                              {venta.observaciones && (
+                                <p className="mt-3 text-sm text-text-secondary">
+                                  <span className="font-medium text-text-primary">
+                                    Nota:
+                                  </span>{' '}
+                                  {venta.observaciones}
+                                </p>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      )}
                     </Fragment>
                   )
                 })}
