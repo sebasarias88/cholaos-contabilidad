@@ -37,6 +37,101 @@ function formDesdeProducto(p: Producto): ProductoFormState {
   }
 }
 
+function BotonMenuProducto({
+  abierto,
+  onClick,
+}: {
+  abierto: boolean
+  onClick: (e: React.MouseEvent<HTMLButtonElement>) => void
+}) {
+  return (
+    <button
+      type="button"
+      data-menu-accion
+      aria-label="Acciones del producto"
+      aria-expanded={abierto}
+      onClick={onClick}
+      className="focus-ring-cyan inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-[var(--radius-md)] text-text-secondary hover:bg-bg-elevated hover:text-text-primary"
+    >
+      <MoreHorizontal size={20} />
+    </button>
+  )
+}
+
+function ProductoEstado({
+  producto,
+  onToggle,
+}: {
+  producto: Producto
+  onToggle: () => void
+}) {
+  return (
+    <div className="flex items-center gap-3">
+      <ProductoSwitch active={producto.activo} onChange={onToggle} />
+      <span
+        className={
+          producto.activo ? 'badge-green shrink-0' : 'shrink-0 text-xs text-text-muted'
+        }
+      >
+        {producto.activo ? 'Activo' : 'Inactivo'}
+      </span>
+    </div>
+  )
+}
+
+function ProductoPrecio({
+  producto,
+  editingPrecioId,
+  precioDraft,
+  onStartEdit,
+  onDraftChange,
+  onSave,
+  onCancel,
+  inputClassName = 'select-field w-28 tabular-nums',
+}: {
+  producto: Producto
+  editingPrecioId: string | null
+  precioDraft: string
+  onStartEdit: () => void
+  onDraftChange: (value: string) => void
+  onSave: () => void
+  onCancel: () => void
+  inputClassName?: string
+}) {
+  if (editingPrecioId === producto.id) {
+    return (
+      <input
+        type="number"
+        min={0}
+        step={1}
+        autoFocus
+        value={precioDraft}
+        onChange={(e) => onDraftChange(e.target.value)}
+        onBlur={onSave}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') {
+            e.preventDefault()
+            onSave()
+          }
+          if (e.key === 'Escape') onCancel()
+        }}
+        className={inputClassName}
+      />
+    )
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={onStartEdit}
+      className="font-medium text-accent-cyan underline-offset-2 hover:underline tabular-nums"
+      title="Click para editar precio"
+    >
+      {formatPesos(producto.precio)}
+    </button>
+  )
+}
+
 export function GestionProductos() {
   const [productos, setProductos] = useState<Producto[]>([])
   const [loading, setLoading] = useState(true)
@@ -174,6 +269,11 @@ export function GestionProductos() {
     cargarProductos()
   }
 
+  function iniciarEdicionPrecio(p: Producto) {
+    setEditingPrecioId(p.id)
+    setPrecioDraft(String(p.precio))
+  }
+
   async function toggleActivo(p: Producto) {
     const toastId = toastLoading('Actualizando estado...')
     const res = await fetch(`/api/productos/${p.id}`, {
@@ -229,13 +329,13 @@ export function GestionProductos() {
 
   return (
     <motion.div
-      className="flex flex-col gap-6"
+      className="flex min-w-0 flex-col gap-5 sm:gap-6"
       variants={fadeUp}
       initial="hidden"
       animate="visible"
     >
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="relative max-w-md flex-1">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="relative w-full min-w-0 sm:max-w-md sm:flex-1">
           <Search
             size={18}
             className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-text-muted"
@@ -246,31 +346,37 @@ export function GestionProductos() {
             placeholder="Buscar por nombre..."
             value={busqueda}
             onChange={(e) => setBusqueda(e.target.value)}
-            className="select-field select-field--with-icon w-full"
+            className="select-field select-field--with-icon w-full min-w-0"
           />
         </div>
-        <Button type="button" onClick={abrirNuevo} className="shrink-0">
+        <Button
+          type="button"
+          onClick={abrirNuevo}
+          className="w-full shrink-0 sm:w-auto"
+        >
           <Plus size={18} className="mr-2" aria-hidden />
           Nuevo producto
         </Button>
       </div>
 
       {opcionesOnzas.length > 1 && (
-        <div className="flex flex-wrap gap-2">
-          {opcionesOnzas.map((oz) => (
-            <button
-              key={String(oz)}
-              type="button"
-              onClick={() => setFiltroOnzas(oz)}
-              className={
-                filtroOnzas === oz
-                  ? 'filter-pill filter-pill-active'
-                  : 'filter-pill filter-pill-inactive'
-              }
-            >
-              {oz === 'todos' ? 'Todos' : `${oz}oz`}
-            </button>
-          ))}
+        <div className="-mx-1 overflow-x-auto px-1 pb-0.5">
+          <div className="flex w-max min-w-full flex-nowrap gap-2 sm:w-auto sm:flex-wrap">
+            {opcionesOnzas.map((oz) => (
+              <button
+                key={String(oz)}
+                type="button"
+                onClick={() => setFiltroOnzas(oz)}
+                className={
+                  filtroOnzas === oz
+                    ? 'filter-pill filter-pill-active shrink-0'
+                    : 'filter-pill filter-pill-inactive shrink-0'
+                }
+              >
+                {oz === 'todos' ? 'Todos' : `${oz}oz`}
+              </button>
+            ))}
+          </div>
         </div>
       )}
 
@@ -279,89 +385,107 @@ export function GestionProductos() {
       ) : filtrados.length === 0 ? (
         <p className="text-sm text-text-muted">No hay productos que mostrar.</p>
       ) : (
-        <div className="table-surface overflow-x-auto">
-          <table className="w-full text-left text-sm">
-            <thead>
-              <tr>
-                <th className="px-4 py-3">Nombre</th>
-                <th className="px-4 py-3">Onzas</th>
-                <th className="px-4 py-3">Precio</th>
-                <th className="px-4 py-3">Estado</th>
-                <th className="px-4 py-3 text-right">Acción</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filtrados.map((p) => (
-                <tr key={p.id} className="border-t border-bg-border">
-                  <td className="px-4 py-3 font-medium text-text-primary">
-                    {p.nombre}
-                  </td>
-                  <td className="px-4 py-3 text-text-secondary">{p.onzas} oz</td>
-                  <td className="px-4 py-3">
-                    {editingPrecioId === p.id ? (
-                      <input
-                        type="number"
-                        min={0}
-                        step={1}
-                        autoFocus
-                        value={precioDraft}
-                        onChange={(e) => setPrecioDraft(e.target.value)}
-                        onBlur={() => guardarPrecioInline(p.id)}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') {
-                            e.preventDefault()
-                            guardarPrecioInline(p.id)
-                          }
-                          if (e.key === 'Escape') setEditingPrecioId(null)
-                        }}
-                        className="select-field w-28 tabular-nums"
-                      />
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setEditingPrecioId(p.id)
-                          setPrecioDraft(String(p.precio))
-                        }}
-                        className="font-medium text-accent-cyan underline-offset-2 hover:underline"
-                        title="Click para editar precio"
-                      >
-                        {formatPesos(p.precio)}
-                      </button>
-                    )}
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-3">
-                      <ProductoSwitch
-                        active={p.activo}
-                        onChange={() => toggleActivo(p)}
-                      />
-                      <span
-                        className={
-                          p.activo ? 'badge-green' : 'text-xs text-text-muted'
-                        }
-                      >
-                        {p.activo ? 'Activo' : 'Inactivo'}
+        <>
+          {/* Vista móvil: tarjetas */}
+          <ul className="flex flex-col gap-3 md:hidden">
+            {filtrados.map((p) => (
+              <li
+                key={p.id}
+                className="overflow-hidden rounded-[var(--radius-lg)] border border-bg-border bg-bg-surface"
+              >
+                <div className="p-4">
+                  <div className="flex items-start gap-2">
+                    <div className="min-w-0 flex-1">
+                      <p className="font-medium leading-snug text-text-primary">
+                        {p.nombre}
+                      </p>
+                      <span className="badge-cyan mt-1.5 inline-block tabular-nums">
+                        {p.onzas} oz
                       </span>
                     </div>
-                  </td>
-                  <td className="px-4 py-3 text-right">
-                    <button
-                      type="button"
-                      data-menu-accion
-                      aria-label="Acciones del producto"
-                      aria-expanded={isOpen(p.id)}
+                    <BotonMenuProducto
+                      abierto={isOpen(p.id)}
                       onClick={(e) => toggle(p.id, e)}
-                      className="focus-ring-cyan rounded-[var(--radius-md)] p-2 text-text-secondary hover:bg-bg-elevated hover:text-text-primary"
-                    >
-                      <MoreHorizontal size={16} />
-                    </button>
-                  </td>
+                    />
+                  </div>
+
+                  <div className="mt-4 space-y-3 border-t border-bg-border pt-4">
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="text-sm text-text-muted">Precio</span>
+                      <ProductoPrecio
+                        producto={p}
+                        editingPrecioId={editingPrecioId}
+                        precioDraft={precioDraft}
+                        onStartEdit={() => iniciarEdicionPrecio(p)}
+                        onDraftChange={setPrecioDraft}
+                        onSave={() => guardarPrecioInline(p.id)}
+                        onCancel={() => setEditingPrecioId(null)}
+                        inputClassName="select-field w-full max-w-[10rem] tabular-nums sm:max-w-none sm:w-28"
+                      />
+                    </div>
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="text-sm text-text-muted">Estado</span>
+                      <ProductoEstado
+                        producto={p}
+                        onToggle={() => toggleActivo(p)}
+                      />
+                    </div>
+                  </div>
+                </div>
+              </li>
+            ))}
+          </ul>
+
+          {/* Vista escritorio: tabla */}
+          <div className="table-surface hidden overflow-x-auto md:block">
+            <table className="w-full min-w-[32rem] text-left text-sm">
+              <thead>
+                <tr>
+                  <th className="px-4 py-3">Nombre</th>
+                  <th className="px-4 py-3">Onzas</th>
+                  <th className="px-4 py-3">Precio</th>
+                  <th className="px-4 py-3">Estado</th>
+                  <th className="px-4 py-3 text-right">Acción</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {filtrados.map((p) => (
+                  <tr key={p.id} className="border-t border-bg-border">
+                    <td className="px-4 py-3 font-medium text-text-primary">
+                      {p.nombre}
+                    </td>
+                    <td className="px-4 py-3 text-text-secondary tabular-nums">
+                      {p.onzas} oz
+                    </td>
+                    <td className="px-4 py-3">
+                      <ProductoPrecio
+                        producto={p}
+                        editingPrecioId={editingPrecioId}
+                        precioDraft={precioDraft}
+                        onStartEdit={() => iniciarEdicionPrecio(p)}
+                        onDraftChange={setPrecioDraft}
+                        onSave={() => guardarPrecioInline(p.id)}
+                        onCancel={() => setEditingPrecioId(null)}
+                      />
+                    </td>
+                    <td className="px-4 py-3">
+                      <ProductoEstado
+                        producto={p}
+                        onToggle={() => toggleActivo(p)}
+                      />
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      <BotonMenuProducto
+                        abierto={isOpen(p.id)}
+                        onClick={(e) => toggle(p.id, e)}
+                      />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
       )}
 
       <MenuAccionesPortal

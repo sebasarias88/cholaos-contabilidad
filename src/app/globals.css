@@ -124,6 +124,15 @@ html.lenis body {
   overscroll-behavior: contain;
 }
 
+/* Scroll táctil en modales / sheets (Lenis no captura el gesto) */
+.scroll-touch {
+  overflow-y: scroll;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
+  overscroll-behavior: contain;
+}
+
 body {
   background: var(--bg-base);
   color: var(--text-primary);
@@ -236,9 +245,9 @@ body {
   box-shadow: 0 0 0 2px var(--bg-base), 0 0 0 4px var(--accent-cyan);
 }
 
-/* Icono de búsqueda a la izquierda (pl-10 de Tailwind no aplica por el padding shorthand arriba) */
-.select-field--with-icon {
-  padding-left: 2.5rem;
+/* Icono de búsqueda a la izquierda (padding shorthand de .select-field anula pl-* de Tailwind) */
+.select-field.select-field--with-icon {
+  padding: 0.5rem 0.75rem 0.5rem 2.75rem;
 }
 
 /* Pills de filtro (reportes) */

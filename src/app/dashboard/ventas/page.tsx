@@ -8,7 +8,7 @@ export default async function VentasPage() {
   await requireAuth()
 
   return (
-    <div className="p-6">
+    <div className="min-w-0 p-4 sm:p-6">
       <FormVenta />
     </div>
   )

@@ -133,7 +133,7 @@ export function DashboardResumen({ rol }: DashboardResumenProps) {
           variants={staggerContainer}
         >
           {Array.from({ length: 4 }).map((_, i) => (
-            <motion.div key={i} variants={fadeUp}>
+            <motion.div key={i} variants={fadeUp} className="h-full">
               <SkeletonStat />
             </motion.div>
           ))}
@@ -144,18 +144,24 @@ export function DashboardResumen({ rol }: DashboardResumenProps) {
           variants={staggerContainer}
         >
           {stats.map((stat) => (
-            <motion.div key={stat.title} variants={fadeUp}>
-              <Card title={stat.title} glow={stat.glow}>
+            <motion.div key={stat.title} variants={fadeUp} className="h-full">
+              <Card title={stat.title} glow={stat.glow} fillHeight>
                 <p
-                  className={`font-display text-2xl font-bold ${stat.className}`}
+                  className={`font-display text-2xl font-bold tabular-nums ${stat.className}`}
                 >
                   {stat.value}
                 </p>
-                {stat.description && (
-                  <p className="mt-1 text-sm capitalize text-text-secondary">
-                    {stat.description}
-                  </p>
-                )}
+                <p
+                  className={[
+                    'mt-1 min-h-5 text-sm capitalize text-text-secondary',
+                    !stat.description && 'invisible',
+                  ]
+                    .filter(Boolean)
+                    .join(' ')}
+                  aria-hidden={!stat.description}
+                >
+                  {stat.description ?? '—'}
+                </p>
               </Card>
             </motion.div>
           ))}

@@ -72,6 +72,84 @@ function agruparProductos(ventas: Venta[]): ProductoVendido[] {
   return Array.from(map.values()).sort((a, b) => b.cantidad - a.cantidad)
 }
 
+function ProductosVendidosLista({
+  productos,
+}: {
+  productos: ProductoVendido[]
+}) {
+  return (
+    <>
+      {/* Vista móvil: tarjetas */}
+      <ul className="flex flex-col gap-3 md:hidden">
+        {productos.map((p, i) => (
+          <li
+            key={p.producto_id}
+            className="overflow-hidden rounded-[var(--radius-lg)] border border-bg-border bg-bg-surface"
+          >
+            <div className="p-4">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0 flex-1">
+                  <span className="text-xs font-medium text-text-muted">
+                    #{i + 1}
+                  </span>
+                  <p className="mt-0.5 font-medium leading-snug text-text-primary">
+                    {p.nombre}
+                  </p>
+                  <span className="badge-cyan mt-1.5 inline-block tabular-nums">
+                    {p.onzas} oz
+                  </span>
+                </div>
+                <p className="shrink-0 text-base font-semibold text-accent-cyan tabular-nums">
+                  {formatPesos(p.ingresos)}
+                </p>
+              </div>
+              <div className="mt-3 flex items-center justify-between gap-3 border-t border-bg-border pt-3">
+                <span className="text-sm text-text-muted">Cantidad vendida</span>
+                <span className="badge-cyan tabular-nums">{p.cantidad}</span>
+              </div>
+            </div>
+          </li>
+        ))}
+      </ul>
+
+      {/* Vista escritorio: tabla */}
+      <div className="table-surface hidden overflow-x-auto md:block">
+        <table className="w-full min-w-[28rem] text-left text-sm">
+          <thead>
+            <tr>
+              <th className="px-4 py-3">Producto</th>
+              <th className="px-4 py-3">Onzas</th>
+              <th className="px-4 py-3">Cantidad</th>
+              <th className="px-4 py-3 text-right">Ingresos</th>
+            </tr>
+          </thead>
+          <tbody>
+            {productos.map((p, i) => (
+              <tr key={p.producto_id} className="border-t border-bg-border">
+                <td className="px-4 py-3">
+                  <span className="mr-2 text-text-muted">#{i + 1}</span>
+                  <span className="font-medium text-text-primary">
+                    {p.nombre}
+                  </span>
+                </td>
+                <td className="px-4 py-3 text-text-secondary tabular-nums">
+                  {p.onzas} oz
+                </td>
+                <td className="px-4 py-3">
+                  <span className="badge-cyan tabular-nums">{p.cantidad}</span>
+                </td>
+                <td className="px-4 py-3 text-right font-medium text-accent-cyan tabular-nums">
+                  {formatPesos(p.ingresos)}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </>
+  )
+}
+
 export function ReportesDashboard() {
   const [preset, setPreset] = useState<PeriodoPreset>('semana')
   const [customDesde, setCustomDesde] = useState('')
@@ -143,43 +221,47 @@ export function ReportesDashboard() {
 
   return (
     <motion.div
-      className="flex flex-col gap-6"
+      className="flex min-w-0 flex-col gap-5 sm:gap-6"
       variants={staggerContainer}
       initial="hidden"
       animate="visible"
     >
       <p className="text-sm text-text-secondary">{nombreNegocio}</p>
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex flex-wrap gap-2">
-          {PERIODOS.map((p) => (
+
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="-mx-1 min-w-0 flex-1 overflow-x-auto px-1 pb-0.5">
+          <div className="flex w-max min-w-full flex-nowrap gap-2 sm:w-auto sm:flex-wrap">
+            {PERIODOS.map((p) => (
+              <button
+                key={p.id}
+                type="button"
+                onClick={() => seleccionarPreset(p.id)}
+                className={
+                  preset === p.id
+                    ? 'filter-pill filter-pill-active shrink-0'
+                    : 'filter-pill filter-pill-inactive shrink-0'
+                }
+              >
+                {p.label}
+              </button>
+            ))}
             <button
-              key={p.id}
               type="button"
-              onClick={() => seleccionarPreset(p.id)}
+              onClick={() => seleccionarPreset('custom')}
               className={
-                preset === p.id
-                  ? 'filter-pill filter-pill-active'
-                  : 'filter-pill filter-pill-inactive'
+                preset === 'custom'
+                  ? 'filter-pill filter-pill-active shrink-0'
+                  : 'filter-pill filter-pill-inactive shrink-0'
               }
             >
-              {p.label}
+              Personalizado
             </button>
-          ))}
-          <button
-            type="button"
-            onClick={() => seleccionarPreset('custom')}
-            className={
-              preset === 'custom'
-                ? 'filter-pill filter-pill-active'
-                : 'filter-pill filter-pill-inactive'
-            }
-          >
-            Personalizado
-          </button>
+          </div>
         </div>
         <Button
           type="button"
           variant="secondary"
+          className="w-full shrink-0 sm:w-auto"
           onClick={() => toast('Exportar estará disponible pronto', { icon: '📄' })}
         >
           <Download size={18} className="mr-2" aria-hidden />
@@ -190,9 +272,9 @@ export function ReportesDashboard() {
       {preset === 'custom' && (
         <motion.div
           variants={fadeUp}
-          className="flex flex-wrap items-end gap-3 rounded-[var(--radius-lg)] border border-bg-border bg-bg-surface p-4"
+          className="grid gap-3 rounded-[var(--radius-lg)] border border-bg-border bg-bg-surface p-4 sm:grid-cols-2 sm:items-end"
         >
-          <div className="flex flex-col gap-1.5">
+          <div className="flex min-w-0 flex-col gap-1.5">
             <label htmlFor="rep-desde" className="text-sm text-text-secondary">
               Desde
             </label>
@@ -201,10 +283,10 @@ export function ReportesDashboard() {
               type="date"
               value={customDesde}
               onChange={(e) => setCustomDesde(e.target.value)}
-              className="select-field"
+              className="select-field w-full min-w-0"
             />
           </div>
-          <div className="flex flex-col gap-1.5">
+          <div className="flex min-w-0 flex-col gap-1.5">
             <label htmlFor="rep-hasta" className="text-sm text-text-secondary">
               Hasta
             </label>
@@ -214,7 +296,7 @@ export function ReportesDashboard() {
               value={customHasta}
               min={customDesde}
               onChange={(e) => setCustomHasta(e.target.value)}
-              className="select-field"
+              className="select-field w-full min-w-0"
             />
           </div>
         </motion.div>
@@ -222,35 +304,47 @@ export function ReportesDashboard() {
 
       {loading ? (
         <motion.div className="grid gap-4 sm:grid-cols-3" variants={staggerContainer}>
-          <SkeletonStat />
-          <SkeletonStat />
-          <SkeletonStat />
+          <motion.div variants={fadeUp} className="h-full">
+            <SkeletonStat />
+          </motion.div>
+          <motion.div variants={fadeUp} className="h-full">
+            <SkeletonStat />
+          </motion.div>
+          <motion.div variants={fadeUp} className="h-full">
+            <SkeletonStat />
+          </motion.div>
         </motion.div>
       ) : (
         <motion.div
           className="grid gap-4 sm:grid-cols-3"
           variants={staggerContainer}
         >
-          <motion.div variants={fadeUp}>
-            <Card title="Ingresos totales" glow>
-              <p className="font-display text-2xl font-bold text-accent-cyan">
+          <motion.div variants={fadeUp} className="h-full">
+            <Card title="Ingresos totales" glow fillHeight>
+              <p className="font-display text-xl font-bold text-accent-cyan tabular-nums sm:text-2xl">
                 {formatPesos(totalIngresos)}
               </p>
+              <p className="mt-1 min-h-5 text-xs text-text-muted invisible" aria-hidden>
+                —
+              </p>
             </Card>
           </motion.div>
-          <motion.div variants={fadeUp}>
-            <Card title="Total vasos">
-              <p className="font-display text-2xl font-bold text-accent-green">
+          <motion.div variants={fadeUp} className="h-full">
+            <Card title="Total vasos" fillHeight>
+              <p className="font-display text-xl font-bold text-accent-green tabular-nums sm:text-2xl">
                 {totalVasos}
               </p>
+              <p className="mt-1 min-h-5 text-xs text-text-muted invisible" aria-hidden>
+                —
+              </p>
             </Card>
           </motion.div>
-          <motion.div variants={fadeUp}>
-            <Card title="Promedio diario">
-              <p className="font-display text-2xl font-bold text-text-primary">
+          <motion.div variants={fadeUp} className="h-full">
+            <Card title="Promedio diario" fillHeight>
+              <p className="font-display text-xl font-bold text-text-primary tabular-nums sm:text-2xl">
                 {formatPesos(promedioDiario)}
               </p>
-              <p className="mt-1 text-xs text-text-muted">
+              <p className="mt-1 min-h-5 text-xs text-text-muted">
                 {diasPeriodo} día{diasPeriodo !== 1 ? 's' : ''} en el período
               </p>
             </Card>
@@ -258,24 +352,28 @@ export function ReportesDashboard() {
         </motion.div>
       )}
 
-      <motion.div variants={fadeUp} className="grid gap-6 lg:grid-cols-2">
+      <motion.div variants={fadeUp} className="grid min-w-0 gap-6 lg:grid-cols-2">
         <Card title="Ingresos por día">
           {loading ? (
-            <Skeleton className="h-[300px] w-full" />
+            <Skeleton className="h-[260px] w-full sm:h-[300px]" />
           ) : (
-            <GraficoIngresosLinea data={resumen} />
+            <div className="min-w-0 -mx-1 px-1 sm:mx-0 sm:px-0">
+              <GraficoIngresosLinea data={resumen} />
+            </div>
           )}
         </Card>
         <Card title="Vasos vendidos por día">
           {loading ? (
-            <Skeleton className="h-[300px] w-full" />
+            <Skeleton className="h-[260px] w-full sm:h-[300px]" />
           ) : (
-            <GraficoVasosBarras data={resumen} />
+            <div className="min-w-0 -mx-1 px-1 sm:mx-0 sm:px-0">
+              <GraficoVasosBarras data={resumen} />
+            </div>
           )}
         </Card>
       </motion.div>
 
-      <motion.div variants={fadeUp}>
+      <motion.div variants={fadeUp} className="min-w-0">
         <Card title="Productos más vendidos">
           {loading ? (
             <SkeletonTabla filas={5} />
@@ -284,39 +382,7 @@ export function ReportesDashboard() {
               Sin ventas en este período.
             </p>
           ) : (
-            <div className="table-surface overflow-x-auto">
-              <table className="w-full text-left text-sm">
-                <thead>
-                  <tr>
-                    <th className="px-4 py-3">Producto</th>
-                    <th className="px-4 py-3">Onzas</th>
-                    <th className="px-4 py-3">Cantidad</th>
-                    <th className="px-4 py-3 text-right">Ingresos</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {topProductos.map((p, i) => (
-                    <tr key={p.producto_id} className="border-t border-bg-border">
-                      <td className="px-4 py-3">
-                        <span className="mr-2 text-text-muted">#{i + 1}</span>
-                        <span className="font-medium text-text-primary">
-                          {p.nombre}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-text-secondary">
-                        {p.onzas} oz
-                      </td>
-                      <td className="px-4 py-3">
-                        <span className="badge-cyan">{p.cantidad}</span>
-                      </td>
-                      <td className="px-4 py-3 text-right font-medium text-accent-cyan">
-                        {formatPesos(p.ingresos)}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <ProductosVendidosLista productos={topProductos} />
           )}
         </Card>
       </motion.div>

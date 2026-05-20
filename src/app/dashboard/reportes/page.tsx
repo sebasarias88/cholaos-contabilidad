@@ -8,7 +8,7 @@ export default async function ReportesPage() {
   await requireAdmin()
 
   return (
-    <div className="p-6">
+    <div className="min-w-0 p-4 sm:p-6">
       <ReportesDashboard />
     </div>
   )

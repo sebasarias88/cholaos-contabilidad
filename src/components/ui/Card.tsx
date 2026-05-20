@@ -7,6 +7,8 @@ interface CardProps extends HTMLAttributes<HTMLDivElement> {
   footer?: ReactNode
   hover?: boolean
   glow?: boolean
+  /** Iguala altura en grids: la card ocupa 100% y el cuerpo crece */
+  fillHeight?: boolean
 }
 
 export function CardHeader({
@@ -63,6 +65,7 @@ export function Card({
   footer,
   hover = false,
   glow = false,
+  fillHeight = false,
   children,
   ...props
 }: CardProps) {
@@ -89,6 +92,7 @@ export function Card({
         'overflow-hidden rounded-[var(--radius-lg)] border border-bg-border bg-bg-surface transition-surface',
         hover && 'hover:border-accent-cyan/30',
         glow && 'shadow-glow-cyan',
+        fillHeight && 'flex h-full flex-col',
         !useCompoundSlots && !resolvedHeader && 'p-6',
         className,
       ]
@@ -104,7 +108,15 @@ export function Card({
       {useCompoundSlots ? (
         children
       ) : resolvedHeader ? (
-        <CardBody className="pt-4">{children}</CardBody>
+        <CardBody
+          className={
+            fillHeight
+              ? 'flex flex-1 flex-col pt-4'
+              : 'pt-4'
+          }
+        >
+          {children}
+        </CardBody>
       ) : (
         children
       )}

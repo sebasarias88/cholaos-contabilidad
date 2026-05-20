@@ -24,13 +24,155 @@ interface GestionEquipoProps {
   usuarioActualId: string
 }
 
-function ordenarEquipo(usuarios: Usuario[], actualId: string) {
+type FilaEquipo = Usuario & { esYo: boolean }
+
+function ordenarEquipo(usuarios: Usuario[], actualId: string): FilaEquipo[] {
   const admin = usuarios.find((u) => u.rol === 'admin')
   const empleados = usuarios
     .filter((u) => u.rol === 'empleado')
     .sort((a, b) => a.nombre.localeCompare(b.nombre))
   const lista = [...(admin ? [admin] : []), ...empleados]
   return lista.map((u) => ({ ...u, esYo: u.id === actualId }))
+}
+
+function EstadoUsuario({ activo }: { activo: boolean }) {
+  if (activo) {
+    return (
+      <span className="inline-flex items-center gap-1.5 text-sm">
+        <Check size={14} className="shrink-0 text-accent-green" />
+        <span className="text-accent-green">Activo</span>
+      </span>
+    )
+  }
+
+  return (
+    <span className="inline-flex items-center gap-1.5 text-sm">
+      <X size={14} className="shrink-0 text-accent-red" />
+      <span className="text-accent-red">Inactivo</span>
+    </span>
+  )
+}
+
+function BotonMenuEquipo({
+  abierto,
+  onClick,
+}: {
+  abierto: boolean
+  onClick: (e: React.MouseEvent<HTMLButtonElement>) => void
+}) {
+  return (
+    <button
+      type="button"
+      data-menu-accion
+      aria-label="Acciones"
+      aria-expanded={abierto}
+      onClick={onClick}
+      className="focus-ring-cyan inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-[var(--radius-md)] text-text-secondary hover:bg-bg-elevated hover:text-text-primary"
+    >
+      <MoreHorizontal size={20} />
+    </button>
+  )
+}
+
+function EquipoLista({
+  filas,
+  menuAbierto,
+  onToggleMenu,
+}: {
+  filas: FilaEquipo[]
+  menuAbierto: string | null
+  onToggleMenu: (u: FilaEquipo, e: React.MouseEvent<HTMLButtonElement>) => void
+}) {
+  if (filas.length === 0) {
+    return (
+      <p className="py-8 text-center text-sm text-text-muted">
+        No hay usuarios en el equipo
+      </p>
+    )
+  }
+
+  return (
+    <>
+      {/* Vista móvil: tarjetas */}
+      <ul className="flex flex-col gap-3 md:hidden">
+        {filas.map((u) => (
+          <li
+            key={u.id}
+            className="overflow-hidden rounded-[var(--radius-lg)] border border-bg-border bg-bg-surface"
+          >
+            <div className="flex items-start gap-2 p-4">
+              <div className="min-w-0 flex-1">
+                <p className="font-medium leading-snug text-text-primary">
+                  {u.nombre}
+                  {u.esYo && (
+                    <span className="ml-1.5 text-xs font-normal text-text-muted">
+                      (tú)
+                    </span>
+                  )}
+                </p>
+                <div className="mt-2 flex flex-wrap items-center gap-2">
+                  <Badge variant={u.rol === 'admin' ? 'admin' : 'empleado'}>
+                    {u.rol === 'admin' ? 'Admin' : 'Empleado'}
+                  </Badge>
+                  <EstadoUsuario activo={u.activo} />
+                </div>
+              </div>
+              {u.rol === 'empleado' && (
+                <BotonMenuEquipo
+                  abierto={menuAbierto === u.id}
+                  onClick={(e) => onToggleMenu(u, e)}
+                />
+              )}
+            </div>
+          </li>
+        ))}
+      </ul>
+
+      {/* Vista escritorio: tabla */}
+      <div className="table-surface hidden overflow-x-auto md:block">
+        <table className="w-full min-w-[28rem] text-left text-sm">
+          <thead>
+            <tr>
+              <th className="px-4 py-3">Nombre</th>
+              <th className="px-4 py-3">Rol</th>
+              <th className="px-4 py-3">Estado</th>
+              <th className="px-4 py-3 text-right">Acción</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filas.map((u) => (
+              <tr key={u.id} className="border-t border-bg-border">
+                <td className="px-4 py-3 font-medium text-text-primary">
+                  {u.nombre}
+                  {u.esYo && (
+                    <span className="ml-2 text-xs font-normal text-text-muted">
+                      (tú)
+                    </span>
+                  )}
+                </td>
+                <td className="px-4 py-3">
+                  <Badge variant={u.rol === 'admin' ? 'admin' : 'empleado'}>
+                    {u.rol === 'admin' ? 'Admin' : 'Empleado'}
+                  </Badge>
+                </td>
+                <td className="px-4 py-3">
+                  <EstadoUsuario activo={u.activo} />
+                </td>
+                <td className="px-4 py-3 text-right">
+                  {u.rol === 'empleado' && (
+                    <BotonMenuEquipo
+                      abierto={menuAbierto === u.id}
+                      onClick={(e) => onToggleMenu(u, e)}
+                    />
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </>
+  )
 }
 
 export function GestionEquipo({ usuarioActualId }: GestionEquipoProps) {
@@ -95,7 +237,7 @@ export function GestionEquipo({ usuarioActualId }: GestionEquipoProps) {
   }, [menuAbierto])
 
   function toggleMenuEmpleado(
-    u: Usuario,
+    u: FilaEquipo,
     e: React.MouseEvent<HTMLButtonElement>
   ) {
     if (menuAbierto === u.id) {
@@ -215,10 +357,20 @@ export function GestionEquipo({ usuarioActualId }: GestionEquipoProps) {
   )
 
   return (
-    <motion.div variants={fadeUp} initial="hidden" animate="visible" className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
+    <motion.div
+      variants={fadeUp}
+      initial="hidden"
+      animate="visible"
+      className="min-w-0 space-y-4"
+    >
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h2 className="font-display text-lg text-text-primary">Equipo</h2>
-        <Button type="button" onClick={abrirNuevo} size="sm">
+        <Button
+          type="button"
+          onClick={abrirNuevo}
+          size="sm"
+          className="w-full shrink-0 sm:w-auto"
+        >
           <Plus size={16} />
           Nuevo empleado
         </Button>
@@ -227,73 +379,11 @@ export function GestionEquipo({ usuarioActualId }: GestionEquipoProps) {
       {loading ? (
         <SkeletonTabla filas={4} />
       ) : (
-        <div className="table-surface overflow-x-auto">
-          <table className="w-full text-left text-sm">
-            <thead>
-              <tr>
-                <th className="px-4 py-3">Nombre</th>
-                <th className="px-4 py-3">Rol</th>
-                <th className="px-4 py-3">Estado</th>
-                <th className="px-4 py-3 text-right">Acción</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filas.map((u) => (
-                <tr key={u.id} className="border-t border-bg-border">
-                  <td className="px-4 py-3 font-medium text-text-primary">
-                    {u.nombre}
-                    {u.esYo && (
-                      <span className="ml-2 text-xs font-normal text-text-muted">
-                        (tú)
-                      </span>
-                    )}
-                  </td>
-                  <td className="px-4 py-3">
-                    <Badge variant={u.rol === 'admin' ? 'admin' : 'empleado'}>
-                      {u.rol === 'admin' ? 'Admin' : 'Empleado'}
-                    </Badge>
-                  </td>
-                  <td className="px-4 py-3">
-                    <span className="inline-flex items-center gap-1.5">
-                      {u.activo ? (
-                        <>
-                          <Check size={14} className="text-accent-green" />
-                          <span className="text-accent-green">Activo</span>
-                        </>
-                      ) : (
-                        <>
-                          <X size={14} className="text-accent-red" />
-                          <span className="text-accent-red">Inactivo</span>
-                        </>
-                      )}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-right">
-                    {u.rol === 'empleado' && (
-                      <button
-                        type="button"
-                        data-menu-accion
-                        aria-label="Acciones"
-                        aria-expanded={menuAbierto === u.id}
-                        onClick={(e) => toggleMenuEmpleado(u, e)}
-                        className="focus-ring-cyan rounded-[var(--radius-md)] p-2 text-text-secondary hover:bg-bg-elevated hover:text-text-primary"
-                      >
-                        <MoreHorizontal size={16} />
-                      </button>
-                    )}
-                  </td>
-                </tr>
-              ))}
-              {filas.length === 0 && (
-                <tr>
-                  <td colSpan={4} className="px-4 py-8 text-center text-text-muted">
-                    No hay usuarios en el equipo
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+        <EquipoLista
+          filas={filas}
+          menuAbierto={menuAbierto}
+          onToggleMenu={toggleMenuEmpleado}
+        />
       )}
 
       <Modal
@@ -323,44 +413,53 @@ export function GestionEquipo({ usuarioActualId }: GestionEquipoProps) {
             <label className="text-sm text-text-secondary">
               Contraseña inicial
             </label>
-            <div className="flex gap-2">
+            <div className="flex flex-col gap-2 sm:flex-row">
               <input
                 type="text"
                 readOnly
                 value={password}
-                className="input flex-1 font-mono text-sm"
+                className="input min-w-0 flex-1 font-mono text-sm"
               />
-              <Button
-                type="button"
-                variant="secondary"
-                onClick={copiarPasswordModal}
-                aria-label="Copiar contraseña"
-                title="Copiar contraseña"
-              >
-                <Copy size={16} />
-              </Button>
-              <Button
-                type="button"
-                variant="secondary"
-                onClick={() => setPassword(generarPassword())}
-                aria-label="Generar nueva contraseña"
-                title="Generar nueva"
-              >
-                <RefreshCw size={16} />
-              </Button>
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={copiarPasswordModal}
+                  aria-label="Copiar contraseña"
+                  title="Copiar contraseña"
+                  className="flex-1 sm:flex-none"
+                >
+                  <Copy size={16} />
+                </Button>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={() => setPassword(generarPassword())}
+                  aria-label="Generar nueva contraseña"
+                  title="Generar nueva"
+                  className="flex-1 sm:flex-none"
+                >
+                  <RefreshCw size={16} />
+                </Button>
+              </div>
             </div>
             <p className="text-xs text-text-muted">Mínimo 8 caracteres</p>
           </div>
-          <div className="flex justify-end gap-2 pt-2">
+          <div className="flex flex-col-reverse gap-2 pt-2 sm:flex-row sm:justify-end">
             <Button
               type="button"
               variant="secondary"
               onClick={() => setModalNuevo(false)}
               disabled={guardando}
+              className="w-full sm:w-auto"
             >
               Cancelar
             </Button>
-            <Button type="submit" disabled={guardando}>
+            <Button
+              type="submit"
+              disabled={guardando}
+              className="w-full sm:w-auto"
+            >
               {guardando ? 'Creando...' : 'Crear empleado'}
             </Button>
           </div>

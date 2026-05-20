@@ -33,7 +33,7 @@ export function ConfiguracionPanel({ usuario: usuarioInicial, email }: Configura
       variants={staggerContainer}
       initial="hidden"
       animate="visible"
-      className="space-y-6"
+      className="min-w-0 space-y-6"
     >
       <motion.div variants={fadeUp} className="flex items-center gap-3">
         <Settings size={20} className="text-accent-cyan" />

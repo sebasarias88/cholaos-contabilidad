@@ -30,7 +30,7 @@ export function SkeletonTabla({ filas = 5 }: { filas?: number }) {
 // Skeleton de card de stat
 export function SkeletonStat() {
   return (
-    <div className="space-y-3 rounded-[var(--radius-lg)] border border-bg-border bg-bg-surface p-5">
+    <div className="flex h-full min-h-[7.5rem] flex-col space-y-3 rounded-[var(--radius-lg)] border border-bg-border bg-bg-surface p-5">
       <Skeleton className="h-4 w-24" />
       <Skeleton className="h-8 w-36" />
       <Skeleton className="h-3 w-20" />
