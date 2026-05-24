@@ -1,58 +1,88 @@
 import type { LucideIcon } from 'lucide-react'
 import {
-  BarChart3,
+  BarChart2,
+  BookOpen,
+  ClipboardCheck,
   History,
   LayoutDashboard,
   Package,
   Settings,
-  ShoppingCart,
 } from 'lucide-react'
+import type { Rol } from '@/types'
 
 export type NavLinkConfig = {
   href: string
   label: string
   icon: LucideIcon
-  adminOnly?: boolean
-  /** Solo coincide con la ruta exacta (evita conflicto ventas / historial) */
+  roles: Rol[]
+  /** Solo coincide con la ruta exacta (evita conflicto cierre / historial) */
   exact?: boolean
 }
 
 export const NAV_LINKS: NavLinkConfig[] = [
-  { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, exact: true },
   {
-    href: '/dashboard/ventas',
-    label: 'Registrar Venta',
-    icon: ShoppingCart,
+    href: '/dashboard',
+    label: 'Dashboard',
+    icon: LayoutDashboard,
+    roles: ['admin'],
     exact: true,
   },
-  { href: '/dashboard/ventas/historial', label: 'Historial', icon: History },
+  {
+    href: '/dashboard/cierre',
+    label: 'Cierre del día',
+    icon: ClipboardCheck,
+    roles: ['admin', 'empleado'],
+    exact: true,
+  },
+  {
+    href: '/dashboard/historial',
+    label: 'Historial ventas',
+    icon: History,
+    roles: ['admin'],
+  },
+  {
+    href: '/dashboard/cierre/historial',
+    label: 'Historial cierres',
+    icon: BookOpen,
+    roles: ['admin'],
+    exact: true,
+  },
   {
     href: '/dashboard/productos',
     label: 'Productos',
     icon: Package,
-    adminOnly: true,
+    roles: ['admin'],
   },
   {
     href: '/dashboard/reportes',
     label: 'Reportes',
-    icon: BarChart3,
-    adminOnly: true,
+    icon: BarChart2,
+    roles: ['admin'],
   },
   {
     href: '/dashboard/configuracion',
     label: 'Configuración',
     icon: Settings,
-    adminOnly: true,
+    roles: ['admin'],
   },
 ]
 
 export const PAGE_TITLES: Record<string, string> = {
   '/dashboard': 'Dashboard',
-  '/dashboard/ventas': 'Registrar Venta',
-  '/dashboard/ventas/historial': 'Historial',
+  '/dashboard/cierre': 'Cierre del día',
+  '/dashboard/historial': 'Historial ventas',
+  '/dashboard/cierre/historial': 'Historial cierres',
   '/dashboard/productos': 'Productos',
   '/dashboard/reportes': 'Reportes',
   '/dashboard/configuracion': 'Configuración',
+}
+
+export function filterNavLinksForRol(
+  links: NavLinkConfig[],
+  rol: Rol | undefined
+): NavLinkConfig[] {
+  if (!rol) return []
+  return links.filter((item) => item.roles.includes(rol))
 }
 
 export function isNavActive(pathname: string, link: NavLinkConfig) {

@@ -39,11 +39,6 @@ export function SidebarNavItem({ link, pathname, onNavigate }: SidebarNavItemPro
       >
         <Icon size={20} aria-hidden />
         <span className="flex-1">{link.label}</span>
-        {link.adminOnly && (
-          <span className="badge-cyan text-[10px] uppercase tracking-wide">
-            Admin
-          </span>
-        )}
       </Link>
     </motion.div>
   )
