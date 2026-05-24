@@ -2,17 +2,21 @@
 
 import { useState } from 'react'
 import { motion } from 'framer-motion'
-import { Building2, Settings, User, Users } from 'lucide-react'
+import { Building2, GlassWater, Settings, Tags, User, Users } from 'lucide-react'
 import { ConfiguracionNegocio } from '@/components/configuracion/ConfiguracionNegocio'
 import { GestionEquipo } from '@/components/configuracion/GestionEquipo'
+import { GestionMotivosNovedad } from '@/components/configuracion/GestionMotivosNovedad'
+import { GestionTallasVasos } from '@/components/configuracion/GestionTallasVasos'
 import { MiCuenta } from '@/components/configuracion/MiCuenta'
 import { fadeUp, staggerContainer } from '@/lib/animations'
 import type { Usuario } from '@/types'
 
-type Tab = 'equipo' | 'cuenta' | 'negocio'
+type Tab = 'equipo' | 'vasos' | 'motivos' | 'cuenta' | 'negocio'
 
 const TABS: { id: Tab; label: string; icon: typeof Users }[] = [
   { id: 'equipo', label: 'Equipo', icon: Users },
+  { id: 'vasos', label: 'Vasos', icon: GlassWater },
+  { id: 'motivos', label: 'Motivos', icon: Tags },
   { id: 'cuenta', label: 'Mi cuenta', icon: User },
   { id: 'negocio', label: 'Negocio', icon: Building2 },
 ]
@@ -62,6 +66,8 @@ export function ConfiguracionPanel({ usuario: usuarioInicial, email }: Configura
       {tab === 'equipo' && (
         <GestionEquipo usuarioActualId={usuario.id} />
       )}
+      {tab === 'vasos' && <GestionTallasVasos />}
+      {tab === 'motivos' && <GestionMotivosNovedad />}
       {tab === 'cuenta' && (
         <MiCuenta
           usuario={usuario}

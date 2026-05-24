@@ -4,7 +4,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import { AnimatePresence, motion } from 'framer-motion'
 import { LogOut, Snowflake, X } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
-import { NAV_LINKS } from '@/lib/navigation'
+import { filterNavLinksForRol, NAV_LINKS } from '@/lib/navigation'
 import { getIniciales } from '@/lib/utils'
 import { toastSuccess } from '@/lib/toast'
 import { SidebarNavItem } from '@/components/layout/SidebarNavItem'
@@ -104,8 +104,7 @@ function SidebarPanel({
 export function Sidebar({ usuario, open, onClose }: SidebarProps) {
   const pathname = usePathname()
   const router = useRouter()
-  const esAdmin = usuario?.rol === 'admin'
-  const links = NAV_LINKS.filter((link) => !link.adminOnly || esAdmin)
+  const links = filterNavLinksForRol(NAV_LINKS, usuario?.rol)
 
   async function handleLogout() {
     const supabase = createClient()

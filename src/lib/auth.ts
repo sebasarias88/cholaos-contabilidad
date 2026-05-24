@@ -41,6 +41,6 @@ export async function requireAuth(): Promise<Usuario> {
 /** Rutas solo admin (productos, reportes, configuración) */
 export async function requireAdmin(): Promise<Usuario> {
   const usuario = await requireAuth()
-  if (usuario.rol !== 'admin') redirect('/dashboard')
+  if (usuario.rol !== 'admin') redirect('/dashboard/cierre')
   return usuario
 }

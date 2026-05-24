@@ -26,9 +26,18 @@
   --shadow-glow-cyan: 0 0 20px #00d4ff15;
   --shadow-glow-cyan-strong: 0 0 32px #00d4ff25;
 
+  /* Header del dashboard (sticky) — altura aprox. para paneles laterales */
+  --dashboard-header-h: 4.25rem;
+
   /* aliases para compatibilidad */
   --background: var(--bg-base);
   --foreground: var(--text-primary);
+}
+
+@media (min-width: 1024px) {
+  :root {
+    --dashboard-header-h: 5rem;
+  }
 }
 
 @theme inline {
@@ -231,6 +240,26 @@ body {
   padding: 0.125rem 0.5rem;
   font-size: 0.75rem;
   font-weight: 500;
+}
+
+/* Scroll sutil en paneles laterales */
+.scroll-thin {
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--bg-border) transparent;
+}
+
+.scroll-thin::-webkit-scrollbar {
+  width: 6px;
+}
+
+.scroll-thin::-webkit-scrollbar-thumb {
+  background: var(--bg-border);
+  border-radius: 3px;
+}
+
+.scroll-thin::-webkit-scrollbar-track {
+  background: transparent;
 }
 
 /* Select nativo */

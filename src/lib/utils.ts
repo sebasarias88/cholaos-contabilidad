@@ -1,6 +1,31 @@
 import { format, parseISO, startOfWeek, endOfWeek,
          startOfMonth, endOfMonth, subDays } from 'date-fns'
 import { es } from 'date-fns/locale'
+import type { TallaVaso, TipoVaso } from '@/types'
+
+const TIPOS_VASO_VALIDOS: TipoVaso[] = ['normal', 'ancho', 'angosto']
+
+export function esTipoVaso(val: unknown): val is TipoVaso {
+  return typeof val === 'string' && TIPOS_VASO_VALIDOS.includes(val as TipoVaso)
+}
+
+/** Ej: "14 oz (ancho)" — normal solo muestra onzas */
+export function formatTalla(
+  talla: Pick<TallaVaso, 'onzas' | 'tipo'> | { onzas: number; tipo?: TipoVaso }
+): string {
+  const tipo = talla.tipo ?? 'normal'
+  if (tipo === 'normal') return `${talla.onzas} oz`
+  return `${talla.onzas} oz (${tipo})`
+}
+
+export function etiquetaTipoVaso(tipo: TipoVaso): string {
+  const map: Record<TipoVaso, string> = {
+    normal: 'Normal',
+    ancho: 'Ancho',
+    angosto: 'Angosto',
+  }
+  return map[tipo]
+}
 
 export function formatPesos(valor: number): string {
   return new Intl.NumberFormat('es-CO', {
@@ -9,6 +34,18 @@ export function formatPesos(valor: number): string {
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
   }).format(valor)
+}
+
+/** Entero COP → texto para input con símbolo $ y separadores de miles */
+export function formatPesosInput(valor: number): string {
+  if (!valor) return ''
+  return formatPesos(valor)
+}
+
+/** Texto del input → entero COP (solo dígitos) */
+export function parsePesosInput(val: string): number {
+  const n = Number(String(val).replace(/\D/g, ''))
+  return Number.isFinite(n) ? Math.max(0, Math.floor(n)) : 0
 }
 
 export function formatFecha(fecha: string): string {
