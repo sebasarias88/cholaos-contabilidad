@@ -3,16 +3,17 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { format } from 'date-fns'
 import { motion } from 'framer-motion'
-import { Search } from 'lucide-react'
-import { CierrePanelSticky } from '@/components/cierre/CierrePanelSticky'
-import {
-  ConteoVasoCard,
-  type ConteoVasoValor,
-} from '@/components/cierre/ConteoVasoCard'
-import { ProductoVentaCard } from '@/components/cierre/ProductoVentaCard'
+import { CierreCajaShell } from '@/components/cierre/CierrePanelSticky'
+import type { ConteoProductoValor } from '@/components/cierre/ConteoComidaCard'
+import type { ConteoVasoValor } from '@/components/cierre/ConteoVasoCard'
+import { NovedadesDrawer } from '@/components/cierre/NovedadesDrawer'
+import { SeccionComida } from '@/components/cierre/SeccionComida'
+import { SeccionHeader } from '@/components/cierre/SeccionHeader'
+import { TablaProductos, TablaVasos } from '@/components/cierre/TablasConteo'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { useCuadre } from '@/hooks/useCuadre'
 import { fadeUp } from '@/lib/animations'
+import { tipoProducto } from '@/lib/productos-ui'
 import {
   calcularItemsVendidos,
   vendidosReales,
@@ -21,8 +22,9 @@ import { toastError, toastLoading, toastSuccess } from '@/lib/toast'
 import type {
   CierreDia,
   CierreDiaEmpleado,
+  ConteoProductoInput,
+  ConteoProductoPrellenado,
   ConteoVaso,
-  ConteoVasoPrellenado,
   EstadoCierre,
   GastoDia,
   GuardarCierrePayload,
@@ -33,13 +35,20 @@ import type {
   Rol,
   TallaVaso,
   TransferenciaDia,
+  VentaComidaInput,
+  VentaVarianteInput,
 } from '@/types'
 
 const HOY = format(new Date(), 'yyyy-MM-dd')
 
-type ConteoRow = ConteoVasoValor & {
+type ConteoVasoRow = ConteoVasoValor & {
   talla_id: string
   talla?: TallaVaso
+}
+
+type ConteoProductoRow = ConteoProductoValor & {
+  producto_id: string
+  producto: Producto
 }
 
 type LineaMonto = {
@@ -50,6 +59,55 @@ type LineaMonto = {
 
 function tempId() {
   return `tmp-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`
+}
+
+/** 0 del prellenado nuevo = aún sin registrar → null en UI */
+function vacíoSiCero(n: number): number | null {
+  return n === 0 ? null : n
+}
+
+function tallaDesdeProducto(producto: Producto, tallaId: string): TallaVaso {
+  if (producto.talla) return producto.talla
+  return {
+    id: tallaId,
+    onzas: producto.onzas ?? 0,
+    descripcion: producto.nombre,
+    tipo: 'normal',
+    activo: true,
+    created_at: producto.created_at,
+  }
+}
+
+function aplicarPrellenadoProductos(filas: ConteoProductoPrellenado[]) {
+  const vasos: ConteoVasoRow[] = []
+  const insumos: ConteoProductoRow[] = []
+
+  for (const c of filas) {
+    if (c.tipo === 'vaso') {
+      if (!c.talla_id) continue
+      vasos.push({
+        talla_id: c.talla_id,
+        talla: tallaDesdeProducto(c.producto, c.talla_id),
+        cantidad_inicio: c.cantidad_inicio,
+        cantidad_nuevos: vacíoSiCero(c.cantidad_nuevos),
+        cantidad_final: vacíoSiCero(c.cantidad_final),
+        novedades: c.novedades ?? [],
+      })
+      continue
+    }
+
+    if (c.tipo !== 'insumo') continue
+
+    insumos.push({
+      producto_id: c.producto_id,
+      producto: c.producto,
+      cantidad_inicio: c.cantidad_inicio,
+      cantidad_nuevos: vacíoSiCero(c.cantidad_nuevos),
+      cantidad_final: vacíoSiCero(c.cantidad_final),
+    })
+  }
+
+  return { vasos, insumos }
 }
 
 interface FormCierreDiaProps {
@@ -63,21 +121,26 @@ export function FormCierreDia({ rol }: FormCierreDiaProps) {
   const [cierreId, setCierreId] = useState<string | null>(null)
   const [estado, setEstado] = useState<EstadoCierre | null>(null)
 
-  const [conteoRows, setConteoRows] = useState<ConteoRow[]>([])
+  const [conteoVasos, setConteoVasos] = useState<ConteoVasoRow[]>([])
+  const [conteoInsumos, setConteoInsumos] = useState<ConteoProductoRow[]>([])
   const [motivos, setMotivos] = useState<MotivoNovedad[]>([])
   const [productos, setProductos] = useState<Producto[]>([])
-  const [busqueda, setBusqueda] = useState('')
+  const [ventasVariantes, setVentasVariantes] = useState<VentaVarianteInput[]>(
+    []
+  )
+  const [ventasComida, setVentasComida] = useState<VentaComidaInput[]>([])
 
   const [gastos, setGastos] = useState<LineaMonto[]>([])
   const [transferencias, setTransferencias] = useState<LineaMonto[]>([])
 
   const [dineroBase, setDineroBase] = useState(0)
   const [dineroFinal, setDineroFinal] = useState(0)
+  const [novedadesTallaId, setNovedadesTallaId] = useState<string | null>(null)
 
   const bloqueado = estado === 'cerrado'
 
   const aplicarCierre = useCallback(
-    (cierre: CierreDia | CierreDiaEmpleado) => {
+    (cierre: CierreDia | CierreDiaEmpleado, prods: Producto[]) => {
       setCierreId(cierre.id)
       setEstado(cierre.estado)
       setDineroBase(cierre.dinero_base_inicio)
@@ -96,20 +159,58 @@ export function FormCierreDia({ rol }: FormCierreDiaProps) {
           monto: t.monto,
         }))
       )
-      setConteoRows(
-        (cierre.conteo_vasos ?? []).map((c: ConteoVaso) => ({
-          talla_id: c.talla_id,
-          talla: c.talla,
-          cantidad_inicio: c.cantidad_inicio,
-          cantidad_nuevos: c.cantidad_nuevos,
-          cantidad_final: c.cantidad_final,
-          novedades: (c.novedades ?? []).map((n) => ({
-            motivo_id: n.motivo_id,
-            motivo_custom: n.motivo_custom,
-            cantidad: n.cantidad,
-          })),
+
+      setVentasVariantes(
+        (cierre.ventas_variantes ?? []).map((v) => ({
+          variante_id: v.variante_id,
+          cantidad: v.cantidad,
         }))
       )
+      setVentasComida(
+        (cierre.ventas_comida ?? []).map((v) => ({
+          producto_id: v.producto_id,
+          cantidad: v.cantidad,
+        }))
+      )
+
+      const vasos: ConteoVasoRow[] = []
+      const insumos: ConteoProductoRow[] = []
+
+      for (const c of cierre.conteo_vasos ?? []) {
+        const row = c as ConteoVaso
+        if (row.talla_id) {
+          vasos.push({
+            talla_id: row.talla_id,
+            talla: row.talla,
+            cantidad_inicio: row.cantidad_inicio,
+            cantidad_nuevos: row.cantidad_nuevos,
+            cantidad_final: row.cantidad_final,
+            novedades: (row.novedades ?? []).map((n) => ({
+              motivo_id: n.motivo_id,
+              motivo_custom: n.motivo_custom,
+              cantidad: n.cantidad,
+            })),
+          })
+          continue
+        }
+
+        if (!row.producto_id) continue
+        const producto =
+          row.producto ?? prods.find((p) => p.id === row.producto_id)
+        if (!producto) continue
+        if (tipoProducto(producto) !== 'insumo') continue
+
+        insumos.push({
+          producto_id: row.producto_id,
+          producto,
+          cantidad_inicio: row.cantidad_inicio,
+          cantidad_nuevos: row.cantidad_nuevos,
+          cantidad_final: row.cantidad_final,
+        })
+      }
+
+      setConteoVasos(vasos)
+      setConteoInsumos(insumos)
     },
     []
   )
@@ -143,19 +244,16 @@ export function FormCierreDia({ rol }: FormCierreDiaProps) {
         setMotivos(motivosData)
 
         if (pre.tipo === 'cierre_existente' && pre.cierre) {
-          aplicarCierre(pre.cierre)
+          aplicarCierre(pre.cierre, prods)
         } else if (pre.tipo === 'nuevo') {
           setDineroBase(pre.dinero_base_inicio ?? 0)
-          setConteoRows(
-            pre.conteo_vasos.map((c: ConteoVasoPrellenado) => ({
-              talla_id: c.talla_id,
-              talla: c.talla,
-              cantidad_inicio: c.cantidad_inicio,
-              cantidad_nuevos: c.cantidad_nuevos,
-              cantidad_final: c.cantidad_final,
-              novedades: c.novedades ?? [],
-            }))
+          const { vasos, insumos } = aplicarPrellenadoProductos(
+            pre.conteo_productos ?? []
           )
+          setConteoVasos(vasos)
+          setConteoInsumos(insumos)
+          setVentasVariantes([])
+          setVentasComida([])
         }
       } catch {
         toastError('Error cargando el cierre del día')
@@ -170,35 +268,78 @@ export function FormCierreDia({ rol }: FormCierreDiaProps) {
     }
   }, [aplicarCierre])
 
-  const productosFiltrados = useMemo(() => {
-    const q = busqueda.trim().toLowerCase()
-    return productos
-      .filter((p) => !q || p.nombre.toLowerCase().includes(q))
-      .sort((a, b) => {
-        const n = a.nombre.localeCompare(b.nombre)
-        return n !== 0 ? n : a.onzas - b.onzas
-      })
-  }, [productos, busqueda])
-
-  const itemsVendidos = useMemo(
-    () => calcularItemsVendidos(conteoRows, productos),
-    [conteoRows, productos]
+  const itemsVendidosVasos = useMemo(
+    () => calcularItemsVendidos(conteoVasos, productos),
+    [conteoVasos, productos]
   )
 
-  const cantidadesDesdeVasos = useMemo(() => {
-    const map: Record<string, number> = {}
-    for (const item of itemsVendidos) {
-      map[item.producto_id] = item.cantidad
-    }
-    return map
-  }, [itemsVendidos])
+  const itemsVendidos = useMemo(() => {
+    const variantes = ventasVariantes
+      .filter((v) => v.cantidad > 0)
+      .map((v) => {
+        const variante = productos
+          .flatMap((p) => p.variantes ?? [])
+          .find((va) => va.id === v.variante_id)
+        return {
+          cantidad: v.cantidad,
+          precio_unitario: variante?.precio ?? 0,
+        }
+      })
+    const comida = ventasComida
+      .filter((v) => v.cantidad > 0)
+      .map((v) => {
+        const producto = productos.find((p) => p.id === v.producto_id)
+        return {
+          cantidad: v.cantidad,
+          precio_unitario: producto?.precio ?? 0,
+        }
+      })
+    return [...itemsVendidosVasos, ...variantes, ...comida]
+  }, [itemsVendidosVasos, ventasVariantes, ventasComida, productos])
 
-  const productosConVenta = itemsVendidos.length
+  const totalVasosPesos = useMemo(
+    () =>
+      itemsVendidosVasos.reduce(
+        (s, i) => s + i.cantidad * i.precio_unitario,
+        0
+      ),
+    [itemsVendidosVasos]
+  )
 
   const totalVasosVendidos = useMemo(
-    () => conteoRows.reduce((s, r) => s + vendidosReales(r), 0),
-    [conteoRows]
+    () => conteoVasos.reduce((s, r) => s + vendidosReales(r), 0),
+    [conteoVasos]
   )
+
+  const productosComida = useMemo(
+    () =>
+      productos.filter(
+        (p) => p.activo && tipoProducto(p) === 'comida'
+      ),
+    [productos]
+  )
+
+  const productosPorTalla = useMemo(() => {
+    const map: Record<string, Producto | undefined> = {}
+    for (const p of productos) {
+      if (p.talla_id) map[p.talla_id] = p
+    }
+    return map
+  }, [productos])
+
+  const vasoNovedadesActivo = useMemo(
+    () => conteoVasos.find((r) => r.talla_id === novedadesTallaId) ?? null,
+    [conteoVasos, novedadesTallaId]
+  )
+
+  const tituloNovedades = useMemo(() => {
+    if (!vasoNovedadesActivo) return ''
+    const t = vasoNovedadesActivo.talla
+    const prod = productosPorTalla[vasoNovedadesActivo.talla_id]
+    const nombre = t?.descripcion ?? prod?.nombre
+    const oz = t ? `${t.onzas} oz` : ''
+    return nombre ? `${nombre}${oz ? ` · ${oz}` : ''}` : oz || 'Vaso'
+  }, [vasoNovedadesActivo, productosPorTalla])
 
   const cuadre = useCuadre({
     dineroBaseInicio: dineroBase,
@@ -209,16 +350,50 @@ export function FormCierreDia({ rol }: FormCierreDiaProps) {
     esAdmin,
   })
 
-  function updateConteo<K extends keyof ConteoVasoValor>(
+  function updateConteoVaso<K extends keyof ConteoVasoValor>(
     tallaId: string,
     campo: K,
     value: ConteoVasoValor[K]
   ) {
-    setConteoRows((rows) =>
+    setConteoVasos((rows) =>
+      rows.map((r) => (r.talla_id === tallaId ? { ...r, [campo]: value } : r))
+    )
+  }
+
+  function updateConteoInsumo<K extends keyof ConteoProductoValor>(
+    productoId: string,
+    campo: K,
+    value: ConteoProductoValor[K]
+  ) {
+    setConteoInsumos((rows) =>
       rows.map((r) =>
-        r.talla_id === tallaId ? { ...r, [campo]: value } : r
+        r.producto_id === productoId ? { ...r, [campo]: value } : r
       )
     )
+  }
+
+  function handleVarianteChange(varianteId: string, cantidad: number) {
+    setVentasVariantes((prev) => {
+      const existe = prev.find((v) => v.variante_id === varianteId)
+      if (existe) {
+        return prev.map((v) =>
+          v.variante_id === varianteId ? { ...v, cantidad } : v
+        )
+      }
+      return [...prev, { variante_id: varianteId, cantidad }]
+    })
+  }
+
+  function handleComidaChange(productoId: string, cantidad: number) {
+    setVentasComida((prev) => {
+      const existe = prev.find((v) => v.producto_id === productoId)
+      if (existe) {
+        return prev.map((v) =>
+          v.producto_id === productoId ? { ...v, cantidad } : v
+        )
+      }
+      return [...prev, { producto_id: productoId, cantidad }]
+    })
   }
 
   function agregarGasto(descripcion: string, monto: number) {
@@ -230,6 +405,30 @@ export function FormCierreDia({ rol }: FormCierreDiaProps) {
   }
 
   function buildPayload(): GuardarCierrePayload {
+    const vasos: ConteoProductoInput[] = conteoVasos.map((r) => {
+      const producto = productos.find(
+        (p) => p.activo && p.talla_id === r.talla_id
+      )
+      return {
+        tipo: 'vaso',
+        talla_id: r.talla_id,
+        producto_id: producto?.id,
+        cantidad_inicio: r.cantidad_inicio,
+        cantidad_nuevos: r.cantidad_nuevos ?? 0,
+        cantidad_final: r.cantidad_final ?? 0,
+        novedades: r.novedades,
+        precio_unitario: producto?.precio,
+      }
+    })
+
+    const insumos: ConteoProductoInput[] = conteoInsumos.map((r) => ({
+      tipo: 'insumo',
+      producto_id: r.producto_id,
+      cantidad_inicio: r.cantidad_inicio,
+      cantidad_nuevos: r.cantidad_nuevos ?? 0,
+      cantidad_final: r.cantidad_final ?? 0,
+    }))
+
     return {
       fecha: HOY,
       dinero_base_inicio: dineroBase,
@@ -239,14 +438,21 @@ export function FormCierreDia({ rol }: FormCierreDiaProps) {
         descripcion,
         monto,
       })),
-      conteo_vasos: conteoRows.map((r) => ({
-        talla_id: r.talla_id,
-        cantidad_inicio: r.cantidad_inicio,
-        cantidad_nuevos: r.cantidad_nuevos ?? 0,
-        cantidad_final: r.cantidad_final ?? 0,
-        novedades: r.novedades,
-      })),
-      items_vendidos: itemsVendidos,
+      conteo_productos: [...vasos, ...insumos],
+      ventas_variantes: ventasVariantes
+        .filter((v) => v.cantidad > 0)
+        .map((v) => {
+          const variante = productos
+            .flatMap((p) => p.variantes ?? [])
+            .find((va) => va.id === v.variante_id)
+          return { ...v, precio_unitario: variante?.precio ?? 0 }
+        }),
+      ventas_comida: ventasComida
+        .filter((v) => v.cantidad > 0)
+        .map((v) => {
+          const producto = productos.find((p) => p.id === v.producto_id)
+          return { ...v, precio_unitario: producto?.precio ?? 0 }
+        }),
     }
   }
 
@@ -281,162 +487,133 @@ export function FormCierreDia({ rol }: FormCierreDiaProps) {
       return
     }
 
-    setCierreId(data.cierre_id ?? null)
+    setCierreId(data.cierre_id ?? cierreId)
     setEstado('cerrado')
     toastSuccess('Día cerrado', toastId)
   }
 
   if (loading) {
     return (
-      <div className="space-y-4 px-4 py-4 md:px-6 md:py-5">
-        <Skeleton className="h-12 w-full" />
-        <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(300px,380px)]">
-          <div className="space-y-4">
-            <Skeleton className="h-32 w-full rounded-[var(--radius-lg)]" />
-            <Skeleton className="h-64 w-full rounded-[var(--radius-lg)]" />
-          </div>
-          <Skeleton className="h-96 w-full rounded-[var(--radius-lg)]" />
-        </div>
+      <div className="min-w-0 space-y-4 p-4 sm:p-6">
+        <Skeleton className="h-8 w-48" />
+        <Skeleton className="h-40 w-full rounded-[var(--radius-lg)]" />
+        <Skeleton className="h-56 w-full rounded-[var(--radius-lg)]" />
+        <Skeleton className="h-40 w-full rounded-[var(--radius-lg)]" />
       </div>
     )
   }
 
   return (
     <motion.div
-      className="flex min-w-0 w-full flex-col gap-4 px-4 py-4 md:px-6 md:py-5"
+      className="flex min-w-0 w-full flex-col gap-5 p-4 sm:p-6"
       variants={fadeUp}
       initial="hidden"
       animate="visible"
     >
-      <div className="grid min-w-0 gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(300px,380px)] lg:items-start">
-        {/* Columna izquierda: scroll de página (no panel atrapado) */}
-        <div className="flex min-w-0 flex-col gap-3">
-          <section className="space-y-2.5">
-            <div className="flex flex-wrap items-end justify-between gap-2">
-              <h2 className="font-display text-base font-semibold text-text-primary">
-                Conteo de vasos
-              </h2>
-              <div className="flex flex-wrap items-center gap-2">
-                {estado === 'cerrado' && (
-                  <span className="badge-green">Cerrado</span>
-                )}
-                {bloqueado && (
-                  <span className="text-xs text-text-muted">Sin edición</span>
-                )}
-                <p className="text-sm text-text-secondary">
-                  Total:{' '}
-                  <span className="font-medium text-accent-cyan tabular-nums">
-                    {totalVasosVendidos} vendidos
-                  </span>
-                </p>
-              </div>
-            </div>
-            <div className="space-y-2">
-              {conteoRows.map((row) => (
-                <ConteoVasoCard
-                  key={row.talla_id}
-                  talla={{
-                    id: row.talla_id,
-                    onzas: row.talla?.onzas ?? 0,
-                    descripcion: row.talla?.descripcion,
-                    tipo: row.talla?.tipo ?? 'normal',
-                  }}
-                  valor={row}
-                  motivos={motivos}
-                  disabled={bloqueado}
-                  compact
-                  onChange={(campo, valor) =>
-                    updateConteo(row.talla_id, campo, valor)
-                  }
-                />
-              ))}
-            </div>
-          </section>
-
-          <section className="space-y-2.5">
-            <div className="flex flex-wrap items-end justify-between gap-2">
-              <div>
-                <h2 className="font-display text-sm font-semibold text-text-primary lg:text-base">
-                  Productos vendidos
-                </h2>
-                <p className="text-xs text-text-muted">
-                  Calculado desde el conteo de vasos (solo lectura)
-                </p>
-              </div>
-              {productosConVenta > 0 && (
-                <span className="badge-cyan tabular-nums">
-                  {productosConVenta} producto{productosConVenta !== 1 ? 's' : ''}
-                </span>
-              )}
-            </div>
-            <div className="relative">
-              <Search
-                size={18}
-                className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-text-muted"
-                aria-hidden
-              />
-              <input
-                type="search"
-                placeholder="Buscar producto..."
-                value={busqueda}
-                onChange={(e) => setBusqueda(e.target.value)}
-                disabled={bloqueado}
-                className="select-field select-field--with-icon w-full min-w-0"
-              />
-            </div>
-            {productosFiltrados.length === 0 ? (
-              <p className="text-sm text-text-muted">
-                No hay productos que coincidan.
-              </p>
-            ) : itemsVendidos.length === 0 ? (
-              <p className="text-sm text-text-muted">
-                Registra el conteo de vasos arriba para calcular lo vendido.
-              </p>
-            ) : (
-              <div className="grid grid-cols-2 gap-2 lg:gap-2.5">
-                {productosFiltrados
-                  .filter((p) => (cantidadesDesdeVasos[p.id] ?? 0) > 0)
-                  .map((p) => (
-                    <ProductoVentaCard
-                      key={p.id}
-                      producto={p}
-                      cantidad={cantidadesDesdeVasos[p.id] ?? 0}
-                      disabled
-                      esAdmin={esAdmin}
-                      compact
-                      onChange={() => {}}
-                    />
-                  ))}
-              </div>
-            )}
-          </section>
-        </div>
-
-        {/* Panel derecho: sticky en desktop; scroll interno con Lenis desactivado */}
-        <div className="flex min-w-0 flex-col border-t border-bg-border pt-6 lg:border-t-0 lg:pt-0 lg:sticky lg:top-[var(--dashboard-header-h)] lg:h-[calc(100dvh-var(--dashboard-header-h))] lg:min-h-0 lg:self-start">
-          <CierrePanelSticky
-          bloqueado={bloqueado}
-          esAdmin={esAdmin}
-          guardando={guardando}
-          cuadre={cuadre}
-          dineroFinal={dineroFinal}
-          dineroBase={dineroBase}
-          gastos={gastos}
-          transferencias={transferencias}
-          onDineroBaseChange={setDineroBase}
-          onDineroFinalChange={setDineroFinal}
-          onRemoveGasto={(id) =>
-            setGastos((list) => list.filter((x) => x.id !== id))
-          }
-          onRemoveTransferencia={(id) =>
-            setTransferencias((list) => list.filter((x) => x.id !== id))
-          }
-          onAgregarGasto={agregarGasto}
-          onAgregarTransferencia={agregarTransferencia}
-          onCerrarDia={handleCerrarDia}
-        />
-        </div>
+      <div className="flex flex-wrap items-center gap-2">
+        {estado === 'cerrado' && <span className="badge-green">Cerrado</span>}
+        {bloqueado && (
+          <span className="text-xs text-text-muted">Sin edición</span>
+        )}
+        {totalVasosVendidos > 0 && (
+          <span className="text-xs text-text-secondary">
+            Vasos vendidos:{' '}
+            <span className="font-medium text-accent-cyan tabular-nums">
+              {totalVasosVendidos}
+            </span>
+          </span>
+        )}
       </div>
+
+      {/* Conteo a ancho completo — caja en barra + drawer */}
+      <div className="flex min-w-0 flex-col gap-6">
+        <section>
+          <SeccionHeader
+            emoji="🥤"
+            titulo="Vasos"
+            cantidad={conteoVasos.length}
+            totalVendido={totalVasosPesos}
+            esAdmin={esAdmin}
+          />
+          {conteoVasos.length === 0 ? (
+            <p className="text-sm text-text-muted">No hay productos vaso.</p>
+          ) : (
+            <TablaVasos
+              rows={conteoVasos}
+              esAdmin={esAdmin}
+              disabled={bloqueado}
+              productosPorTalla={productosPorTalla}
+              onChange={updateConteoVaso}
+              onAbrirNovedades={setNovedadesTallaId}
+            />
+          )}
+        </section>
+
+        <SeccionComida
+          productos={productosComida}
+          ventasVariantes={ventasVariantes}
+          ventasComida={ventasComida}
+          esAdmin={esAdmin}
+          disabled={bloqueado}
+          onVarianteChange={handleVarianteChange}
+          onComidaChange={handleComidaChange}
+        />
+
+        <section>
+          <SeccionHeader
+            emoji="🧂"
+            titulo="Insumos"
+            cantidad={conteoInsumos.length}
+            esAdmin={esAdmin}
+          />
+          {conteoInsumos.length === 0 ? (
+            <p className="text-sm text-text-muted">No hay insumos activos.</p>
+          ) : (
+            <TablaProductos
+              rows={conteoInsumos}
+              esAdmin={esAdmin}
+              disabled={bloqueado}
+              modo="insumo"
+              onChange={updateConteoInsumo}
+            />
+          )}
+        </section>
+      </div>
+
+      <CierreCajaShell
+        bloqueado={bloqueado}
+        esAdmin={esAdmin}
+        guardando={guardando}
+        cuadre={cuadre}
+        dineroFinal={dineroFinal}
+        dineroBase={dineroBase}
+        gastos={gastos}
+        transferencias={transferencias}
+        onDineroBaseChange={setDineroBase}
+        onDineroFinalChange={setDineroFinal}
+        onRemoveGasto={(id) =>
+          setGastos((list) => list.filter((x) => x.id !== id))
+        }
+        onRemoveTransferencia={(id) =>
+          setTransferencias((list) => list.filter((x) => x.id !== id))
+        }
+        onAgregarGasto={agregarGasto}
+        onAgregarTransferencia={agregarTransferencia}
+        onCerrarDia={handleCerrarDia}
+      />
+
+      <NovedadesDrawer
+        open={!!vasoNovedadesActivo}
+        titulo={tituloNovedades}
+        novedades={vasoNovedadesActivo?.novedades ?? []}
+        motivos={motivos}
+        disabled={bloqueado}
+        onClose={() => setNovedadesTallaId(null)}
+        onChange={(novedades) => {
+          if (!novedadesTallaId) return
+          updateConteoVaso(novedadesTallaId, 'novedades', novedades)
+        }}
+      />
     </motion.div>
   )
 }

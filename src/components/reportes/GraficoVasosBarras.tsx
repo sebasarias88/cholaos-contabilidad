@@ -31,18 +31,24 @@ export function GraficoVasosBarras({ data }: GraficoVasosBarrasProps) {
   }
 
   return (
-    <ResponsiveContainer width="100%" height={300}>
-      <BarChart data={data}>
+    <ResponsiveContainer width="100%" height="100%">
+      <BarChart
+        data={data}
+        margin={{ top: 8, right: 4, left: 0, bottom: 0 }}
+      >
         <CartesianGrid stroke="#1E2D45" strokeDasharray="3 3" vertical={false} />
         <XAxis
           dataKey="fecha"
           tickFormatter={tickFecha}
-          tick={{ fontSize: 12, fill: '#7A8BA3' }}
+          tick={{ fontSize: 10, fill: '#7A8BA3' }}
           axisLine={{ stroke: '#1E2D45' }}
           tickLine={false}
+          interval="preserveStartEnd"
+          minTickGap={28}
         />
         <YAxis
-          tick={{ fontSize: 12, fill: '#7A8BA3' }}
+          width={28}
+          tick={{ fontSize: 10, fill: '#7A8BA3' }}
           axisLine={false}
           tickLine={false}
           allowDecimals={false}

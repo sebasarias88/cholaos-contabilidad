@@ -192,6 +192,8 @@ export function GestionEquipo({ usuarioActualId }: GestionEquipoProps) {
   const [credenciales, setCredenciales] = useState<CredencialesEmpleado | null>(
     null
   )
+  const [eliminarId, setEliminarId] = useState<string | null>(null)
+  const [eliminando, setEliminando] = useState(false)
 
   const cargar = useCallback(() => {
     setLoading(true)
@@ -351,10 +353,52 @@ export function GestionEquipo({ usuarioActualId }: GestionEquipoProps) {
     cargar()
   }
 
+  function pedirEliminar(u: Usuario) {
+    if (u.rol === 'admin') {
+      toast.error('No se puede eliminar la cuenta del admin')
+      return
+    }
+    if (u.id === usuarioActualId) {
+      toast.error('No puedes eliminar tu propia cuenta')
+      return
+    }
+    setMenuAbierto(null)
+    setMenuPos(null)
+    setEliminarId(u.id)
+  }
+
+  async function confirmarEliminar() {
+    if (!eliminarId) return
+
+    setEliminando(true)
+    const toastId = toastLoading('Eliminando cuenta...')
+
+    try {
+      const res = await fetch(`/api/usuarios/${eliminarId}`, {
+        method: 'DELETE',
+      })
+      const data = await res.json().catch(() => ({}))
+
+      if (!res.ok) {
+        toastError(data.error ?? 'Error al eliminar', toastId)
+        return
+      }
+
+      toastSuccess('Cuenta eliminada', toastId)
+      setEliminarId(null)
+      cargar()
+    } catch {
+      toastError('Error al eliminar', toastId)
+    } finally {
+      setEliminando(false)
+    }
+  }
+
   const filas = ordenarEquipo(usuarios, usuarioActualId)
   const empleadoMenu = filas.find(
     (u) => u.id === menuAbierto && u.rol === 'empleado'
   )
+  const empleadoEliminar = filas.find((u) => u.id === eliminarId)
 
   return (
     <motion.div
@@ -479,7 +523,7 @@ export function GestionEquipo({ usuarioActualId }: GestionEquipoProps) {
           <div
             ref={menuRef}
             role="menu"
-            className="fixed z-[200] min-w-[10rem] rounded-[var(--radius-md)] border border-bg-border bg-bg-surface py-1 shadow-xl"
+            className="fixed z-[200] min-w-[11rem] rounded-[var(--radius-md)] border border-bg-border bg-bg-surface py-1 shadow-xl"
             style={{
               top: menuPos.top,
               left: menuPos.left,
@@ -490,7 +534,7 @@ export function GestionEquipo({ usuarioActualId }: GestionEquipoProps) {
               <button
                 type="button"
                 role="menuitem"
-                className="w-full px-3 py-2 text-left text-sm text-accent-red hover:bg-bg-elevated"
+                className="w-full px-3 py-2 text-left text-sm text-text-primary hover:bg-bg-elevated"
                 onClick={() => cambiarEstado(empleadoMenu, false)}
               >
                 Desactivar
@@ -505,9 +549,54 @@ export function GestionEquipo({ usuarioActualId }: GestionEquipoProps) {
                 Activar
               </button>
             )}
+            <div className="my-1 border-t border-bg-border" />
+            <button
+              type="button"
+              role="menuitem"
+              className="w-full px-3 py-2 text-left text-sm text-accent-red hover:bg-bg-elevated"
+              onClick={() => pedirEliminar(empleadoMenu)}
+            >
+              Eliminar
+            </button>
           </div>,
           document.body
         )}
+
+      <Modal
+        open={eliminarId !== null}
+        onClose={() => !eliminando && setEliminarId(null)}
+        title="Eliminar cuenta"
+      >
+        <p className="mb-6 text-sm text-text-secondary">
+          ¿Eliminar permanentemente la cuenta de{' '}
+          <span className="font-medium text-text-primary">
+            {empleadoEliminar?.nombre ?? 'este empleado'}
+          </span>
+          ? No podrá volver a iniciar sesión. Si tiene ventas o cierres, no se
+          podrá borrar (usa Desactivar en ese caso).
+        </p>
+        <div className="flex flex-col-reverse gap-2 sm:flex-row">
+          <Button
+            type="button"
+            variant="secondary"
+            className="flex-1"
+            disabled={eliminando}
+            onClick={() => setEliminarId(null)}
+          >
+            Cancelar
+          </Button>
+          <Button
+            type="button"
+            variant="danger"
+            className="flex-1"
+            loading={eliminando}
+            disabled={eliminando}
+            onClick={confirmarEliminar}
+          >
+            Eliminar
+          </Button>
+        </div>
+      </Modal>
     </motion.div>
   )
 }

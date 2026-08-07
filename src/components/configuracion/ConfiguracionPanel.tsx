@@ -2,8 +2,7 @@
 
 import { useState } from 'react'
 import { motion } from 'framer-motion'
-import { Building2, GlassWater, Settings, Tags, User, Users } from 'lucide-react'
-import { ConfiguracionNegocio } from '@/components/configuracion/ConfiguracionNegocio'
+import { GlassWater, Settings, Tags, User, Users } from 'lucide-react'
 import { GestionEquipo } from '@/components/configuracion/GestionEquipo'
 import { GestionMotivosNovedad } from '@/components/configuracion/GestionMotivosNovedad'
 import { GestionTallasVasos } from '@/components/configuracion/GestionTallasVasos'
@@ -11,14 +10,13 @@ import { MiCuenta } from '@/components/configuracion/MiCuenta'
 import { fadeUp, staggerContainer } from '@/lib/animations'
 import type { Usuario } from '@/types'
 
-type Tab = 'equipo' | 'vasos' | 'motivos' | 'cuenta' | 'negocio'
+type Tab = 'equipo' | 'vasos' | 'motivos' | 'cuenta'
 
 const TABS: { id: Tab; label: string; icon: typeof Users }[] = [
   { id: 'equipo', label: 'Equipo', icon: Users },
   { id: 'vasos', label: 'Vasos', icon: GlassWater },
   { id: 'motivos', label: 'Motivos', icon: Tags },
   { id: 'cuenta', label: 'Mi cuenta', icon: User },
-  { id: 'negocio', label: 'Negocio', icon: Building2 },
 ]
 
 interface ConfiguracionPanelProps {
@@ -75,7 +73,6 @@ export function ConfiguracionPanel({ usuario: usuarioInicial, email }: Configura
           onNombreActualizado={setNombrePerfil}
         />
       )}
-      {tab === 'negocio' && <ConfiguracionNegocio />}
     </motion.div>
   )
 }

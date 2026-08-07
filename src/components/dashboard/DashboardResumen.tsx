@@ -7,7 +7,7 @@ import { es } from 'date-fns/locale'
 import { motion } from 'framer-motion'
 import { ShoppingCart } from 'lucide-react'
 import { Card } from '@/components/ui/Card'
-import { Skeleton, SkeletonStat, SkeletonTabla } from '@/components/ui/Skeleton'
+import { Skeleton, SkeletonStat } from '@/components/ui/Skeleton'
 import { GraficoVentas } from '@/components/reportes/GraficoVentas'
 import { fadeUp, staggerContainer } from '@/lib/animations'
 import toast from 'react-hot-toast'
@@ -122,14 +122,14 @@ export function DashboardResumen({ rol }: DashboardResumenProps) {
 
   return (
     <motion.div
-      className="relative flex flex-col gap-6 p-6 pb-24 md:pb-6"
+      className="relative flex flex-col gap-5 p-4 pb-24 sm:gap-6 sm:p-6 md:pb-6"
       variants={staggerContainer}
       initial="hidden"
       animate="visible"
     >
       {loading ? (
         <motion.div
-          className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4"
+          className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4"
           variants={staggerContainer}
         >
           {Array.from({ length: 4 }).map((_, i) => (
@@ -140,20 +140,20 @@ export function DashboardResumen({ rol }: DashboardResumenProps) {
         </motion.div>
       ) : (
         <motion.div
-          className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4"
+          className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4"
           variants={staggerContainer}
         >
           {stats.map((stat) => (
             <motion.div key={stat.title} variants={fadeUp} className="h-full">
               <Card title={stat.title} glow={stat.glow} fillHeight>
                 <p
-                  className={`font-display text-2xl font-bold tabular-nums ${stat.className}`}
+                  className={`font-display text-xl font-bold tabular-nums sm:text-2xl ${stat.className}`}
                 >
                   {stat.value}
                 </p>
                 <p
                   className={[
-                    'mt-1 min-h-5 text-sm capitalize text-text-secondary',
+                    'mt-1 min-h-5 text-xs capitalize text-text-secondary sm:text-sm',
                     !stat.description && 'invisible',
                   ]
                     .filter(Boolean)
@@ -171,9 +171,11 @@ export function DashboardResumen({ rol }: DashboardResumenProps) {
       <motion.div variants={fadeUp}>
         <Card title="Ingresos — últimos 7 días">
           {loading ? (
-            <Skeleton className="h-[320px] w-full" />
+            <Skeleton className="h-[220px] w-full sm:h-[320px]" />
           ) : (
-            <GraficoVentas data={chartData} />
+            <div className="h-[220px] w-full min-w-0 sm:h-[320px]">
+              <GraficoVentas data={chartData} />
+            </div>
           )}
         </Card>
       </motion.div>
@@ -181,35 +183,74 @@ export function DashboardResumen({ rol }: DashboardResumenProps) {
       <motion.div variants={fadeUp}>
         <Card title="Últimas ventas">
           {loading ? (
-            <SkeletonTabla filas={5} />
+            <div className="space-y-3">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <Skeleton key={i} className="h-20 w-full rounded-[var(--radius-md)] md:h-14" />
+              ))}
+            </div>
           ) : ultimasVentas.length === 0 ? (
             <p className="text-sm text-text-muted">
               No hay ventas registradas hoy.
             </p>
           ) : (
-            <ul className="divide-y divide-bg-border">
-              {ultimasVentas.map((venta) => (
-                <li
-                  key={venta.id}
-                  className="flex items-center justify-between gap-4 py-3 first:pt-0 last:pb-0"
-                >
-                  <motion.div layout className="min-w-0 flex-1">
-                    <p className="font-medium text-text-primary">
-                      {venta.usuario?.nombre ?? 'Vendedor'}
+            <>
+              {/* Mobile: cards */}
+              <ul className="flex flex-col gap-3 md:hidden">
+                {ultimasVentas.map((venta) => (
+                  <li
+                    key={venta.id}
+                    className="rounded-[var(--radius-md)] border border-bg-border bg-bg-elevated/30 p-3.5"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="font-medium text-text-primary">
+                          {venta.usuario?.nombre ?? 'Vendedor'}
+                        </p>
+                        <p className="mt-0.5 text-xs text-text-secondary">
+                          {format(parseISO(venta.created_at), 'HH:mm', {
+                            locale: es,
+                          })}
+                        </p>
+                      </div>
+                      <p className="shrink-0 text-base font-semibold text-accent-cyan tabular-nums">
+                        {formatPesos(venta.total)}
+                      </p>
+                    </div>
+                    <div className="mt-3 flex items-center justify-between border-t border-bg-border pt-2.5">
+                      <span className="text-xs text-text-secondary">Vasos</span>
+                      <span className="text-sm font-semibold text-text-primary tabular-nums">
+                        {totalVasos(venta)}
+                      </span>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+
+              {/* Desktop: lista compacta */}
+              <ul className="hidden divide-y divide-bg-border md:block">
+                {ultimasVentas.map((venta) => (
+                  <li
+                    key={venta.id}
+                    className="flex items-center justify-between gap-4 py-3 first:pt-0 last:pb-0"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <p className="font-medium text-text-primary">
+                        {venta.usuario?.nombre ?? 'Vendedor'}
+                      </p>
+                      <p className="text-sm text-text-secondary">
+                        {format(parseISO(venta.created_at), 'HH:mm', {
+                          locale: es,
+                        })}{' '}
+                        · {totalVasos(venta)} vasos
+                      </p>
+                    </div>
+                    <p className="shrink-0 font-medium text-accent-cyan tabular-nums">
+                      {formatPesos(venta.total)}
                     </p>
-                    <p className="text-sm text-text-secondary">
-                      {format(parseISO(venta.created_at), 'HH:mm', {
-                        locale: es,
-                      })}{' '}
-                      · {totalVasos(venta)} vasos
-                    </p>
-                  </motion.div>
-                  <p className="shrink-0 font-medium text-accent-cyan">
-                    {formatPesos(venta.total)}
-                  </p>
-                </li>
-              ))}
-            </ul>
+                  </li>
+                ))}
+              </ul>
+            </>
           )}
         </Card>
       </motion.div>

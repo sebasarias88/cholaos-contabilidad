@@ -1,31 +1,184 @@
 import { createClient } from '@/lib/supabase/server'
+import { requireAdminApi } from '@/lib/api-auth'
 import { NextResponse } from 'next/server'
+import type { ProductoUpdateInput, TipoProducto } from '@/types'
 
-export async function PUT(request: Request, { params }: { params: Promise<{ id: string }> }) {
+const TIPOS: TipoProducto[] = ['vaso', 'comida', 'insumo']
+
+function normalizarUpdate(body: ProductoUpdateInput) {
+  const patch: Record<string, unknown> = {}
+
+  if (body.nombre !== undefined) {
+    const nombre = body.nombre.trim()
+    if (!nombre) return { error: 'El nombre es requerido' as const }
+    patch.nombre = nombre
+  }
+
+  if (body.descripcion !== undefined) {
+    patch.descripcion =
+      typeof body.descripcion === 'string'
+        ? body.descripcion.trim() || null
+        : null
+  }
+
+  if (body.activo !== undefined) {
+    patch.activo = body.activo
+  }
+
+  if (body.tipo !== undefined) {
+    if (!TIPOS.includes(body.tipo)) {
+      return { error: 'Tipo de producto inválido' as const }
+    }
+    patch.tipo = body.tipo
+  }
+
+  if (body.unidad !== undefined) {
+    patch.unidad =
+      typeof body.unidad === 'string' ? body.unidad.trim() || null : null
+  }
+
+  if (body.onzas !== undefined) {
+    patch.onzas = body.onzas === null || Number.isNaN(Number(body.onzas))
+      ? null
+      : Number(body.onzas)
+  }
+
+  if (body.precio !== undefined) {
+    if (body.precio === null) {
+      patch.precio = null
+    } else {
+      const precio = Number(body.precio)
+      if (Number.isNaN(precio) || precio < 0) {
+        return { error: 'Precio inválido' as const }
+      }
+      patch.precio = precio
+    }
+  }
+
+  if (body.tiene_variantes !== undefined) {
+    patch.tiene_variantes = Boolean(body.tiene_variantes)
+    if (body.tiene_variantes && body.precio === undefined) {
+      patch.precio = null
+    }
+  }
+
+  // Si se cambia a insumo vía payload completo, forzar precio null
+  if (body.tipo === 'insumo' && body.precio === undefined) {
+    patch.precio = null
+  }
+  if (body.tipo === 'vaso' && body.unidad === undefined) {
+    patch.unidad = null
+  }
+  if ((body.tipo === 'comida' || body.tipo === 'insumo') && body.onzas === undefined) {
+    patch.onzas = null
+  }
+
+  return { patch }
+}
+
+export async function PUT(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
   const { id } = await params
   const supabase = await createClient()
-  const body = await request.json()
+  let body: ProductoUpdateInput
+  try {
+    body = await request.json()
+  } catch {
+    return NextResponse.json({ error: 'Body inválido' }, { status: 400 })
+  }
+
+  const parsed = normalizarUpdate(body)
+  if ('error' in parsed) {
+    return NextResponse.json({ error: parsed.error }, { status: 400 })
+  }
+
+  if (Object.keys(parsed.patch).length === 0) {
+    return NextResponse.json({ error: 'Sin cambios' }, { status: 400 })
+  }
 
   const { data, error } = await supabase
     .from('productos')
-    .update(body)
+    .update(parsed.patch)
     .eq('id', id)
-    .select()
+    .select('*, talla:tallas_vasos(*), variantes:variantes_producto(*)')
     .single()
 
   if (error) return NextResponse.json({ error: error.message }, { status: 400 })
   return NextResponse.json(data)
 }
 
-export async function DELETE(_: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function DELETE(
+  _: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const auth = await requireAdminApi()
+  if (!auth.ok) return auth.response
+
   const { id } = await params
-  const supabase = await createClient()
+  const { supabase } = auth.ctx
 
-  const { error } = await supabase
+  const { data: producto } = await supabase
     .from('productos')
-    .update({ activo: false })
+    .select('id, nombre')
     .eq('id', id)
+    .single()
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 })
+  if (!producto) {
+    return NextResponse.json({ error: 'Producto no encontrado' }, { status: 404 })
+  }
+
+  const { count: usos, error: countErr } = await supabase
+    .from('detalle_ventas')
+    .select('id', { count: 'exact', head: true })
+    .eq('producto_id', id)
+
+  if (countErr) {
+    return NextResponse.json({ error: countErr.message }, { status: 500 })
+  }
+
+  if ((usos ?? 0) > 0) {
+    return NextResponse.json(
+      {
+        error:
+          'No se puede eliminar: este producto aparece en ventas registradas. Desactívalo para ocultarlo.',
+      },
+      { status: 409 }
+    )
+  }
+
+  // Conteos de cierre
+  const { count: conteos } = await supabase
+    .from('conteo_vasos')
+    .select('id', { count: 'exact', head: true })
+    .eq('producto_id', id)
+
+  if ((conteos ?? 0) > 0) {
+    return NextResponse.json(
+      {
+        error:
+          'No se puede eliminar: este producto aparece en cierres. Desactívalo para ocultarlo.',
+      },
+      { status: 409 }
+    )
+  }
+
+  const { error } = await supabase.from('productos').delete().eq('id', id)
+
+  if (error) {
+    const msg = error.message.toLowerCase()
+    if (msg.includes('foreign key') || msg.includes('violates')) {
+      return NextResponse.json(
+        {
+          error:
+            'No se puede eliminar: el producto está en uso. Desactívalo para ocultarlo.',
+        },
+        { status: 409 }
+      )
+    }
+    return NextResponse.json({ error: error.message }, { status: 400 })
+  }
+
   return NextResponse.json({ ok: true })
 }

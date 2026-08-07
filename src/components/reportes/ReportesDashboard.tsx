@@ -8,10 +8,11 @@ import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
 import { GraficoIngresosLinea } from '@/components/reportes/GraficoIngresosLinea'
 import { GraficoVasosBarras } from '@/components/reportes/GraficoVasosBarras'
-import { Skeleton, SkeletonStat, SkeletonTabla } from '@/components/ui/Skeleton'
+import { Skeleton, SkeletonStat } from '@/components/ui/Skeleton'
 import { fadeUp, staggerContainer } from '@/lib/animations'
+import { downloadReportesCsv } from '@/lib/export-reportes'
 import { formatPesos, getRangoFecha } from '@/lib/utils'
-import { toast } from '@/lib/toast'
+import { toastError, toastSuccess } from '@/lib/toast'
 import type { ResumenDia, Venta } from '@/types'
 
 type PeriodoPreset = 'hoy' | 'semana' | 'quincena' | 'mes' | 'custom'
@@ -84,29 +85,31 @@ function ProductosVendidosLista({
         {productos.map((p, i) => (
           <li
             key={p.producto_id}
-            className="overflow-hidden rounded-[var(--radius-lg)] border border-bg-border bg-bg-surface"
+            className="rounded-[var(--radius-md)] border border-bg-border bg-bg-elevated/30 p-3.5"
           >
-            <div className="p-4">
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0 flex-1">
-                  <span className="text-xs font-medium text-text-muted">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-[10px] font-semibold uppercase tracking-wide text-text-muted">
                     #{i + 1}
                   </span>
-                  <p className="mt-0.5 font-medium leading-snug text-text-primary">
-                    {p.nombre}
-                  </p>
-                  <span className="badge-cyan mt-1.5 inline-block tabular-nums">
-                    {p.onzas} oz
-                  </span>
+                  {p.onzas > 0 && (
+                    <span className="badge-cyan tabular-nums">{p.onzas} oz</span>
+                  )}
                 </div>
-                <p className="shrink-0 text-base font-semibold text-accent-cyan tabular-nums">
-                  {formatPesos(p.ingresos)}
+                <p className="mt-1 text-sm font-semibold leading-snug text-text-primary">
+                  {p.nombre}
                 </p>
               </div>
-              <div className="mt-3 flex items-center justify-between gap-3 border-t border-bg-border pt-3">
-                <span className="text-sm text-text-muted">Cantidad vendida</span>
-                <span className="badge-cyan tabular-nums">{p.cantidad}</span>
-              </div>
+              <p className="shrink-0 text-base font-semibold text-accent-cyan tabular-nums">
+                {formatPesos(p.ingresos)}
+              </p>
+            </div>
+            <div className="mt-3 flex items-center justify-between gap-3 border-t border-bg-border pt-2.5">
+              <span className="text-xs text-text-secondary">Cantidad</span>
+              <span className="text-sm font-semibold text-text-primary tabular-nums">
+                {p.cantidad}
+              </span>
             </div>
           </li>
         ))}
@@ -133,7 +136,7 @@ function ProductosVendidosLista({
                   </span>
                 </td>
                 <td className="px-4 py-3 text-text-secondary tabular-nums">
-                  {p.onzas} oz
+                  {p.onzas > 0 ? `${p.onzas} oz` : '—'}
                 </td>
                 <td className="px-4 py-3">
                   <span className="badge-cyan tabular-nums">{p.cantidad}</span>
@@ -183,7 +186,7 @@ export function ReportesDashboard() {
         setResumen(fillRango(raw, rango.desde, rango.hasta))
         setTopProductos(agruparProductos(ventas))
       })
-      .catch(() => toast.error('Error cargando reportes'))
+      .catch(() => toastError('Error cargando reportes'))
       .finally(() => setLoading(false))
   }, [rango.desde, rango.hasta])
 
@@ -216,6 +219,35 @@ export function ReportesDashboard() {
       const hoy = format(new Date(), 'yyyy-MM-dd')
       setCustomDesde((d) => d || hoy)
       setCustomHasta((h) => h || hoy)
+    }
+  }
+
+  function exportarReporte() {
+    if (loading) return
+    if (resumen.every((d) => d.ingresos === 0 && d.total_vasos === 0) && topProductos.length === 0) {
+      toastError('No hay datos para exportar en este período')
+      return
+    }
+    try {
+      const nombre = downloadReportesCsv({
+        nombreNegocio,
+        desde: rango.desde,
+        hasta: rango.hasta,
+        totalIngresos,
+        totalVasos,
+        promedioDiario,
+        diasPeriodo,
+        resumen,
+        productos: topProductos.map((p) => ({
+          nombre: p.nombre,
+          onzas: p.onzas,
+          cantidad: p.cantidad,
+          ingresos: p.ingresos,
+        })),
+      })
+      toastSuccess(`Descargado: ${nombre}`)
+    } catch {
+      toastError('No se pudo exportar el reporte')
     }
   }
 
@@ -262,7 +294,8 @@ export function ReportesDashboard() {
           type="button"
           variant="secondary"
           className="w-full shrink-0 sm:w-auto"
-          onClick={() => toast('Exportar estará disponible pronto', { icon: '📄' })}
+          disabled={loading}
+          onClick={exportarReporte}
         >
           <Download size={18} className="mr-2" aria-hidden />
           Exportar
@@ -303,7 +336,10 @@ export function ReportesDashboard() {
       )}
 
       {loading ? (
-        <motion.div className="grid gap-4 sm:grid-cols-3" variants={staggerContainer}>
+        <motion.div
+          className="grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-4"
+          variants={staggerContainer}
+        >
           <motion.div variants={fadeUp} className="h-full">
             <SkeletonStat />
           </motion.div>
@@ -316,7 +352,7 @@ export function ReportesDashboard() {
         </motion.div>
       ) : (
         <motion.div
-          className="grid gap-4 sm:grid-cols-3"
+          className="grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-4"
           variants={staggerContainer}
         >
           <motion.div variants={fadeUp} className="h-full">
@@ -352,21 +388,21 @@ export function ReportesDashboard() {
         </motion.div>
       )}
 
-      <motion.div variants={fadeUp} className="grid min-w-0 gap-6 lg:grid-cols-2">
+      <motion.div variants={fadeUp} className="grid min-w-0 gap-4 sm:gap-6 lg:grid-cols-2">
         <Card title="Ingresos por día">
           {loading ? (
-            <Skeleton className="h-[260px] w-full sm:h-[300px]" />
+            <Skeleton className="h-[200px] w-full sm:h-[300px]" />
           ) : (
-            <div className="min-w-0 -mx-1 px-1 sm:mx-0 sm:px-0">
+            <div className="h-[200px] w-full min-w-0 sm:h-[300px]">
               <GraficoIngresosLinea data={resumen} />
             </div>
           )}
         </Card>
         <Card title="Vasos vendidos por día">
           {loading ? (
-            <Skeleton className="h-[260px] w-full sm:h-[300px]" />
+            <Skeleton className="h-[200px] w-full sm:h-[300px]" />
           ) : (
-            <div className="min-w-0 -mx-1 px-1 sm:mx-0 sm:px-0">
+            <div className="h-[200px] w-full min-w-0 sm:h-[300px]">
               <GraficoVasosBarras data={resumen} />
             </div>
           )}
@@ -376,7 +412,14 @@ export function ReportesDashboard() {
       <motion.div variants={fadeUp} className="min-w-0">
         <Card title="Productos más vendidos">
           {loading ? (
-            <SkeletonTabla filas={5} />
+            <div className="space-y-3">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <Skeleton
+                  key={i}
+                  className="h-24 w-full rounded-[var(--radius-md)] md:h-14"
+                />
+              ))}
+            </div>
           ) : topProductos.length === 0 ? (
             <p className="text-sm text-text-muted">
               Sin ventas en este período.

@@ -9,10 +9,19 @@ export const CIERRE_SELECT = `
   conteo_vasos:conteo_vasos(
     *,
     talla:tallas_vasos(*),
+    producto:productos(*),
     novedades:novedades_vasos(
       *,
       motivo:motivos_novedad(*)
     )
+  ),
+  ventas_variantes:ventas_variantes(
+    *,
+    variante:variantes_producto(*, producto:productos(nombre))
+  ),
+  ventas_comida:ventas_comida(
+    *,
+    producto:productos(nombre, precio)
   )
 `
 
@@ -45,5 +54,7 @@ export function sanitizarCierreParaEmpleado(cierre: CierreRow): CierreDiaEmplead
     gastos: cierre.gastos,
     transferencias: cierre.transferencias,
     conteo_vasos: cierre.conteo_vasos,
+    ventas_variantes: cierre.ventas_variantes,
+    ventas_comida: cierre.ventas_comida,
   }
 }

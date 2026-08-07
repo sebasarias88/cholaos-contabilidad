@@ -53,7 +53,7 @@ export function calcularItemsVendidos(
       return {
         producto_id: producto.id,
         cantidad,
-        precio_unitario: producto.precio,
+        precio_unitario: producto.precio ?? 0,
       }
     })
     .filter((item): item is ItemVendidoCalculado => item !== null)

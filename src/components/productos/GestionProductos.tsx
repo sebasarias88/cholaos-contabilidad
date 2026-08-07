@@ -11,29 +11,172 @@ import { useMenuAcciones } from '@/hooks/useMenuAcciones'
 import {
   ProductoSlideOver,
   type ProductoFormState,
+  type VarianteFormDraft,
 } from '@/components/productos/ProductoSlideOver'
 import { ProductoSwitch } from '@/components/productos/ProductoSwitch'
 import { fadeUp } from '@/lib/animations'
+import {
+  BADGE_TIPO,
+  medidaProducto,
+  tipoProducto,
+} from '@/lib/productos-ui'
 import { formatPesos } from '@/lib/utils'
 import toast from 'react-hot-toast'
 import { toastError, toastLoading, toastSuccess } from '@/lib/toast'
-import type { Producto } from '@/types'
+import type { Producto, TipoProducto, VarianteProducto } from '@/types'
 
-type FiltroOnzas = 'todos' | number
+type FiltroTipo = 'todos' | TipoProducto
 
 const formVacio = (): ProductoFormState => ({
   nombre: '',
-  onzas: 12,
+  tipo: 'vaso',
+  onzas: '',
+  unidad: '',
   precio: '',
   descripcion: '',
+  tiene_variantes: false,
+  variantes: [],
 })
 
 function formDesdeProducto(p: Producto): ProductoFormState {
+  const tipo = tipoProducto(p)
+  const variantesActivas = (p.variantes ?? []).filter((v) => v.activo)
   return {
     nombre: p.nombre,
-    onzas: p.onzas,
-    precio: String(p.precio),
+    tipo,
+    onzas: p.onzas != null ? String(p.onzas) : '',
+    unidad: p.unidad ?? '',
+    precio: p.precio != null ? String(p.precio) : '',
     descripcion: p.descripcion ?? '',
+    tiene_variantes: Boolean(p.tiene_variantes),
+    variantes: variantesActivas.map((v) => ({
+      id: v.id,
+      nombre: v.nombre,
+      precio: String(v.precio),
+    })),
+  }
+}
+
+function buildPayload(form: ProductoFormState) {
+  const nombre = form.nombre.trim()
+  const descripcion = form.descripcion.trim() || undefined
+  const base = { nombre, tipo: form.tipo, descripcion }
+
+  if (form.tipo === 'vaso') {
+    return {
+      ...base,
+      onzas: Number(form.onzas),
+      precio: Number(form.precio),
+      unidad: null,
+      tiene_variantes: false,
+    }
+  }
+
+  if (form.tipo === 'comida') {
+    const tiene = form.tiene_variantes
+    return {
+      ...base,
+      unidad: form.unidad.trim(),
+      precio: tiene ? null : Number(form.precio),
+      onzas: null,
+      tiene_variantes: tiene,
+    }
+  }
+
+  return {
+    ...base,
+    unidad: form.unidad.trim(),
+    precio: null,
+    onzas: null,
+    tiene_variantes: false,
+  }
+}
+
+function validarForm(form: ProductoFormState): string | null {
+  if (!form.nombre.trim()) return 'El nombre es requerido'
+  if (form.tipo === 'vaso') {
+    if (!form.onzas || Number(form.onzas) <= 0) return 'Indica las onzas'
+    if (!form.precio || Number(form.precio) < 0 || Number.isNaN(Number(form.precio))) {
+      return 'Indica un precio válido'
+    }
+  }
+  if (form.tipo === 'comida') {
+    if (!form.unidad.trim()) return 'Indica la unidad'
+    if (form.tiene_variantes) {
+      if (form.variantes.length === 0) return 'Agrega al menos una variante'
+      for (const v of form.variantes) {
+        if (!v.nombre.trim()) return 'Cada variante necesita un nombre'
+        if (!v.precio || Number(v.precio) < 0 || Number.isNaN(Number(v.precio))) {
+          return 'Cada variante necesita un precio válido'
+        }
+      }
+    } else if (
+      !form.precio ||
+      Number(form.precio) < 0 ||
+      Number.isNaN(Number(form.precio))
+    ) {
+      return 'Indica un precio válido'
+    }
+  }
+  if (form.tipo === 'insumo' && !form.unidad.trim()) {
+    return 'Indica la unidad'
+  }
+  return null
+}
+
+async function sincronizarVariantes(
+  productoId: string,
+  drafts: VarianteFormDraft[],
+  existentes: VarianteProducto[] | undefined,
+  tieneVariantes: boolean
+) {
+  const prev = (existentes ?? []).filter((v) => v.activo)
+
+  if (!tieneVariantes) {
+    await Promise.all(
+      prev.map((v) =>
+        fetch(`/api/variantes/${v.id}`, { method: 'DELETE' })
+      )
+    )
+    return
+  }
+
+  const keepIds = new Set(drafts.map((d) => d.id).filter(Boolean) as string[])
+
+  await Promise.all(
+    prev
+      .filter((v) => !keepIds.has(v.id))
+      .map((v) => fetch(`/api/variantes/${v.id}`, { method: 'DELETE' }))
+  )
+
+  for (let i = 0; i < drafts.length; i++) {
+    const d = drafts[i]
+    const body = {
+      nombre: d.nombre.trim(),
+      precio: Number(d.precio),
+      orden: i + 1,
+      activo: true,
+      producto_id: productoId,
+    }
+
+    if (d.id) {
+      await fetch(`/api/variantes/${d.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          nombre: body.nombre,
+          precio: body.precio,
+          orden: body.orden,
+          activo: true,
+        }),
+      })
+    } else {
+      await fetch('/api/variantes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      })
+    }
   }
 }
 
@@ -58,6 +201,20 @@ function BotonMenuProducto({
   )
 }
 
+function BadgeTipo({ tipo }: { tipo: TipoProducto }) {
+  const badge = BADGE_TIPO[tipo]
+  return (
+    <span
+      className={[
+        'inline-flex shrink-0 items-center rounded-full px-2 py-0.5 text-xs font-medium',
+        badge.className,
+      ].join(' ')}
+    >
+      {badge.label}
+    </span>
+  )
+}
+
 function ProductoEstado({
   producto,
   onToggle,
@@ -66,16 +223,11 @@ function ProductoEstado({
   onToggle: () => void
 }) {
   return (
-    <div className="flex items-center gap-3">
-      <ProductoSwitch active={producto.activo} onChange={onToggle} />
-      <span
-        className={
-          producto.activo ? 'badge-green shrink-0' : 'shrink-0 text-xs text-text-muted'
-        }
-      >
-        {producto.activo ? 'Activo' : 'Inactivo'}
-      </span>
-    </div>
+    <ProductoSwitch
+      active={producto.activo}
+      onChange={onToggle}
+      aria-label={producto.activo ? 'Desactivar producto' : 'Activar producto'}
+    />
   )
 }
 
@@ -98,6 +250,32 @@ function ProductoPrecio({
   onCancel: () => void
   inputClassName?: string
 }) {
+  const tipo = tipoProducto(producto)
+
+  if (tipo === 'insumo') {
+    return <span className="text-text-muted tabular-nums">—</span>
+  }
+
+  if (producto.tiene_variantes) {
+    const activas = (producto.variantes ?? []).filter((v) => v.activo)
+    if (activas.length === 0) {
+      return <span className="text-xs text-text-muted">Sin variantes</span>
+    }
+    const precios = activas.map((v) => v.precio)
+    const min = Math.min(...precios)
+    const max = Math.max(...precios)
+    return (
+      <span
+        className="text-sm font-medium text-text-secondary tabular-nums"
+        title={activas.map((v) => `${v.nombre}: ${formatPesos(v.precio)}`).join(' · ')}
+      >
+        {min === max
+          ? formatPesos(min)
+          : `${formatPesos(min)} – ${formatPesos(max)}`}
+      </span>
+    )
+  }
+
   if (editingPrecioId === producto.id) {
     return (
       <input
@@ -127,7 +305,7 @@ function ProductoPrecio({
       className="font-medium text-accent-cyan underline-offset-2 hover:underline tabular-nums"
       title="Click para editar precio"
     >
-      {formatPesos(producto.precio)}
+      {formatPesos(producto.precio ?? 0)}
     </button>
   )
 }
@@ -136,7 +314,7 @@ export function GestionProductos() {
   const [productos, setProductos] = useState<Producto[]>([])
   const [loading, setLoading] = useState(true)
   const [busqueda, setBusqueda] = useState('')
-  const [filtroOnzas, setFiltroOnzas] = useState<FiltroOnzas>('todos')
+  const [filtroTipo, setFiltroTipo] = useState<FiltroTipo>('todos')
 
   const [panelOpen, setPanelOpen] = useState(false)
   const [editando, setEditando] = useState<Producto | null>(null)
@@ -164,30 +342,15 @@ export function GestionProductos() {
     cargarProductos()
   }, [cargarProductos])
 
-  const onzasDisponibles = useMemo(() => {
-    const unicas = new Set(productos.map((p) => Number(p.onzas)))
-    return Array.from(unicas).sort((a, b) => a - b)
-  }, [productos])
-
-  const opcionesOnzas = useMemo(
-    (): FiltroOnzas[] => ['todos', ...onzasDisponibles],
-    [onzasDisponibles]
-  )
-
-  useEffect(() => {
-    if (filtroOnzas !== 'todos' && !onzasDisponibles.includes(filtroOnzas)) {
-      setFiltroOnzas('todos')
-    }
-  }, [onzasDisponibles, filtroOnzas])
-
   const filtrados = useMemo(() => {
     const q = busqueda.trim().toLowerCase()
     return productos.filter((p) => {
-      if (filtroOnzas !== 'todos' && p.onzas !== filtroOnzas) return false
+      const tipo = tipoProducto(p)
+      if (filtroTipo !== 'todos' && tipo !== filtroTipo) return false
       if (!q) return true
       return p.nombre.toLowerCase().includes(q)
     })
-  }, [productos, busqueda, filtroOnzas])
+  }, [productos, busqueda, filtroTipo])
 
   function abrirNuevo() {
     setEditando(null)
@@ -209,14 +372,15 @@ export function GestionProductos() {
 
   async function handleSubmitForm(e: React.FormEvent) {
     e.preventDefault()
+    const error = validarForm(form)
+    if (error) {
+      toastError(error)
+      return
+    }
+
     setGuardando(true)
     const toastId = toastLoading('Guardando producto...')
-    const payload = {
-      nombre: form.nombre.trim(),
-      onzas: form.onzas,
-      precio: Number(form.precio),
-      descripcion: form.descripcion.trim() || undefined,
-    }
+    const payload = buildPayload(form)
 
     const res = editando
       ? await fetch(`/api/productos/${editando.id}`, {
@@ -230,13 +394,32 @@ export function GestionProductos() {
           body: JSON.stringify(payload),
         })
 
-    setGuardando(false)
-
     if (!res.ok) {
-      toastError('Error al guardar. Intenta de nuevo.', toastId)
+      setGuardando(false)
+      const data = (await res.json().catch(() => ({}))) as { error?: string }
+      toastError(data.error ?? 'Error al guardar. Intenta de nuevo.', toastId)
       return
     }
 
+    const guardado = (await res.json()) as Producto
+
+    if (form.tipo === 'comida') {
+      try {
+        await sincronizarVariantes(
+          guardado.id,
+          form.variantes,
+          editando?.variantes,
+          form.tiene_variantes
+        )
+      } catch {
+        setGuardando(false)
+        toastError('Producto guardado, pero falló al sincronizar variantes', toastId)
+        cargarProductos()
+        return
+      }
+    }
+
+    setGuardando(false)
     toastSuccess(
       editando ? 'Producto actualizado' : 'Producto creado',
       toastId
@@ -270,8 +453,10 @@ export function GestionProductos() {
   }
 
   function iniciarEdicionPrecio(p: Producto) {
+    if (tipoProducto(p) === 'insumo') return
+    if (p.tiene_variantes) return
     setEditingPrecioId(p.id)
-    setPrecioDraft(String(p.precio))
+    setPrecioDraft(String(p.precio ?? 0))
   }
 
   async function toggleActivo(p: Producto) {
@@ -294,17 +479,18 @@ export function GestionProductos() {
   async function confirmarEliminar() {
     if (!eliminarId) return
     setEliminando(true)
-    const toastId = toastLoading('Desactivando producto...')
+    const toastId = toastLoading('Eliminando producto...')
     const res = await fetch(`/api/productos/${eliminarId}`, { method: 'DELETE' })
+    const data = await res.json().catch(() => ({}))
 
     setEliminando(false)
 
     if (!res.ok) {
-      toastError('Error al eliminar. Intenta de nuevo.', toastId)
+      toastError(data.error ?? 'Error al eliminar. Intenta de nuevo.', toastId)
       return
     }
 
-    toastSuccess('Producto desactivado', toastId)
+    toastSuccess('Producto eliminado', toastId)
     setEliminarId(null)
     cargarProductos()
   }
@@ -312,7 +498,7 @@ export function GestionProductos() {
   const productoEliminar = productos.find((p) => p.id === eliminarId)
   const productoMenu = filtrados.find((p) => p.id === menuId)
 
-  function abrirDesdeMenu(p: Producto) {
+  function pedirEliminar(p: Producto) {
     close()
     setEliminarId(p.id)
   }
@@ -322,10 +508,22 @@ export function GestionProductos() {
     abrirEditar(p)
   }
 
+  async function desactivarDesdeMenu(p: Producto) {
+    close()
+    await toggleActivo(p)
+  }
+
   async function activarDesdeMenu(p: Producto) {
     close()
     await toggleActivo(p)
   }
+
+  const filtrosTipo: { id: FiltroTipo; label: string }[] = [
+    { id: 'todos', label: 'Todos' },
+    { id: 'vaso', label: '🥤 Vasos' },
+    { id: 'comida', label: '🍕 Comida' },
+    { id: 'insumo', label: '🧂 Insumos' },
+  ]
 
   return (
     <motion.div
@@ -359,26 +557,24 @@ export function GestionProductos() {
         </Button>
       </div>
 
-      {opcionesOnzas.length > 1 && (
-        <div className="-mx-1 overflow-x-auto px-1 pb-0.5">
-          <div className="flex w-max min-w-full flex-nowrap gap-2 sm:w-auto sm:flex-wrap">
-            {opcionesOnzas.map((oz) => (
-              <button
-                key={String(oz)}
-                type="button"
-                onClick={() => setFiltroOnzas(oz)}
-                className={
-                  filtroOnzas === oz
-                    ? 'filter-pill filter-pill-active shrink-0'
-                    : 'filter-pill filter-pill-inactive shrink-0'
-                }
-              >
-                {oz === 'todos' ? 'Todos' : `${oz}oz`}
-              </button>
-            ))}
-          </div>
+      <div className="-mx-1 overflow-x-auto px-1 pb-0.5">
+        <div className="flex w-max min-w-full flex-nowrap gap-2 sm:w-auto sm:flex-wrap">
+          {filtrosTipo.map((f) => (
+            <button
+              key={f.id}
+              type="button"
+              onClick={() => setFiltroTipo(f.id)}
+              className={
+                filtroTipo === f.id
+                  ? 'filter-pill filter-pill-active shrink-0'
+                  : 'filter-pill filter-pill-inactive shrink-0'
+              }
+            >
+              {f.label}
+            </button>
+          ))}
         </div>
-      )}
+      </div>
 
       {loading ? (
         <SkeletonTabla filas={6} />
@@ -388,100 +584,113 @@ export function GestionProductos() {
         <>
           {/* Vista móvil: tarjetas */}
           <ul className="flex flex-col gap-3 md:hidden">
-            {filtrados.map((p) => (
-              <li
-                key={p.id}
-                className="overflow-hidden rounded-[var(--radius-lg)] border border-bg-border bg-bg-surface"
-              >
-                <div className="p-4">
-                  <div className="flex items-start gap-2">
-                    <div className="min-w-0 flex-1">
-                      <p className="font-medium leading-snug text-text-primary">
-                        {p.nombre}
-                      </p>
-                      <span className="badge-cyan mt-1.5 inline-block tabular-nums">
-                        {p.onzas} oz
-                      </span>
-                    </div>
-                    <BotonMenuProducto
-                      abierto={isOpen(p.id)}
-                      onClick={(e) => toggle(p.id, e)}
-                    />
-                  </div>
-
-                  <div className="mt-4 space-y-3 border-t border-bg-border pt-4">
-                    <div className="flex items-center justify-between gap-3">
-                      <span className="text-sm text-text-muted">Precio</span>
-                      <ProductoPrecio
-                        producto={p}
-                        editingPrecioId={editingPrecioId}
-                        precioDraft={precioDraft}
-                        onStartEdit={() => iniciarEdicionPrecio(p)}
-                        onDraftChange={setPrecioDraft}
-                        onSave={() => guardarPrecioInline(p.id)}
-                        onCancel={() => setEditingPrecioId(null)}
-                        inputClassName="select-field w-full max-w-[10rem] tabular-nums sm:max-w-none sm:w-28"
-                      />
-                    </div>
-                    <div className="flex items-center justify-between gap-3">
-                      <span className="text-sm text-text-muted">Estado</span>
-                      <ProductoEstado
-                        producto={p}
-                        onToggle={() => toggleActivo(p)}
-                      />
-                    </div>
-                  </div>
-                </div>
-              </li>
-            ))}
-          </ul>
-
-          {/* Vista escritorio: tabla */}
-          <div className="table-surface hidden overflow-x-auto md:block">
-            <table className="w-full min-w-[32rem] text-left text-sm">
-              <thead>
-                <tr>
-                  <th className="px-4 py-3">Nombre</th>
-                  <th className="px-4 py-3">Onzas</th>
-                  <th className="px-4 py-3">Precio</th>
-                  <th className="px-4 py-3">Estado</th>
-                  <th className="px-4 py-3 text-right">Acción</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filtrados.map((p) => (
-                  <tr key={p.id} className="border-t border-bg-border">
-                    <td className="px-4 py-3 font-medium text-text-primary">
-                      {p.nombre}
-                    </td>
-                    <td className="px-4 py-3 text-text-secondary tabular-nums">
-                      {p.onzas} oz
-                    </td>
-                    <td className="px-4 py-3">
-                      <ProductoPrecio
-                        producto={p}
-                        editingPrecioId={editingPrecioId}
-                        precioDraft={precioDraft}
-                        onStartEdit={() => iniciarEdicionPrecio(p)}
-                        onDraftChange={setPrecioDraft}
-                        onSave={() => guardarPrecioInline(p.id)}
-                        onCancel={() => setEditingPrecioId(null)}
-                      />
-                    </td>
-                    <td className="px-4 py-3">
-                      <ProductoEstado
-                        producto={p}
-                        onToggle={() => toggleActivo(p)}
-                      />
-                    </td>
-                    <td className="px-4 py-3 text-right">
+            {filtrados.map((p) => {
+              const tipo = tipoProducto(p)
+              return (
+                <li
+                  key={p.id}
+                  className="overflow-hidden rounded-[var(--radius-lg)] border border-bg-border bg-bg-surface"
+                >
+                  <div className="p-4">
+                    <div className="flex items-start gap-2">
+                      <div className="min-w-0 flex-1">
+                        <p className="font-medium leading-snug text-text-primary">
+                          {p.nombre}
+                        </p>
+                        <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                          <BadgeTipo tipo={tipo} />
+                          <span className="text-xs text-text-secondary tabular-nums">
+                            {medidaProducto(p)}
+                          </span>
+                        </div>
+                      </div>
                       <BotonMenuProducto
                         abierto={isOpen(p.id)}
                         onClick={(e) => toggle(p.id, e)}
                       />
-                    </td>
-                  </tr>
-                ))}
+                    </div>
+
+                    <div className="mt-4 space-y-3 border-t border-bg-border pt-4">
+                      <div className="flex items-center justify-between gap-3">
+                        <span className="text-sm text-text-muted">Precio</span>
+                        <ProductoPrecio
+                          producto={p}
+                          editingPrecioId={editingPrecioId}
+                          precioDraft={precioDraft}
+                          onStartEdit={() => iniciarEdicionPrecio(p)}
+                          onDraftChange={setPrecioDraft}
+                          onSave={() => guardarPrecioInline(p.id)}
+                          onCancel={() => setEditingPrecioId(null)}
+                          inputClassName="select-field w-full max-w-[10rem] tabular-nums sm:max-w-none sm:w-28"
+                        />
+                      </div>
+                      <div className="flex items-center justify-between gap-3">
+                        <span className="text-sm text-text-muted">Estado</span>
+                        <ProductoEstado
+                          producto={p}
+                          onToggle={() => toggleActivo(p)}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </li>
+              )
+            })}
+          </ul>
+
+          {/* Vista escritorio: tabla */}
+          <div className="table-surface hidden overflow-x-auto md:block">
+            <table className="w-full min-w-[36rem] text-left text-sm">
+              <thead>
+                <tr>
+                  <th className="px-4 py-3">Nombre</th>
+                  <th className="px-4 py-3">Tipo</th>
+                  <th className="px-4 py-3">Onzas / Unidad</th>
+                  <th className="px-4 py-3">Precio</th>
+                  <th className="px-4 py-3">Estado</th>
+                  <th className="px-4 py-3 text-right">Acciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filtrados.map((p) => {
+                  const tipo = tipoProducto(p)
+                  return (
+                    <tr key={p.id} className="border-t border-bg-border">
+                      <td className="px-4 py-3 font-medium text-text-primary">
+                        {p.nombre}
+                      </td>
+                      <td className="px-4 py-3">
+                        <BadgeTipo tipo={tipo} />
+                      </td>
+                      <td className="px-4 py-3 text-text-secondary tabular-nums">
+                        {medidaProducto(p)}
+                      </td>
+                      <td className="px-4 py-3">
+                        <ProductoPrecio
+                          producto={p}
+                          editingPrecioId={editingPrecioId}
+                          precioDraft={precioDraft}
+                          onStartEdit={() => iniciarEdicionPrecio(p)}
+                          onDraftChange={setPrecioDraft}
+                          onSave={() => guardarPrecioInline(p.id)}
+                          onCancel={() => setEditingPrecioId(null)}
+                        />
+                      </td>
+                      <td className="px-4 py-3">
+                        <ProductoEstado
+                          producto={p}
+                          onToggle={() => toggleActivo(p)}
+                        />
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        <BotonMenuProducto
+                          abierto={isOpen(p.id)}
+                          onClick={(e) => toggle(p.id, e)}
+                        />
+                      </td>
+                    </tr>
+                  )
+                })}
               </tbody>
             </table>
           </div>
@@ -507,8 +716,8 @@ export function GestionProductos() {
               <button
                 type="button"
                 role="menuitem"
-                className="w-full px-3 py-2 text-left text-sm text-accent-red hover:bg-bg-elevated"
-                onClick={() => abrirDesdeMenu(productoMenu)}
+                className="w-full px-3 py-2 text-left text-sm text-text-primary hover:bg-bg-elevated"
+                onClick={() => desactivarDesdeMenu(productoMenu)}
               >
                 Desactivar
               </button>
@@ -522,6 +731,15 @@ export function GestionProductos() {
                 Activar
               </button>
             )}
+            <div className="my-1 border-t border-bg-border" />
+            <button
+              type="button"
+              role="menuitem"
+              className="w-full px-3 py-2 text-left text-sm text-accent-red hover:bg-bg-elevated"
+              onClick={() => pedirEliminar(productoMenu)}
+            >
+              Eliminar
+            </button>
           </>
         )}
       </MenuAccionesPortal>
@@ -539,14 +757,18 @@ export function GestionProductos() {
       <Modal
         open={eliminarId !== null}
         onClose={() => !eliminando && setEliminarId(null)}
-        title="Desactivar producto"
+        title="Eliminar producto"
       >
         <p className="mb-6 text-sm text-text-secondary">
-          ¿Desactivar{' '}
+          ¿Eliminar permanentemente{' '}
           <span className="font-medium text-text-primary">
-            {productoEliminar?.nombre} ({productoEliminar?.onzas} oz)
+            {productoEliminar?.nombre}
+            {productoEliminar
+              ? ` (${medidaProducto(productoEliminar)})`
+              : ''}
           </span>
-          ? No se borrará del sistema; dejará de aparecer en ventas.
+          ? Esta acción no se puede deshacer. Si el producto ya tiene ventas, no
+          se podrá borrar (usa Desactivar en ese caso).
         </p>
         <div className="flex gap-3">
           <Button
@@ -562,10 +784,11 @@ export function GestionProductos() {
             type="button"
             variant="danger"
             className="flex-1"
+            loading={eliminando}
             disabled={eliminando}
             onClick={confirmarEliminar}
           >
-            {eliminando ? 'Eliminando...' : 'Desactivar'}
+            Eliminar
           </Button>
         </div>
       </Modal>

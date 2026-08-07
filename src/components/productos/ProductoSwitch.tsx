@@ -6,18 +6,21 @@ interface ProductoSwitchProps {
   active: boolean
   onChange: (active: boolean) => void
   disabled?: boolean
+  'aria-label'?: string
 }
 
 export function ProductoSwitch({
   active,
   onChange,
   disabled = false,
+  'aria-label': ariaLabel,
 }: ProductoSwitchProps) {
   return (
     <button
       type="button"
       role="switch"
       aria-checked={active}
+      aria-label={ariaLabel}
       disabled={disabled}
       onClick={() => onChange(!active)}
       className={[
