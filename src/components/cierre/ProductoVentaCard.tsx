@@ -82,7 +82,7 @@ export function ProductoVentaCard({
 
         {esAdmin && activo && (
           <p className="text-center text-xs text-text-muted tabular-nums">
-            {formatPesos(cantidad * producto.precio)}
+            {formatPesos(cantidad * (producto.precio ?? 0))}
           </p>
         )}
       </div>

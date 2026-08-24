@@ -30,7 +30,7 @@ function agruparPorNombre(productos: Producto[]) {
     map.set(p.nombre, list)
   }
   for (const list of map.values()) {
-    list.sort((a, b) => a.onzas - b.onzas)
+    list.sort((a, b) => (a.onzas ?? 0) - (b.onzas ?? 0))
   }
   return Array.from(map.entries()).sort(([a], [b]) => a.localeCompare(b))
 }
@@ -66,7 +66,7 @@ function GrupoProductoMobile({
       <ul className="divide-y divide-bg-border">
         {variantes.map((p) => {
           const cantidad = cantidades[p.id] ?? 0
-          const subtotal = cantidad * p.precio
+          const subtotal = cantidad * (p.precio ?? 0)
           return (
             <li
               key={p.id}
@@ -81,7 +81,7 @@ function GrupoProductoMobile({
                     {p.onzas} oz
                   </span>
                   <span className="text-sm text-text-secondary">
-                    {formatPesos(p.precio)}
+                    {formatPesos(p.precio ?? 0)}
                   </span>
                 </div>
                 {cantidad > 0 && (
@@ -115,7 +115,7 @@ function ProductoVarianteCard({
   cantidad: number
   onCantidadChange: (cantidad: number) => void
 }) {
-  const subtotal = cantidad * producto.precio
+  const subtotal = cantidad * (producto.precio ?? 0)
   const activo = cantidad > 0
 
   return (
@@ -135,7 +135,7 @@ function ProductoVarianteCard({
             {producto.onzas} oz
           </p>
           <p className="text-sm text-text-secondary">
-            {formatPesos(producto.precio)} / vaso
+            {formatPesos(producto.precio ?? 0)} / vaso
           </p>
         </div>
         {activo && (
@@ -218,7 +218,7 @@ export function FormVenta() {
         return {
           producto: p,
           cantidad,
-          subtotal: cantidad * p.precio,
+          subtotal: cantidad * (p.precio ?? 0),
         }
       })
   }, [productos, cantidades])
