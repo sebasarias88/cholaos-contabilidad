@@ -3,11 +3,25 @@ import { CIERRE_SELECT, sanitizarCierreParaEmpleado } from '@/lib/cierres-api'
 import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 import { format, subDays } from 'date-fns'
-import type { CierreDia, ConteoVasoPrellenado, PrellenadoNuevo } from '@/types'
+import type {
+  CierreDia,
+  ConteoProductoPrellenado,
+  PrellenadoNuevo,
+  Producto,
+  TipoProducto,
+} from '@/types'
+
+type ConteoAyer = {
+  talla_id?: string | null
+  producto_id?: string | null
+  cantidad_final: number
+}
 
 export async function GET() {
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'No autenticado' }, { status: 401 })
 
   const { data: miUsuario } = await supabase
@@ -34,41 +48,57 @@ export async function GET() {
     })
   }
 
-  // Obtener cierre de ayer para pre-llenar
   const { data: cierreAyer } = await supabase
     .from('cierres_dia')
-    .select('dinero_final, conteo_vasos:conteo_vasos(talla_id, cantidad_final, talla:tallas_vasos(*))')
+    .select(
+      'dinero_final, conteo_vasos:conteo_vasos(talla_id, producto_id, cantidad_final)'
+    )
     .eq('fecha', ayer)
-    .single()
+    .maybeSingle()
 
-  // Tallas activas: orden natural de la BD (sin sort por onzas)
-  const { data: tallas } = await supabase
-    .from('tallas_vasos')
-    .select('*')
+  const conteoAyer = (cierreAyer?.conteo_vasos ?? []) as ConteoAyer[]
+
+  const { data: productosData } = await supabase
+    .from('productos')
+    .select('*, talla:tallas_vasos(*)')
     .eq('activo', true)
+    .order('tipo')
+    .order('nombre')
 
-  // Prellenado: solo cantidad_final de ayer → cantidad_inicio hoy.
-  // Sin novedades del día anterior; cada día empieza con novedades: [].
-  const conteo_vasos: ConteoVasoPrellenado[] =
-    tallas?.map((talla) => {
-      const conteoAyer = cierreAyer?.conteo_vasos?.find(
-        (c: { talla_id: string; cantidad_final: number }) =>
-          c.talla_id === talla.id
-      )
-      return {
-        talla_id: talla.id,
-        talla,
-        cantidad_inicio: conteoAyer?.cantidad_final ?? 0,
-        cantidad_nuevos: null,
-        cantidad_final: null,
-        novedades: [],
+  const productos = (productosData ?? []) as Producto[]
+
+  const conteo_productos: ConteoProductoPrellenado[] = productos.map(
+    (producto) => {
+      const tipo = (producto.tipo ?? 'vaso') as TipoProducto
+      let cantidadInicio = 0
+
+      if (tipo === 'vaso' && producto.talla_id) {
+        const conteo = conteoAyer.find((c) => c.talla_id === producto.talla_id)
+        cantidadInicio = conteo?.cantidad_final ?? 0
+      } else {
+        const conteo = conteoAyer.find((c) => c.producto_id === producto.id)
+        cantidadInicio = conteo?.cantidad_final ?? 0
       }
-    }) ?? []
+
+      return {
+        producto_id: producto.id,
+        talla_id: producto.talla_id ?? null,
+        tipo,
+        producto,
+        cantidad_inicio: cantidadInicio,
+        cantidad_nuevos: 0,
+        cantidad_final: 0,
+        observacion: '',
+        novedades: [],
+        precio_unitario: producto.precio ?? 0,
+      }
+    }
+  )
 
   const prellenado: PrellenadoNuevo = {
     tipo: 'nuevo',
     dinero_base_inicio: cierreAyer?.dinero_final ?? 0,
-    conteo_vasos,
+    conteo_productos,
   }
 
   return NextResponse.json(prellenado)

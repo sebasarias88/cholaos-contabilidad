@@ -138,34 +138,118 @@ function TabResumen({
 function TabProductos({
   items,
   cargando,
+  cierre,
+  esAdmin,
 }: {
   items: ProductoVendidoHistorial[]
   cargando: boolean
+  cierre: CierreDia
+  esAdmin: boolean
 }) {
-  if (cargando) {
+  const ventasVariantes = cierre.ventas_variantes ?? []
+  const ventasComida = cierre.ventas_comida ?? []
+  const hayComida = ventasVariantes.length > 0 || ventasComida.length > 0
+
+  const variantesPorProducto = ventasVariantes.reduce<
+    Record<string, typeof ventasVariantes>
+  >((acc, v) => {
+    const nombreProd = v.variante?.producto?.nombre ?? 'Producto'
+    if (!acc[nombreProd]) acc[nombreProd] = []
+    acc[nombreProd].push(v)
+    return acc
+  }, {})
+
+  if (cargando && items.length === 0 && !hayComida) {
     return <p className="text-sm text-text-muted">Cargando productos...</p>
   }
-  if (items.length === 0) {
+
+  if (items.length === 0 && !hayComida) {
     return <p className="text-sm text-text-muted">Sin productos vendidos.</p>
   }
 
   return (
-    <ul className="divide-y divide-bg-border/60">
-      {items.map((p) => (
-        <li
-          key={p.producto_id}
-          className="flex items-center justify-between gap-3 py-2.5 text-sm"
-        >
-          <span className="min-w-0 capitalize text-text-primary">
-            {p.nombre} {p.onzas}oz
-            <span className="ml-2 text-text-muted">×{p.cantidad}</span>
-          </span>
-          <span className="shrink-0 font-medium tabular-nums text-accent-cyan">
-            {formatPesos(p.subtotal)}
-          </span>
-        </li>
-      ))}
-    </ul>
+    <div className="space-y-5">
+      {items.length > 0 && (
+        <div className="space-y-1">
+          <p className="mb-2 text-xs font-medium uppercase tracking-wide text-text-muted">
+            Vasos
+          </p>
+          <ul className="divide-y divide-bg-border/60">
+            {items.map((p) => (
+              <li
+                key={p.producto_id}
+                className="flex items-center justify-between gap-3 py-2.5 text-sm"
+              >
+                <span className="min-w-0 capitalize text-text-primary">
+                  {p.nombre} {p.onzas}oz
+                  <span className="ml-2 text-text-muted">×{p.cantidad}</span>
+                </span>
+                {esAdmin && (
+                  <span className="shrink-0 font-medium tabular-nums text-accent-cyan">
+                    {formatPesos(p.subtotal)}
+                  </span>
+                )}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {hayComida && (
+        <div className="space-y-2">
+          <p className="mb-2 text-xs font-medium uppercase tracking-wide text-text-muted">
+            Comida
+          </p>
+
+          {Object.entries(variantesPorProducto).map(([nombreProd, variantes]) => (
+            <div key={nombreProd} className="space-y-0.5">
+              <p className="text-xs font-medium text-text-secondary">
+                {nombreProd}
+              </p>
+              {variantes.map((v) => {
+                const precio = v.variante?.precio ?? 0
+                const subtotal = v.cantidad * precio
+                return (
+                  <div
+                    key={v.id}
+                    className="flex justify-between gap-3 py-1 pl-3 text-xs"
+                  >
+                    <span className="min-w-0 text-text-muted">
+                      {v.variante?.nombre ?? 'Variante'} ×{v.cantidad}
+                    </span>
+                    {esAdmin && (
+                      <span className="shrink-0 tabular-nums text-accent-green">
+                        {formatPesos(subtotal)}
+                      </span>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          ))}
+
+          {ventasComida.map((v) => {
+            const precio = v.producto?.precio ?? 0
+            const subtotal = v.cantidad * precio
+            return (
+              <div
+                key={v.id}
+                className="flex justify-between gap-3 py-1.5 text-xs"
+              >
+                <span className="min-w-0 text-text-secondary">
+                  {v.producto?.nombre ?? 'Producto'} ×{v.cantidad}
+                </span>
+                {esAdmin && (
+                  <span className="shrink-0 tabular-nums text-accent-green">
+                    {formatPesos(subtotal)}
+                  </span>
+                )}
+              </div>
+            )
+          })}
+        </div>
+      )}
+    </div>
   )
 }
 
@@ -464,6 +548,8 @@ export function CierreCard({ cierre, esAdmin = true }: CierreCardProps) {
                     <TabProductos
                       items={productos}
                       cargando={cargandoProductos}
+                      cierre={cierre}
+                      esAdmin={esAdmin}
                     />
                   )}
                   {tab === 'vasos' && <TabVasos cierre={cierre} />}

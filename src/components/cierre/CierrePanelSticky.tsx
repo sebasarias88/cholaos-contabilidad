@@ -1,23 +1,25 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { AnimatePresence, motion } from 'framer-motion'
 import {
-  ArrowLeftRight,
-  Banknote,
+  ChevronDown,
   Plus,
   Receipt,
-  Trash2,
   Wallet,
+  X,
 } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { InputPeso } from '@/components/ui/InputPeso'
-import { formatPesos, parsePesosInput } from '@/lib/utils'
+import { modalContent, modalOverlay } from '@/lib/animations'
+import { formatPesos } from '@/lib/utils'
 import { calcularCuadre } from '@/hooks/useCuadre'
 
 type LineaMonto = { id: string; descripcion: string; monto: number }
 type CuadreResult = ReturnType<typeof calcularCuadre>
+type SeccionId = 'gastos' | 'transferencias' | 'caja'
 
-interface CierrePanelStickyProps {
+interface CierreCajaShellProps {
   bloqueado: boolean
   esAdmin: boolean
   guardando: boolean
@@ -35,7 +37,33 @@ interface CierrePanelStickyProps {
   onCerrarDia: () => void
 }
 
-export function CierrePanelSticky({
+function etiquetaCuadre(
+  tieneContado: boolean,
+  diferencia: number
+): { texto: string; className: string } {
+  if (!tieneContado) {
+    return { texto: 'Pendiente', className: 'bg-bg-elevated text-text-secondary' }
+  }
+  if (diferencia === 0) {
+    return {
+      texto: 'Cuadre OK',
+      className: 'bg-accent-green-dim text-accent-green',
+    }
+  }
+  if (diferencia < 0) {
+    return {
+      texto: `Falta ${formatPesos(Math.abs(diferencia))}`,
+      className: 'bg-accent-red-dim text-accent-red',
+    }
+  }
+  return {
+    texto: `Sobra ${formatPesos(diferencia)}`,
+    className: 'bg-amber-500/15 text-amber-400',
+  }
+}
+
+/** Barra fija + drawer de resumen de caja (reemplaza el panel lateral apretado) */
+export function CierreCajaShell({
   bloqueado,
   esAdmin,
   guardando,
@@ -51,485 +79,581 @@ export function CierrePanelSticky({
   onAgregarGasto,
   onAgregarTransferencia,
   onCerrarDia,
-}: CierrePanelStickyProps) {
-  const [addGasto, setAddGasto] = useState(false)
-  const [addTrans, setAddTrans] = useState(false)
-  const [gastoDesc, setGastoDesc] = useState('')
-  const [gastoMonto, setGastoMonto] = useState('')
-  const [transDesc, setTransDesc] = useState('')
-  const [transMonto, setTransMonto] = useState('')
+}: CierreCajaShellProps) {
+  const [drawerOpen, setDrawerOpen] = useState(false)
+  const [abiertas, setAbiertas] = useState<Set<SeccionId>>(
+    () => new Set<SeccionId>(['gastos', 'caja'])
+  )
 
-  const estadoCuadre =
-    dineroFinal <= 0
-      ? 'pendiente'
-      : cuadre.cuadreOk
-        ? 'ok'
-        : cuadre.diferencia < 0
-          ? 'falta'
-          : 'sobra'
+  useEffect(() => {
+    if (!drawerOpen) return
+    const prev = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.body.style.overflow = prev
+    }
+  }, [drawerOpen])
+
+  function toggleSeccion(s: SeccionId) {
+    setAbiertas((prev) => {
+      const next = new Set(prev)
+      if (next.has(s)) next.delete(s)
+      else next.add(s)
+      return next
+    })
+  }
+
+  const tieneContado = dineroFinal > 0
+  const badge = etiquetaCuadre(tieneContado, cuadre.diferencia)
+  const esperado = esAdmin
+    ? cuadre.efectivoEsperado
+    : cuadre.dineroEsperadoEnCaja
+  const nMovimientos = gastos.length + transferencias.length
 
   return (
-    <div className="flex h-full min-h-0 w-full flex-col">
-      <div
-        data-lenis-prevent
-        className="scroll-touch scroll-thin min-h-0 flex-1 space-y-5 overflow-y-auto overscroll-contain pb-4"
-      >
-        <header className="space-y-1 px-0.5">
-          <p className="font-display text-base font-semibold text-text-primary">
-            Resumen de caja
-          </p>
-          <p className="text-xs leading-relaxed text-text-muted">
-            Registra efectivo, gastos y transferencias antes de cerrar.
-          </p>
-        </header>
+    <>
+      {/* Espacio para que el contenido no quede bajo la barra */}
+      <div className="h-[calc(4.5rem+env(safe-area-inset-bottom,0px))] shrink-0" aria-hidden />
 
-        {/* Caja — siempre visible, protagonista */}
-        <section className="overflow-hidden rounded-[var(--radius-lg)] border border-bg-border bg-bg-surface shadow-sm">
-          <div className="flex items-center gap-2.5 border-b border-bg-border bg-bg-elevated/50 px-4 py-3.5">
-            <span className="flex h-8 w-8 items-center justify-center rounded-[var(--radius-md)] bg-accent-cyan-dim text-accent-cyan">
-              <Wallet size={16} aria-hidden />
-            </span>
-            <div>
-              <h3 className="text-sm font-semibold text-text-primary">Caja</h3>
-              <p className="text-[11px] text-text-muted">Efectivo al inicio y al cierre</p>
-            </div>
-          </div>
-          <div className="grid gap-4 p-4 sm:grid-cols-2">
-            <Field label="Base inicio" htmlFor="cierre-base" hint="Al abrir el día">
-              <InputPeso
-                id="cierre-base"
-                value={dineroBase}
-                onChange={onDineroBaseChange}
-                disabled={bloqueado}
-                className="select-field w-full bg-accent-cyan-dim/10 py-2.5 text-sm tabular-nums"
-              />
-            </Field>
-            <Field label="Final contado" htmlFor="cierre-final" hint="Lo que hay en caja">
-              <InputPeso
-                id="cierre-final"
-                value={dineroFinal}
-                onChange={onDineroFinalChange}
-                disabled={bloqueado}
-                className="select-field w-full py-2.5 text-sm font-medium tabular-nums"
-              />
-            </Field>
-          </div>
-        </section>
+      {/* Barra sticky inferior */}
+      <div className="fixed inset-x-0 bottom-0 z-30 border-t border-bg-border bg-bg-surface/95 pb-[env(safe-area-inset-bottom,0px)] backdrop-blur-md md:left-60">
+        <div className="flex flex-wrap items-center gap-3 px-4 py-3 sm:px-6">
+          <span
+            className={[
+              'rounded-full px-2.5 py-1 text-[11px] font-semibold',
+              badge.className,
+            ].join(' ')}
+          >
+            {badge.texto}
+          </span>
 
-        <p className="px-0.5 text-[11px] font-medium uppercase tracking-wider text-text-muted">
-          Movimientos del día
-        </p>
-
-        <BloqueMovimientos
-          icon={Receipt}
-          titulo="Gastos"
-          subtitulo="Compras e insumos"
-          total={cuadre.totalGastos}
-          items={gastos}
-          vacio="Aún no hay gastos registrados"
-          bloqueado={bloqueado}
-          onRemove={onRemoveGasto}
-          addOpen={addGasto}
-          onAddOpen={() => setAddGasto(true)}
-          onAddClose={() => setAddGasto(false)}
-          addLabel="Agregar gasto"
-          desc={gastoDesc}
-          monto={gastoMonto}
-          onDesc={setGastoDesc}
-          onMonto={setGastoMonto}
-          onSubmit={() => {
-            const d = gastoDesc.trim()
-            const m = parsePesosInput(gastoMonto)
-            if (!d || m <= 0) return
-            onAgregarGasto(d, m)
-            setGastoDesc('')
-            setGastoMonto('')
-            setAddGasto(false)
-          }}
-        />
-
-        <BloqueMovimientos
-          icon={ArrowLeftRight}
-          titulo="Transferencias"
-          subtitulo="Nequi, Daviplata, etc."
-          total={cuadre.totalTransferencias}
-          items={transferencias}
-          vacio="Aún no hay transferencias"
-          bloqueado={bloqueado}
-          onRemove={onRemoveTransferencia}
-          addOpen={addTrans}
-          onAddOpen={() => setAddTrans(true)}
-          onAddClose={() => setAddTrans(false)}
-          addLabel="Agregar transferencia"
-          desc={transDesc}
-          monto={transMonto}
-          onDesc={setTransDesc}
-          onMonto={setTransMonto}
-          onSubmit={() => {
-            const d = transDesc.trim()
-            const m = parsePesosInput(transMonto)
-            if (!d || m <= 0) return
-            onAgregarTransferencia(d, m)
-            setTransDesc('')
-            setTransMonto('')
-            setAddTrans(false)
-          }}
-        />
-      </div>
-
-      {/* Cuadre — anclado abajo */}
-      <div className="shrink-0 border-t border-bg-border bg-bg-base/95 pt-4 backdrop-blur-sm">
-        <div
-          className={[
-            'overflow-hidden rounded-[var(--radius-lg)] border p-4 sm:p-5',
-            estadoCuadre === 'ok'
-              ? 'border-emerald-500/30 bg-emerald-500/[0.06]'
-              : estadoCuadre === 'falta'
-                ? 'border-accent-red/25 bg-accent-red-dim/30'
-                : estadoCuadre === 'sobra'
-                  ? 'border-amber-500/25 bg-amber-500/[0.06]'
-                  : 'border-bg-border bg-bg-surface',
-          ].join(' ')}
-        >
-          <div className="mb-4 flex items-start justify-between gap-3">
-            <div className="flex items-center gap-2.5">
-              <span className="flex h-8 w-8 items-center justify-center rounded-[var(--radius-md)] bg-bg-elevated text-text-secondary">
-                <Banknote size={16} aria-hidden />
+          <div className="hidden min-w-0 flex-1 items-center gap-4 sm:flex">
+            <div className="text-xs">
+              <span className="text-text-secondary">Esperado </span>
+              <span className="font-semibold text-text-primary tabular-nums">
+                {formatPesos(esperado)}
               </span>
-              <div>
-                <h3 className="text-sm font-semibold text-text-primary">
-                  Resultado del cuadre
-                </h3>
-                <p className="text-[11px] text-text-muted">Esperado vs contado</p>
+            </div>
+            <div className="text-xs">
+              <span className="text-text-secondary">Contado </span>
+              <span className="font-semibold text-text-primary tabular-nums">
+                {formatPesos(dineroFinal)}
+              </span>
+            </div>
+            {(cuadre.totalGastos > 0 || cuadre.totalTransferencias > 0) && (
+              <div className="text-xs text-text-secondary">
+                {nMovimientos} mov.
               </div>
-            </div>
-            <BadgeCuadre estado={estadoCuadre} diferencia={cuadre.diferencia} />
+            )}
           </div>
 
-          {esAdmin && (
-            <dl className="mb-4 space-y-2.5 border-b border-bg-border/80 pb-4">
-              <FilaCuadre label="Vendido" valor={formatPesos(cuadre.totalVentas)} destacado />
-              <FilaCuadre
-                label="Transferencias"
-                valor={`− ${formatPesos(cuadre.totalTransferencias)}`}
-              />
-              <FilaCuadre label="Gastos" valor={`− ${formatPesos(cuadre.totalGastos)}`} />
-              <FilaCuadre
-                label="Esperado en caja"
-                valor={formatPesos(cuadre.efectivoEsperado)}
-                bold
-              />
-            </dl>
-          )}
-
-          {!esAdmin && (
-            <p className="mb-4 flex justify-between border-b border-bg-border/80 pb-4 text-sm">
-              <span className="text-text-muted">Esperado en caja</span>
-              <span className="font-medium tabular-nums">
-                {formatPesos(cuadre.dineroEsperadoEnCaja)}
-              </span>
-            </p>
-          )}
-
-          <div className="mb-4 flex items-end justify-between gap-3">
-            <span className="text-sm text-text-secondary">Contado</span>
-            <span className="text-2xl font-bold tabular-nums tracking-tight text-text-primary">
-              {formatPesos(dineroFinal)}
-            </span>
-          </div>
-
-          {!bloqueado && (
+          <div className="ml-auto flex w-full items-center gap-2 sm:w-auto">
             <Button
               type="button"
-              loading={guardando}
-              className="h-11 w-full text-sm font-semibold"
-              onClick={onCerrarDia}
+              variant="secondary"
+              className="h-10 flex-1 gap-1.5 sm:flex-none"
+              onClick={() => setDrawerOpen(true)}
             >
-              Cerrar día
+              <Wallet size={16} aria-hidden />
+              Resumen de caja
+              {nMovimientos > 0 && (
+                <span className="ml-0.5 rounded-full bg-bg-elevated px-1.5 text-[10px] font-semibold text-text-secondary tabular-nums">
+                  {nMovimientos}
+                </span>
+              )}
             </Button>
-          )}
-        </div>
-      </div>
-    </div>
-  )
-}
-
-function BloqueMovimientos({
-  icon: Icon,
-  titulo,
-  subtitulo,
-  total,
-  items,
-  vacio,
-  bloqueado,
-  onRemove,
-  addOpen,
-  onAddOpen,
-  onAddClose,
-  addLabel,
-  desc,
-  monto,
-  onDesc,
-  onMonto,
-  onSubmit,
-}: {
-  icon: typeof Receipt
-  titulo: string
-  subtitulo: string
-  total: number
-  items: LineaMonto[]
-  vacio: string
-  bloqueado: boolean
-  onRemove: (id: string) => void
-  addOpen: boolean
-  onAddOpen: () => void
-  onAddClose: () => void
-  addLabel: string
-  desc: string
-  monto: string
-  onDesc: (v: string) => void
-  onMonto: (v: string) => void
-  onSubmit: () => void
-}) {
-  return (
-    <section className="overflow-hidden rounded-[var(--radius-lg)] border border-bg-border bg-bg-surface">
-      <div className="flex items-center justify-between gap-3 border-b border-bg-border bg-bg-elevated/40 px-4 py-3.5">
-        <div className="flex min-w-0 items-center gap-2.5">
-          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[var(--radius-md)] bg-bg-elevated text-text-secondary">
-            <Icon size={16} aria-hidden />
-          </span>
-          <div className="min-w-0">
-            <h3 className="text-sm font-semibold text-text-primary">{titulo}</h3>
-            <p className="truncate text-[11px] text-text-muted">{subtitulo}</p>
+            {!bloqueado && (
+              <Button
+                type="button"
+                loading={guardando}
+                className="h-10 flex-1 sm:min-w-[8.5rem] sm:flex-none"
+                onClick={onCerrarDia}
+              >
+                Cerrar día
+              </Button>
+            )}
           </div>
         </div>
-        <span className="shrink-0 rounded-full bg-accent-cyan-dim px-2.5 py-1 text-xs font-semibold tabular-nums text-accent-cyan">
-          {formatPesos(total)}
-        </span>
       </div>
 
-      <div className="space-y-3 p-4">
-        <ListaMonto
-          items={items}
-          vacio={vacio}
-          bloqueado={bloqueado}
-          onRemove={onRemove}
-        />
+      {/* Modal centrado — resumen de caja */}
+      <AnimatePresence>
+        {drawerOpen && (
+          <motion.div
+            className="fixed inset-0 z-50 flex items-center justify-center p-4"
+            initial="hidden"
+            animate="visible"
+            exit="exit"
+          >
+            <motion.button
+              type="button"
+              aria-label="Cerrar resumen"
+              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+              variants={modalOverlay}
+              onClick={() => setDrawerOpen(false)}
+            />
+            <motion.aside
+              role="dialog"
+              aria-modal
+              aria-label="Resumen de caja"
+              className="relative z-10 flex max-h-[min(90dvh,36rem)] w-full max-w-lg flex-col overflow-hidden rounded-[var(--radius-lg)] border border-bg-border bg-bg-surface/95 shadow-glow-cyan-strong backdrop-blur-xl"
+              variants={modalContent}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex shrink-0 items-center justify-between border-b border-bg-border px-5 py-4">
+                <div>
+                  <p className="font-display text-lg font-semibold text-text-primary">
+                    Resumen de caja
+                  </p>
+                  <p className="text-xs text-text-secondary">
+                    Gastos, transferencias y efectivo del día
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  aria-label="Cerrar"
+                  onClick={() => setDrawerOpen(false)}
+                  className="flex h-9 w-9 items-center justify-center rounded-[var(--radius-md)] text-text-secondary hover:bg-bg-elevated hover:text-text-primary"
+                >
+                  <X size={18} />
+                </button>
+              </div>
 
-        {!bloqueado && (
-          <FormAdd
-            open={addOpen}
-            onOpen={onAddOpen}
-            onClose={onAddClose}
-            label={addLabel}
-            desc={desc}
-            monto={monto}
-            onDesc={onDesc}
-            onMonto={onMonto}
-            onSubmit={onSubmit}
-          />
-        )}
-      </div>
-    </section>
-  )
-}
-
-function ListaMonto({
-  items,
-  vacio,
-  bloqueado,
-  onRemove,
-}: {
-  items: LineaMonto[]
-  vacio: string
-  bloqueado: boolean
-  onRemove: (id: string) => void
-}) {
-  if (!items.length) {
-    return (
-      <p className="rounded-[var(--radius-md)] border border-dashed border-bg-border/80 bg-bg-elevated/30 px-3 py-4 text-center text-xs leading-relaxed text-text-muted">
-        {vacio}
-      </p>
-    )
-  }
-
-  return (
-    <ul className="max-h-44 space-y-2 overflow-y-auto overscroll-contain pr-0.5">
-      {items.map((x) => (
-        <li
-          key={x.id}
-          className="flex items-center justify-between gap-3 rounded-[var(--radius-md)] bg-bg-elevated/60 px-3 py-2.5"
-        >
-          <span className="min-w-0 truncate text-sm text-text-primary">
-            {x.descripcion}
-          </span>
-          <span className="flex shrink-0 items-center gap-2">
-            <span className="text-sm font-medium tabular-nums text-text-secondary">
-              {formatPesos(x.monto)}
-            </span>
-            {!bloqueado && (
-              <button
-                type="button"
-                aria-label="Eliminar"
-                className="flex h-7 w-7 items-center justify-center rounded-[var(--radius-md)] text-text-muted transition-colors hover:bg-accent-red-dim hover:text-accent-red"
-                onClick={() => onRemove(x.id)}
+              <div
+                data-lenis-prevent
+                className="min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain px-5 py-4"
               >
-                <Trash2 size={14} />
-              </button>
-            )}
-          </span>
-        </li>
-      ))}
-    </ul>
+                <SeccionAcordeon
+                  emoji="💸"
+                  titulo="Gastos del día"
+                  total={cuadre.totalGastos}
+                  items={gastos}
+                  abierta={abiertas.has('gastos')}
+                  colorTotal="text-accent-red"
+                  bloqueado={bloqueado}
+                  onToggle={() => toggleSeccion('gastos')}
+                  onAgregar={onAgregarGasto}
+                  onEliminar={onRemoveGasto}
+                />
+
+                <SeccionAcordeon
+                  emoji="📱"
+                  titulo="Transferencias"
+                  total={cuadre.totalTransferencias}
+                  items={transferencias}
+                  abierta={abiertas.has('transferencias')}
+                  colorTotal="text-text-secondary"
+                  bloqueado={bloqueado}
+                  onToggle={() => toggleSeccion('transferencias')}
+                  onAgregar={onAgregarTransferencia}
+                  onEliminar={onRemoveTransferencia}
+                />
+
+                <div className="overflow-hidden rounded-[var(--radius-md)] border border-bg-border">
+                  <button
+                    type="button"
+                    onClick={() => toggleSeccion('caja')}
+                    className="flex w-full items-center justify-between p-3.5 transition-colors hover:bg-bg-elevated/50"
+                  >
+                    <div className="flex items-center gap-2">
+                      <span aria-hidden>💰</span>
+                      <span className="text-sm font-medium text-text-primary">
+                        Caja
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {dineroFinal > 0 && (
+                        <span className="text-xs font-semibold text-text-primary tabular-nums">
+                          {formatPesos(dineroFinal)}
+                        </span>
+                      )}
+                      <motion.div
+                        animate={{
+                          rotate: abiertas.has('caja') ? 180 : 0,
+                        }}
+                        transition={{ duration: 0.2 }}
+                      >
+                        <ChevronDown
+                          size={14}
+                          className="text-text-secondary"
+                          aria-hidden
+                        />
+                      </motion.div>
+                    </div>
+                  </button>
+
+                  <AnimatePresence initial={false}>
+                    {abiertas.has('caja') && (
+                      <motion.div
+                        initial={{ height: 0 }}
+                        animate={{ height: 'auto' }}
+                        exit={{ height: 0 }}
+                        transition={{ duration: 0.2, ease: 'easeInOut' }}
+                        className="overflow-hidden"
+                      >
+                        <div className="space-y-3 border-t border-bg-border p-4">
+                          <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-1.5">
+                              <label
+                                htmlFor="cierre-base"
+                                className="text-xs font-medium text-text-secondary"
+                              >
+                                Base inicio
+                              </label>
+                              <InputPeso
+                                id="cierre-base"
+                                value={dineroBase}
+                                onChange={onDineroBaseChange}
+                                disabled={bloqueado}
+                                className="select-field w-full py-2.5 text-sm tabular-nums"
+                              />
+                              <p className="text-[11px] text-text-secondary">
+                                Del día anterior
+                              </p>
+                            </div>
+                            <div className="space-y-1.5">
+                              <label
+                                htmlFor="cierre-final"
+                                className="text-xs font-medium text-text-secondary"
+                              >
+                                Dinero final
+                              </label>
+                              <InputPeso
+                                id="cierre-final"
+                                value={dineroFinal}
+                                onChange={onDineroFinalChange}
+                                disabled={bloqueado}
+                                className="select-field w-full py-2.5 text-sm font-semibold tabular-nums"
+                              />
+                              <p className="text-[11px] text-text-secondary">
+                                Lo que contaron
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+
+                {/* Cuadre detallado en el drawer */}
+                <div className="space-y-3 rounded-[var(--radius-md)] border border-bg-border p-4">
+                  <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-text-secondary">
+                    <Receipt size={14} aria-hidden />
+                    Resultado del cuadre
+                  </p>
+
+                  {esAdmin && (
+                    <div className="space-y-2">
+                      <Fila
+                        label="Vendido"
+                        valor={formatPesos(cuadre.totalVentas)}
+                        className="text-accent-cyan"
+                      />
+                      <Fila
+                        label="− Transferencias"
+                        valor={formatPesos(cuadre.totalTransferencias)}
+                      />
+                      <Fila
+                        label="− Gastos"
+                        valor={formatPesos(cuadre.totalGastos)}
+                      />
+                      <Fila
+                        label="Esperado en caja"
+                        valor={formatPesos(cuadre.efectivoEsperado)}
+                        bold
+                      />
+                    </div>
+                  )}
+
+                  {!esAdmin && (
+                    <Fila
+                      label="Esperado en caja"
+                      valor={formatPesos(cuadre.dineroEsperadoEnCaja)}
+                      bold
+                    />
+                  )}
+
+                  <div
+                    className={[
+                      'flex items-center justify-between rounded-[var(--radius-md)] p-3',
+                      badge.className.includes('green')
+                        ? 'bg-accent-green-dim'
+                        : badge.className.includes('red')
+                          ? 'bg-accent-red-dim'
+                          : badge.className.includes('amber')
+                            ? 'bg-amber-500/15'
+                            : 'bg-bg-elevated',
+                    ].join(' ')}
+                  >
+                    <span className={`text-sm font-semibold ${badge.className.split(' ').pop()}`}>
+                      {tieneContado
+                        ? badge.texto === 'Cuadre OK'
+                          ? '✓ Cuadre perfecto'
+                          : badge.texto
+                        : 'Pendiente de conteo'}
+                    </span>
+                    <span className="text-xs font-medium text-text-primary tabular-nums">
+                      {formatPesos(dineroFinal)} contado
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {!bloqueado && (
+                <div className="border-t border-bg-border p-4">
+                  <Button
+                    type="button"
+                    loading={guardando}
+                    className="h-11 w-full text-sm font-semibold"
+                    onClick={() => {
+                      setDrawerOpen(false)
+                      onCerrarDia()
+                    }}
+                  >
+                    Cerrar día
+                  </Button>
+                </div>
+              )}
+            </motion.aside>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </>
   )
 }
 
-function FormAdd({
-  open,
-  onOpen,
-  onClose,
-  label,
-  desc,
-  monto,
-  onDesc,
-  onMonto,
-  onSubmit,
-}: {
-  open: boolean
-  onOpen: () => void
-  onClose: () => void
-  label: string
-  desc: string
-  monto: string
-  onDesc: (v: string) => void
-  onMonto: (v: string) => void
-  onSubmit: () => void
-}) {
-  if (open) {
-    return (
-      <div className="space-y-3 rounded-[var(--radius-md)] border border-bg-border bg-bg-elevated/40 p-3">
-        <input
-          type="text"
-          placeholder="Descripción"
-          value={desc}
-          onChange={(e) => onDesc(e.target.value)}
-          className="select-field w-full py-2.5 text-sm"
-          autoFocus
-        />
-        <input
-          type="text"
-          inputMode="numeric"
-          placeholder="Monto"
-          value={monto}
-          onChange={(e) => onMonto(e.target.value)}
-          className="select-field w-full py-2.5 text-sm tabular-nums"
-        />
-        <div className="flex gap-2 pt-1">
-          <Button type="button" size="sm" className="flex-1" onClick={onSubmit}>
-            Guardar
-          </Button>
-          <Button type="button" size="sm" variant="ghost" onClick={onClose}>
-            Cancelar
-          </Button>
-        </div>
-      </div>
-    )
-  }
+/** @deprecated Usar CierreCajaShell */
+export const CierrePanelSticky = CierreCajaShell
 
-  return (
-    <button
-      type="button"
-      onClick={onOpen}
-      className="flex w-full items-center justify-center gap-1.5 rounded-[var(--radius-md)] border border-dashed border-bg-border py-2.5 text-xs font-medium text-text-muted transition-colors hover:border-accent-cyan/40 hover:bg-accent-cyan-dim/20 hover:text-accent-cyan"
-    >
-      <Plus size={14} aria-hidden />
-      {label}
-    </button>
-  )
-}
-
-function Field({
-  label,
-  htmlFor,
-  hint,
-  children,
-}: {
-  label: string
-  htmlFor: string
-  hint?: string
-  children: React.ReactNode
-}) {
-  return (
-    <div className="space-y-1.5">
-      <label htmlFor={htmlFor} className="block text-xs font-medium text-text-secondary">
-        {label}
-      </label>
-      {hint && <p className="text-[10px] text-text-muted">{hint}</p>}
-      {children}
-    </div>
-  )
-}
-
-function FilaCuadre({
+function Fila({
   label,
   valor,
-  destacado,
+  className,
   bold,
 }: {
   label: string
   valor: string
-  destacado?: boolean
+  className?: string
   bold?: boolean
 }) {
   return (
-    <div className="flex items-center justify-between gap-3 text-sm">
-      <dt className="text-text-muted">{label}</dt>
-      <dd
+    <div className="flex justify-between gap-3 text-sm">
+      <span className="text-text-secondary">{label}</span>
+      <span
         className={[
           'tabular-nums',
-          destacado ? 'font-medium text-accent-cyan' : '',
-          bold ? 'font-semibold text-text-primary' : 'text-text-secondary',
-        ].join(' ')}
+          bold ? 'font-semibold text-text-primary' : 'text-text-primary',
+          className,
+        ]
+          .filter(Boolean)
+          .join(' ')}
       >
         {valor}
-      </dd>
+      </span>
     </div>
   )
 }
 
-function BadgeCuadre({
-  estado,
-  diferencia,
+function SeccionAcordeon({
+  emoji,
+  titulo,
+  total,
+  items,
+  abierta,
+  colorTotal,
+  bloqueado,
+  onToggle,
+  onAgregar,
+  onEliminar,
 }: {
-  estado: 'pendiente' | 'ok' | 'falta' | 'sobra'
-  diferencia: number
+  emoji: string
+  titulo: string
+  total: number
+  items: LineaMonto[]
+  abierta: boolean
+  colorTotal: string
+  bloqueado: boolean
+  onToggle: () => void
+  onAgregar: (desc: string, monto: number) => void
+  onEliminar: (id: string) => void
 }) {
-  const styles =
-    estado === 'ok'
-      ? 'bg-emerald-500/15 text-emerald-400 ring-emerald-500/25'
-      : estado === 'falta'
-        ? 'bg-accent-red-dim text-accent-red ring-accent-red/20'
-        : estado === 'sobra'
-          ? 'bg-amber-500/15 text-amber-400 ring-amber-500/25'
-          : 'bg-bg-elevated text-text-muted ring-bg-border'
+  return (
+    <div className="overflow-hidden rounded-[var(--radius-md)] border border-bg-border">
+      <button
+        type="button"
+        onClick={onToggle}
+        className="flex w-full items-center justify-between p-3.5 transition-colors hover:bg-bg-elevated/50"
+      >
+        <div className="flex min-w-0 items-center gap-2">
+          <span aria-hidden>{emoji}</span>
+          <span className="text-sm font-medium text-text-primary">{titulo}</span>
+          {items.length > 0 && (
+            <span className="rounded-full bg-bg-elevated px-1.5 py-0.5 text-xs font-medium text-text-secondary tabular-nums">
+              {items.length}
+            </span>
+          )}
+        </div>
+        <div className="flex shrink-0 items-center gap-2">
+          {total > 0 && (
+            <span className={`text-xs font-semibold tabular-nums ${colorTotal}`}>
+              {formatPesos(total)}
+            </span>
+          )}
+          <motion.div
+            animate={{ rotate: abierta ? 180 : 0 }}
+            transition={{ duration: 0.2 }}
+          >
+            <ChevronDown size={14} className="text-text-secondary" aria-hidden />
+          </motion.div>
+        </div>
+      </button>
 
-  const text =
-    estado === 'ok'
-      ? 'Cuadre OK'
-      : estado === 'falta'
-        ? `Falta ${formatPesos(Math.abs(diferencia))}`
-        : estado === 'sobra'
-          ? `Sobra ${formatPesos(diferencia)}`
-          : 'Pendiente'
+      <AnimatePresence initial={false}>
+        {abierta && (
+          <motion.div
+            initial={{ height: 0 }}
+            animate={{ height: 'auto' }}
+            exit={{ height: 0 }}
+            transition={{ duration: 0.2, ease: 'easeInOut' }}
+            className="overflow-hidden"
+          >
+            <div className="space-y-2 border-t border-bg-border px-3.5 pb-3.5">
+              {!bloqueado && (
+                <div className="pt-3">
+                  <InputItem
+                    onAgregar={onAgregar}
+                    placeholderDesc={
+                      titulo.toLowerCase().includes('transfer')
+                        ? 'Ej. Nequi, Bancolombia…'
+                        : 'Ej. gasolina, mercado…'
+                    }
+                  />
+                </div>
+              )}
+
+              <AnimatePresence initial={false}>
+                {items.map((item) => (
+                  <ItemLista
+                    key={item.id}
+                    descripcion={item.descripcion}
+                    monto={item.monto}
+                    bloqueado={bloqueado}
+                    onEliminar={() => onEliminar(item.id)}
+                  />
+                ))}
+              </AnimatePresence>
+
+              {items.length === 0 && (
+                <p className="py-2 text-xs text-text-secondary">
+                  Sin registros aún
+                </p>
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  )
+}
+
+function InputItem({
+  onAgregar,
+  placeholderDesc = 'Descripción',
+}: {
+  onAgregar: (desc: string, monto: number) => void
+  placeholderDesc?: string
+}) {
+  const [desc, setDesc] = useState('')
+  const [monto, setMonto] = useState(0)
+
+  function handleAgregar() {
+    const descripcion = desc.trim()
+    if (!descripcion || monto <= 0) return
+    onAgregar(descripcion, monto)
+    setDesc('')
+    setMonto(0)
+  }
 
   return (
-    <span
-      className={[
-        'shrink-0 rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide ring-1 ring-inset',
-        styles,
-      ].join(' ')}
+    <div className="flex items-center gap-2">
+      <input
+        value={desc}
+        onChange={(e) => setDesc(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') {
+            e.preventDefault()
+            handleAgregar()
+          }
+        }}
+        placeholder={placeholderDesc}
+        className="input min-w-0 flex-1 placeholder:text-text-secondary"
+      />
+      <InputPeso
+        value={monto}
+        onChange={setMonto}
+        placeholder="Monto $"
+        className="input w-[7.5rem] shrink-0 tabular-nums placeholder:text-text-secondary"
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') {
+            e.preventDefault()
+            handleAgregar()
+          }
+        }}
+      />
+      <button
+        type="button"
+        onClick={(e) => {
+          e.preventDefault()
+          e.stopPropagation()
+          handleAgregar()
+        }}
+        aria-label="Agregar"
+        disabled={!desc.trim() || monto <= 0}
+        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[var(--radius-md)] bg-accent-cyan-dim text-accent-cyan transition-colors hover:bg-accent-cyan/20 disabled:cursor-not-allowed disabled:opacity-40"
+      >
+        <Plus size={18} aria-hidden />
+      </button>
+    </div>
+  )
+}
+
+function ItemLista({
+  descripcion,
+  monto,
+  bloqueado,
+  onEliminar,
+}: {
+  descripcion: string
+  monto: number
+  bloqueado: boolean
+  onEliminar: () => void
+}) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, x: -8 }}
+      animate={{ opacity: 1, x: 0 }}
+      exit={{ opacity: 0, x: 8 }}
+      className="group flex items-center justify-between py-2"
     >
-      {text}
-    </span>
+      <span className="min-w-0 flex-1 truncate text-sm text-text-secondary">
+        {descripcion}
+      </span>
+      <div className="flex shrink-0 items-center gap-2">
+        <span className="text-sm font-semibold text-text-primary tabular-nums">
+          {formatPesos(monto)}
+        </span>
+        {!bloqueado && (
+          <button
+            type="button"
+            onClick={onEliminar}
+            aria-label="Eliminar"
+            className="flex h-7 w-7 items-center justify-center rounded text-text-secondary opacity-70 transition-all hover:bg-accent-red-dim hover:text-accent-red group-hover:opacity-100 sm:opacity-0 sm:group-hover:opacity-100"
+          >
+            <X size={14} aria-hidden />
+          </button>
+        )}
+      </div>
+    </motion.div>
   )
 }

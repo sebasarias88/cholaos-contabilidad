@@ -18,7 +18,7 @@ export function CardHeader({
 }: HTMLAttributes<HTMLDivElement>) {
   return (
     <div
-      className={['border-b border-bg-border px-6 py-4', className]
+      className={['border-b border-bg-border px-4 py-3 sm:px-6 sm:py-4', className]
         .filter(Boolean)
         .join(' ')}
       {...props}
@@ -34,7 +34,12 @@ export function CardBody({
   ...props
 }: HTMLAttributes<HTMLDivElement>) {
   return (
-    <div className={['px-6 py-4', className].filter(Boolean).join(' ')} {...props}>
+    <div
+      className={['px-4 py-3 sm:px-6 sm:py-4', className]
+        .filter(Boolean)
+        .join(' ')}
+      {...props}
+    >
       {children}
     </div>
   )
@@ -47,7 +52,10 @@ export function CardFooter({
 }: HTMLAttributes<HTMLDivElement>) {
   return (
     <div
-      className={['border-t border-bg-border px-6 py-4', className]
+      className={[
+        'border-t border-bg-border px-4 py-3 sm:px-6 sm:py-4',
+        className,
+      ]
         .filter(Boolean)
         .join(' ')}
       {...props}
@@ -74,7 +82,7 @@ export function Card({
     (title || description ? (
       <>
         {title && (
-          <h2 className="font-display text-lg font-semibold text-text-primary">
+          <h2 className="font-display text-base font-semibold text-text-primary sm:text-lg">
             {title}
           </h2>
         )}
@@ -93,7 +101,7 @@ export function Card({
         hover && 'hover:border-accent-cyan/30',
         glow && 'shadow-glow-cyan',
         fillHeight && 'flex h-full flex-col',
-        !useCompoundSlots && !resolvedHeader && 'p-6',
+        !useCompoundSlots && !resolvedHeader && 'p-4 sm:p-6',
         className,
       ]
         .filter(Boolean)

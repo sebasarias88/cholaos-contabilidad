@@ -32,8 +32,11 @@ export function GraficoIngresosLinea({ data }: GraficoIngresosLineaProps) {
   }
 
   return (
-    <ResponsiveContainer width="100%" height={300}>
-      <AreaChart data={data}>
+    <ResponsiveContainer width="100%" height="100%">
+      <AreaChart
+        data={data}
+        margin={{ top: 8, right: 4, left: 0, bottom: 0 }}
+      >
         <defs>
           <linearGradient id="ingresosGradient" x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%" stopColor="#00D4FF" stopOpacity={0.35} />
@@ -44,15 +47,22 @@ export function GraficoIngresosLinea({ data }: GraficoIngresosLineaProps) {
         <XAxis
           dataKey="fecha"
           tickFormatter={tickFecha}
-          tick={{ fontSize: 12, fill: '#7A8BA3' }}
+          tick={{ fontSize: 10, fill: '#7A8BA3' }}
           axisLine={{ stroke: '#1E2D45' }}
           tickLine={false}
+          interval="preserveStartEnd"
+          minTickGap={28}
         />
         <YAxis
-          tick={{ fontSize: 12, fill: '#7A8BA3' }}
+          width={36}
+          tick={{ fontSize: 10, fill: '#7A8BA3' }}
           axisLine={false}
           tickLine={false}
-          width={72}
+          tickFormatter={(v) =>
+            typeof v === 'number' && v >= 1000
+              ? `${Math.round(v / 1000)}k`
+              : String(v)
+          }
         />
         <Tooltip
           contentStyle={{
@@ -72,8 +82,8 @@ export function GraficoIngresosLinea({ data }: GraficoIngresosLineaProps) {
           stroke="#00D4FF"
           strokeWidth={2}
           fill="url(#ingresosGradient)"
-          dot={{ fill: '#00D4FF', r: 3 }}
-          activeDot={{ r: 5, fill: '#00D4FF' }}
+          dot={{ fill: '#00D4FF', r: 2 }}
+          activeDot={{ r: 4, fill: '#00D4FF' }}
         />
       </AreaChart>
     </ResponsiveContainer>

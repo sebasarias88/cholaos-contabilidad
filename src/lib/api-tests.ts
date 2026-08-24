@@ -393,7 +393,11 @@ export async function prueba7Prellenado(): Promise<PruebaResultado> {
   let ok =
     check(status === 200, `status ${status}`, checks) &&
     check(nuevo.tipo === 'nuevo', "tipo === 'nuevo'", checks) &&
-    check(Array.isArray(nuevo.conteo_vasos), 'conteo_vasos es array', checks)
+    check(
+      Array.isArray(nuevo.conteo_productos),
+      'conteo_productos es array',
+      checks
+    )
 
   if (cierreAyer) {
     ok =
@@ -404,7 +408,7 @@ export async function prueba7Prellenado(): Promise<PruebaResultado> {
         checks
       )
 
-    for (const cv of nuevo.conteo_vasos) {
+    for (const cv of nuevo.conteo_productos.filter((c) => c.tipo === 'vaso')) {
       const filaAyer = cierreAyer.conteo_vasos?.find(
         (c) => c.talla_id === cv.talla_id
       )
@@ -413,7 +417,7 @@ export async function prueba7Prellenado(): Promise<PruebaResultado> {
         ok &&
         check(
           cv.cantidad_inicio === esperado,
-          `cantidad_inicio talla ${cv.talla?.onzas ?? cv.talla_id} = ${esperado}`,
+          `cantidad_inicio vaso ${cv.producto?.nombre ?? cv.talla_id} = ${esperado}`,
           checks
         )
       ok =
@@ -423,7 +427,9 @@ export async function prueba7Prellenado(): Promise<PruebaResultado> {
           'cantidad_nuevos sin registrar',
           checks
         )
-      ok = ok && check(Boolean(cv.talla), 'talla embebida', checks)
+      ok =
+        ok &&
+        check(Boolean(cv.producto), 'producto embebido', checks)
     }
   } else {
     checks.push(`⚠ Sin cierre en ${ayer} — no se validó dinero/vasos vs ayer`)
