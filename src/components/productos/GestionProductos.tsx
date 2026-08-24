@@ -55,7 +55,7 @@ function formDesdeProducto(p: Producto): ProductoFormState {
       precio: String(v.precio),
     })),
   }
-} 
+}
 
 function buildPayload(form: ProductoFormState) {
   const nombre = form.nombre.trim()
