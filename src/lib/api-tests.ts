@@ -314,7 +314,7 @@ export async function prueba6CierreCompleto(
   const items = productos.slice(0, 5).map((p) => ({
     producto_id: p.id,
     cantidad: Math.floor(Math.random() * 10) + 1,
-    precio_unitario: p.precio,
+    precio_unitario: p.precio ?? 0,
   }))
   const total_ventas_esperado = items.reduce(
     (s, i) => s + i.cantidad * i.precio_unitario,

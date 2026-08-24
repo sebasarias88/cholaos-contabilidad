@@ -131,7 +131,7 @@ export function CierreBottomSheet({
                           {producto.nombre}
                         </p>
                         <p className="text-sm text-text-secondary">
-                          {producto.onzas} oz · {formatPesos(producto.precio)} c/u
+                          {producto.onzas} oz · {formatPesos(producto.precio ?? 0)} c/u
                         </p>
                       </div>
                       <p className="shrink-0 font-semibold text-accent-cyan tabular-nums">
