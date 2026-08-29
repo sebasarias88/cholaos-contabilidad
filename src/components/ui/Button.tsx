@@ -17,7 +17,7 @@ const variants: Record<ButtonVariant, string> = {
     'bg-accent-cyan text-bg-base shadow-glow-cyan hover:brightness-110 font-medium',
   secondary:
     'border border-bg-border bg-transparent text-text-primary hover:bg-bg-elevated',
-  ghost: 'text-text-secondary hover:bg-bg-elevated hover:text-text-primary',
+  ghost: 'text-text-secondary hover:bg-bg-elevated hover:text-text-primary border border-transparent hover:border-bg-border',
   danger:
     'bg-accent-red-dim text-accent-red border border-accent-red/30 hover:bg-accent-red/20',
 }

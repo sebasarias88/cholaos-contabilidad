@@ -6,6 +6,7 @@ import { Plus } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Modal } from '@/components/ui/Modal'
+import { Select } from '@/components/ui/Select'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { fadeUp } from '@/lib/animations'
 import { etiquetaTipoVaso, formatTalla } from '@/lib/utils'
@@ -238,10 +239,10 @@ export function GestionTallasVasos() {
 
           {inactivas.length > 0 && (
             <div className="space-y-2">
-              <p className="text-xs font-medium uppercase tracking-wide text-text-muted">
+              <p className="text-xs font-medium uppercase tracking-wide text-text-secondary">
                 Inactivas
               </p>
-              <ul className="divide-y divide-bg-border overflow-hidden rounded-[var(--radius-lg)] border border-bg-border/60 bg-bg-elevated/30">
+              <ul className="divide-y divide-bg-border overflow-hidden rounded-[var(--radius-lg)] border border-bg-border bg-bg-elevated/30">
                 {inactivas.map((t) => (
                   <li
                     key={t.id}
@@ -296,23 +297,18 @@ export function GestionTallasVasos() {
             placeholder="Ej. 16"
           />
           <div className="space-y-1.5">
-            <label htmlFor="talla-tipo" className="text-sm font-medium text-text-secondary">
+            <span className="text-sm font-medium text-text-secondary">
               Tipo de vaso
-            </label>
-            <select
-              id="talla-tipo"
+            </span>
+            <Select
               value={form.tipo}
-              onChange={(e) =>
-                setForm((f) => ({ ...f, tipo: e.target.value as TipoVaso }))
+              onChange={(tipo) =>
+                setForm((f) => ({ ...f, tipo: tipo as TipoVaso }))
               }
-              className="select-field w-full"
-            >
-              {TIPOS.map((t) => (
-                <option key={t.value} value={t.value}>
-                  {t.label}
-                </option>
-              ))}
-            </select>
+              options={TIPOS.map((t) => ({ value: t.value, label: t.label }))}
+              aria-label="Tipo de vaso"
+              className="w-full !flex-none"
+            />
             <p className="text-xs text-text-muted">
               Vista previa:{' '}
               <span className="text-text-secondary">

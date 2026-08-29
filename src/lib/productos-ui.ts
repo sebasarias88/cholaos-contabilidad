@@ -35,7 +35,7 @@ export const BADGE_TIPO: Record<
   },
   insumo: {
     label: '🧂 Insumo',
-    className: 'bg-bg-elevated text-text-muted',
+    className: 'border border-bg-border bg-bg-elevated text-text-secondary',
   },
 }
 
@@ -44,9 +44,16 @@ export function medidaProducto(p: {
   tipo?: TipoProducto | string | null
   onzas?: number | null
   unidad?: string | null
+  talla?: { onzas: number; tipo?: string } | null
 }): string {
   const tipo = (p.tipo as TipoProducto | undefined) ?? 'vaso'
   if (tipo === 'vaso') {
+    if (p.talla?.onzas != null) {
+      const oz = p.talla.onzas
+      const tv = p.talla.tipo
+      if (tv && tv !== 'normal') return `${oz} oz (${tv})`
+      return `${oz} oz`
+    }
     return p.onzas != null ? `${p.onzas} oz` : '—'
   }
   return p.unidad?.trim() || '—'

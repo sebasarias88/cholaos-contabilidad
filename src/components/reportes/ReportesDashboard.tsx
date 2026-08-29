@@ -90,7 +90,7 @@ function ProductosVendidosLista({
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="text-[10px] font-semibold uppercase tracking-wide text-text-muted">
+                  <span className="text-[10px] font-semibold uppercase tracking-wide text-text-secondary">
                     #{i + 1}
                   </span>
                   {p.onzas > 0 && (
@@ -116,32 +116,32 @@ function ProductosVendidosLista({
       </ul>
 
       {/* Vista escritorio: tabla */}
-      <div className="table-surface hidden overflow-x-auto md:block">
-        <table className="w-full min-w-[28rem] text-left text-sm">
+      <div className="table-surface hidden min-w-0 max-w-full md:block">
+        <table className="data-table">
           <thead>
             <tr>
-              <th className="px-4 py-3">Producto</th>
-              <th className="px-4 py-3">Onzas</th>
-              <th className="px-4 py-3">Cantidad</th>
-              <th className="px-4 py-3 text-right">Ingresos</th>
+              <th className="col-name">Producto</th>
+              <th className="col-compact min-w-[4.5rem]">Onzas</th>
+              <th className="col-compact min-w-[5rem]">Cantidad</th>
+              <th className="col-compact min-w-[6.5rem] text-right">Ingresos</th>
             </tr>
           </thead>
           <tbody>
             {productos.map((p, i) => (
-              <tr key={p.producto_id} className="border-t border-bg-border">
-                <td className="px-4 py-3">
+              <tr key={p.producto_id}>
+                <td className="col-name">
                   <span className="mr-2 text-text-muted">#{i + 1}</span>
                   <span className="font-medium text-text-primary">
                     {p.nombre}
                   </span>
                 </td>
-                <td className="px-4 py-3 text-text-secondary tabular-nums">
+                <td className="col-compact text-text-secondary tabular-nums">
                   {p.onzas > 0 ? `${p.onzas} oz` : '—'}
                 </td>
-                <td className="px-4 py-3">
+                <td className="col-compact">
                   <span className="badge-cyan tabular-nums">{p.cantidad}</span>
                 </td>
-                <td className="px-4 py-3 text-right font-medium text-accent-cyan tabular-nums">
+                <td className="col-compact text-right font-medium text-accent-cyan tabular-nums">
                   {formatPesos(p.ingresos)}
                 </td>
               </tr>

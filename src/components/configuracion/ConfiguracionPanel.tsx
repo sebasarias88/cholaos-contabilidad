@@ -2,20 +2,22 @@
 
 import { useState } from 'react'
 import { motion } from 'framer-motion'
-import { GlassWater, Settings, Tags, User, Users } from 'lucide-react'
+import { GlassWater, Settings, Smartphone, Tags, User, Users } from 'lucide-react'
 import { GestionEquipo } from '@/components/configuracion/GestionEquipo'
+import { GestionMediosTransferencia } from '@/components/configuracion/GestionMediosTransferencia'
 import { GestionMotivosNovedad } from '@/components/configuracion/GestionMotivosNovedad'
 import { GestionTallasVasos } from '@/components/configuracion/GestionTallasVasos'
 import { MiCuenta } from '@/components/configuracion/MiCuenta'
 import { fadeUp, staggerContainer } from '@/lib/animations'
 import type { Usuario } from '@/types'
 
-type Tab = 'equipo' | 'vasos' | 'motivos' | 'cuenta'
+type Tab = 'equipo' | 'vasos' | 'motivos' | 'transferencias' | 'cuenta'
 
 const TABS: { id: Tab; label: string; icon: typeof Users }[] = [
   { id: 'equipo', label: 'Equipo', icon: Users },
   { id: 'vasos', label: 'Vasos', icon: GlassWater },
   { id: 'motivos', label: 'Motivos', icon: Tags },
+  { id: 'transferencias', label: 'Transferencias', icon: Smartphone },
   { id: 'cuenta', label: 'Mi cuenta', icon: User },
 ]
 
@@ -66,6 +68,7 @@ export function ConfiguracionPanel({ usuario: usuarioInicial, email }: Configura
       )}
       {tab === 'vasos' && <GestionTallasVasos />}
       {tab === 'motivos' && <GestionMotivosNovedad />}
+      {tab === 'transferencias' && <GestionMediosTransferencia />}
       {tab === 'cuenta' && (
         <MiCuenta
           usuario={usuario}

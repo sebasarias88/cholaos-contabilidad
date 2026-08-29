@@ -18,7 +18,8 @@ export function getDiferenciaCierre(cierre: CierreDia) {
     cierre.dinero_base_inicio +
       cierre.total_ventas -
       cierre.total_transferencias -
-      cierre.total_gastos
+      cierre.total_gastos -
+      (cierre.total_domicilios ?? 0)
   return cierre.dinero_final - esperado
 }
 

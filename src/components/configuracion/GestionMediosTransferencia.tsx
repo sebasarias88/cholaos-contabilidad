@@ -9,18 +9,10 @@ import { Input } from '@/components/ui/Input'
 import { Modal } from '@/components/ui/Modal'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { fadeUp } from '@/lib/animations'
-import { esMotivoPredefinido } from '@/lib/motivos-novedad'
 import { toastError, toastLoading, toastSuccess } from '@/lib/toast'
-import type { MotivoNovedad } from '@/types'
+import type { MedioTransferencia } from '@/types'
 
-type MotivoForm = {
-  descripcion: string
-  emoji: string
-}
-
-const FORM_VACIO: MotivoForm = { descripcion: '', emoji: '⚪' }
-
-function BotonMenuMotivo({
+function BotonMenu({
   abierto,
   onClick,
 }: {
@@ -41,13 +33,13 @@ function BotonMenuMotivo({
   )
 }
 
-export function GestionMotivosNovedad() {
-  const [motivos, setMotivos] = useState<MotivoNovedad[]>([])
+export function GestionMediosTransferencia() {
+  const [medios, setMedios] = useState<MedioTransferencia[]>([])
   const [loading, setLoading] = useState(true)
   const [guardando, setGuardando] = useState(false)
   const [modalOpen, setModalOpen] = useState(false)
-  const [editando, setEditando] = useState<MotivoNovedad | null>(null)
-  const [form, setForm] = useState<MotivoForm>(FORM_VACIO)
+  const [editando, setEditando] = useState<MedioTransferencia | null>(null)
+  const [nombre, setNombre] = useState('')
   const [menuAbierto, setMenuAbierto] = useState<string | null>(null)
   const [menuPos, setMenuPos] = useState<{ top: number; left: number } | null>(
     null
@@ -56,16 +48,16 @@ export function GestionMotivosNovedad() {
 
   const cargar = useCallback(() => {
     setLoading(true)
-    fetch('/api/motivos-novedad?todas=1')
+    fetch('/api/medios-transferencia?todas=1')
       .then((r) => {
         if (!r.ok) throw new Error()
         return r.json()
       })
-      .then((data: MotivoNovedad[]) => {
+      .then((data: MedioTransferencia[]) => {
         const lista = Array.isArray(data) ? data : []
-        setMotivos(lista.sort((a, b) => a.orden - b.orden))
+        setMedios(lista.sort((a, b) => a.orden - b.orden))
       })
-      .catch(() => toastError('Error cargando motivos de novedad'))
+      .catch(() => toastError('Error cargando medios de transferencia'))
       .finally(() => setLoading(false))
   }, [])
 
@@ -100,7 +92,7 @@ export function GestionMotivosNovedad() {
     }
   }, [menuAbierto])
 
-  function toggleMenu(m: MotivoNovedad, e: React.MouseEvent<HTMLButtonElement>) {
+  function toggleMenu(m: MedioTransferencia, e: React.MouseEvent<HTMLButtonElement>) {
     if (menuAbierto === m.id) {
       setMenuAbierto(null)
       setMenuPos(null)
@@ -113,56 +105,43 @@ export function GestionMotivosNovedad() {
 
   function abrirNuevo() {
     setEditando(null)
-    setForm(FORM_VACIO)
+    setNombre('')
     setModalOpen(true)
   }
 
-  function abrirEditar(m: MotivoNovedad) {
+  function abrirEditar(m: MedioTransferencia) {
     setMenuAbierto(null)
     setMenuPos(null)
     setEditando(m)
-    setForm({
-      descripcion: m.descripcion,
-      emoji: m.emoji,
-    })
+    setNombre(m.nombre)
     setModalOpen(true)
   }
 
   function cerrarModal() {
     setModalOpen(false)
     setEditando(null)
-    setForm(FORM_VACIO)
+    setNombre('')
   }
 
-  async function guardarMotivo(e: React.FormEvent) {
+  async function guardar(e: React.FormEvent) {
     e.preventDefault()
-    const descripcion = form.descripcion.trim()
-    const emoji = form.emoji.trim()
-
-    if (!emoji) {
-      toastError('Ingresa un emoji')
-      return
-    }
-
-    const esPredefinido = editando ? esMotivoPredefinido(editando) : false
-    if (!esPredefinido && !descripcion) {
-      toastError('Ingresa la descripción del motivo')
+    const valor = nombre.trim()
+    if (!valor) {
+      toastError('Ingresa el nombre del medio')
       return
     }
 
     setGuardando(true)
-    const toastId = toastLoading(editando ? 'Guardando cambios...' : 'Creando motivo...')
-
-    const payload = esPredefinido
-      ? { emoji }
-      : { descripcion, emoji }
+    const toastId = toastLoading(editando ? 'Guardando cambios...' : 'Creando medio...')
 
     const res = await fetch(
-      editando ? `/api/motivos-novedad/${editando.id}` : '/api/motivos-novedad',
+      editando
+        ? `/api/medios-transferencia/${editando.id}`
+        : '/api/medios-transferencia',
       {
         method: editando ? 'PUT' : 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({ nombre: valor }),
       }
     )
 
@@ -177,22 +156,17 @@ export function GestionMotivosNovedad() {
       return
     }
 
-    toastSuccess(editando ? 'Motivo actualizado' : 'Motivo creado', toastId)
+    toastSuccess(editando ? 'Medio actualizado' : 'Medio creado', toastId)
     cerrarModal()
     cargar()
   }
 
-  async function cambiarActivo(m: MotivoNovedad, activo: boolean) {
-    if (esMotivoPredefinido(m)) {
-      toastError('Los motivos predefinidos no se pueden desactivar')
-      return
-    }
-
+  async function cambiarActivo(m: MedioTransferencia, activo: boolean) {
     setMenuAbierto(null)
     setMenuPos(null)
-    const toastId = toastLoading(activo ? 'Activando motivo...' : 'Desactivando motivo...')
+    const toastId = toastLoading(activo ? 'Activando...' : 'Desactivando...')
 
-    const res = await fetch(`/api/motivos-novedad/${m.id}`, {
+    const res = await fetch(`/api/medios-transferencia/${m.id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ activo }),
@@ -207,16 +181,15 @@ export function GestionMotivosNovedad() {
       return
     }
 
-    toastSuccess(activo ? 'Motivo activado' : 'Motivo desactivado', toastId)
+    toastSuccess(activo ? 'Medio activado' : 'Medio desactivado', toastId)
     cargar()
   }
 
-  const activos = motivos.filter((m) => m.activo)
-  const inactivos = motivos.filter((m) => !m.activo)
-  const motivoMenu = motivos.find((m) => m.id === menuAbierto)
+  const activos = medios.filter((m) => m.activo)
+  const inactivos = medios.filter((m) => !m.activo)
+  const medioMenu = medios.find((m) => m.id === menuAbierto)
 
-  function filaMotivo(m: MotivoNovedad, atenuado = false) {
-    const predefinido = esMotivoPredefinido(m)
+  function filaMedio(m: MedioTransferencia, atenuado = false) {
     return (
       <li
         key={m.id}
@@ -225,18 +198,10 @@ export function GestionMotivosNovedad() {
           atenuado ? 'opacity-70' : '',
         ].join(' ')}
       >
-        <span className="min-w-0 text-sm text-text-primary">
-          <span className="mr-2" aria-hidden>
-            {m.emoji}
-          </span>
-          {m.descripcion}
-          {predefinido && (
-            <span className="ml-2 text-[10px] font-medium uppercase tracking-wide text-text-secondary">
-              Predefinido
-            </span>
-          )}
+        <span className="min-w-0 text-sm font-medium capitalize text-text-primary">
+          {m.nombre}
         </span>
-        <BotonMenuMotivo
+        <BotonMenu
           abierto={menuAbierto === m.id}
           onClick={(e) => toggleMenu(m, e)}
         />
@@ -252,10 +217,10 @@ export function GestionMotivosNovedad() {
       >
         <div>
           <h2 className="font-display text-lg text-text-primary">
-            Motivos de novedad
+            Medios de transferencia
           </h2>
           <p className="mt-1 text-sm text-text-secondary">
-            Motivos para vasos que no se vendieron en el cierre del día.
+            Opciones del select en el cierre del día (Nequi, Daviplata, etc.).
           </p>
         </div>
         <Button type="button" size="sm" onClick={abrirNuevo} className="shrink-0">
@@ -266,7 +231,7 @@ export function GestionMotivosNovedad() {
 
       {loading ? (
         <motion.div variants={fadeUp} className="space-y-2">
-          {Array.from({ length: 5 }).map((_, i) => (
+          {Array.from({ length: 4 }).map((_, i) => (
             <Skeleton key={i} className="h-12 w-full rounded-[var(--radius-lg)]" />
           ))}
         </motion.div>
@@ -278,10 +243,10 @@ export function GestionMotivosNovedad() {
           >
             {activos.length === 0 ? (
               <li className="px-4 py-8 text-center text-sm text-text-muted">
-                No hay motivos activos.
+                No hay medios activos. Agrega al menos uno para el cierre.
               </li>
             ) : (
-              activos.map((m) => filaMotivo(m))
+              activos.map((m) => filaMedio(m))
             )}
           </motion.ul>
 
@@ -291,7 +256,7 @@ export function GestionMotivosNovedad() {
                 Inactivos
               </p>
               <ul className="divide-y divide-bg-border overflow-hidden rounded-[var(--radius-lg)] border border-bg-border bg-bg-elevated/30">
-                {inactivos.map((m) => filaMotivo(m, true))}
+                {inactivos.map((m) => filaMedio(m, true))}
               </ul>
             </motion.div>
           )}
@@ -301,105 +266,52 @@ export function GestionMotivosNovedad() {
       <Modal
         open={modalOpen}
         onClose={cerrarModal}
-        title={editando ? 'Editar motivo' : 'Nuevo motivo de novedad'}
+        title={editando ? 'Editar medio' : 'Nuevo medio de transferencia'}
       >
-        <form onSubmit={guardarMotivo} className="space-y-4">
-          <motion.div variants={fadeUp} className="space-y-1.5">
-            <label htmlFor="motivo-emoji" className="text-sm font-medium text-text-secondary">
-              Emoji
-            </label>
-            <input
-              id="motivo-emoji"
-              type="text"
-              value={form.emoji}
-              onChange={(e) => setForm((f) => ({ ...f, emoji: e.target.value }))}
-              className="select-field w-full text-center text-2xl"
-              placeholder="⚪"
-              maxLength={8}
-              required
-            />
-            <p className="text-xs text-text-muted">
-              Vista previa:{' '}
-              <span className="text-lg" aria-hidden>
-                {form.emoji.trim() || '⚪'}
-              </span>
-            </p>
-          </motion.div>
-
+        <form onSubmit={guardar} className="space-y-4">
           <Input
-            label="Descripción"
-            value={form.descripcion}
-            onChange={(e) => setForm((f) => ({ ...f, descripcion: e.target.value }))}
-            placeholder="Ej. Vaso roto en transporte"
-            disabled={editando ? esMotivoPredefinido(editando) : false}
-            required={!editando || !esMotivoPredefinido(editando)}
+            label="Nombre"
+            value={nombre}
+            onChange={(e) => setNombre(e.target.value)}
+            placeholder="Ej. Nequi"
+            autoFocus
           />
-
-          {editando && esMotivoPredefinido(editando) && (
-            <p className="text-xs text-text-muted">
-              Los motivos predefinidos solo permiten cambiar el emoji.
-            </p>
-          )}
-
-          <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-            <Button
-              type="button"
-              variant="ghost"
-              onClick={cerrarModal}
-              disabled={guardando}
-            >
+          <div className="flex justify-end gap-2">
+            <Button type="button" variant="secondary" onClick={cerrarModal}>
               Cancelar
             </Button>
             <Button type="submit" loading={guardando}>
-              {editando ? 'Guardar cambios' : 'Crear motivo'}
+              {editando ? 'Guardar' : 'Crear'}
             </Button>
           </div>
         </form>
       </Modal>
 
-      {menuAbierto &&
+      {medioMenu &&
         menuPos &&
-        motivoMenu &&
-        typeof document !== 'undefined' &&
         createPortal(
           <div
             ref={menuRef}
-            role="menu"
-            className="fixed z-[200] min-w-[10rem] rounded-[var(--radius-md)] border border-bg-border bg-bg-surface py-1 shadow-xl"
+            className="fixed z-[100] min-w-[10rem] rounded-[var(--radius-md)] border border-bg-border bg-bg-surface py-1 shadow-lg"
             style={{
               top: menuPos.top,
-              left: menuPos.left,
-              transform: 'translateX(-100%)',
+              left: Math.max(8, menuPos.left - 140),
             }}
           >
             <button
               type="button"
-              role="menuitem"
-              className="w-full px-3 py-2 text-left text-sm text-text-primary hover:bg-bg-elevated"
-              onClick={() => abrirEditar(motivoMenu)}
+              className="block w-full px-3 py-2 text-left text-sm text-text-primary hover:bg-bg-elevated"
+              onClick={() => abrirEditar(medioMenu)}
             >
-              Editar
+              Editar nombre
             </button>
-            {!esMotivoPredefinido(motivoMenu) &&
-              (motivoMenu.activo ? (
-                <button
-                  type="button"
-                  role="menuitem"
-                  className="w-full px-3 py-2 text-left text-sm text-accent-red hover:bg-bg-elevated"
-                  onClick={() => cambiarActivo(motivoMenu, false)}
-                >
-                  Desactivar
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  role="menuitem"
-                  className="w-full px-3 py-2 text-left text-sm text-text-primary hover:bg-bg-elevated"
-                  onClick={() => cambiarActivo(motivoMenu, true)}
-                >
-                  Activar
-                </button>
-              ))}
+            <button
+              type="button"
+              className="block w-full px-3 py-2 text-left text-sm text-text-primary hover:bg-bg-elevated"
+              onClick={() => cambiarActivo(medioMenu, !medioMenu.activo)}
+            >
+              {medioMenu.activo ? 'Desactivar' : 'Activar'}
+            </button>
           </div>,
           document.body
         )}

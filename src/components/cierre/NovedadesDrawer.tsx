@@ -61,7 +61,7 @@ export function NovedadesDrawer({
           >
             <div className="flex shrink-0 items-center justify-between border-b border-bg-border px-5 py-4">
               <div className="min-w-0">
-                <p className="text-[10px] font-medium uppercase tracking-wide text-text-muted">
+                <p className="text-[10px] font-medium uppercase tracking-wide text-text-secondary">
                   Novedades
                 </p>
                 <p className="truncate text-sm font-semibold text-text-primary">

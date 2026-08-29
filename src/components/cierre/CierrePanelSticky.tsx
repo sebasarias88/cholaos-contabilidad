@@ -11,13 +11,26 @@ import {
 } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { InputPeso } from '@/components/ui/InputPeso'
+import { Select } from '@/components/ui/Select'
 import { modalContent, modalOverlay } from '@/lib/animations'
 import { formatPesos } from '@/lib/utils'
 import { calcularCuadre } from '@/hooks/useCuadre'
+import type { MedioTransferencia } from '@/types'
 
-type LineaMonto = { id: string; descripcion: string; monto: number }
+type LineaGasto = { id: string; descripcion: string; monto: number }
+type LineaTransferencia = {
+  id: string
+  medio_id: string
+  descripcion: string
+  monto: number
+}
+type LineaDomicilio = {
+  id: string
+  descripcion: string
+  monto: number
+}
 type CuadreResult = ReturnType<typeof calcularCuadre>
-type SeccionId = 'gastos' | 'transferencias' | 'caja'
+type SeccionId = 'gastos' | 'transferencias' | 'domicilios' | 'caja'
 
 interface CierreCajaShellProps {
   bloqueado: boolean
@@ -26,14 +39,18 @@ interface CierreCajaShellProps {
   cuadre: CuadreResult
   dineroFinal: number
   dineroBase: number
-  gastos: LineaMonto[]
-  transferencias: LineaMonto[]
+  gastos: LineaGasto[]
+  transferencias: LineaTransferencia[]
+  domicilios: LineaDomicilio[]
+  mediosTransferencia: MedioTransferencia[]
   onDineroBaseChange: (n: number) => void
   onDineroFinalChange: (n: number) => void
   onRemoveGasto: (id: string) => void
   onRemoveTransferencia: (id: string) => void
+  onRemoveDomicilio: (id: string) => void
   onAgregarGasto: (d: string, m: number) => void
-  onAgregarTransferencia: (d: string, m: number) => void
+  onAgregarTransferencia: (medioId: string, nombre: string, m: number) => void
+  onAgregarDomicilio: (d: string, m: number) => void
   onCerrarDia: () => void
 }
 
@@ -72,12 +89,16 @@ export function CierreCajaShell({
   dineroBase,
   gastos,
   transferencias,
+  domicilios,
+  mediosTransferencia,
   onDineroBaseChange,
   onDineroFinalChange,
   onRemoveGasto,
   onRemoveTransferencia,
+  onRemoveDomicilio,
   onAgregarGasto,
   onAgregarTransferencia,
+  onAgregarDomicilio,
   onCerrarDia,
 }: CierreCajaShellProps) {
   const [drawerOpen, setDrawerOpen] = useState(false)
@@ -108,7 +129,8 @@ export function CierreCajaShell({
   const esperado = esAdmin
     ? cuadre.efectivoEsperado
     : cuadre.dineroEsperadoEnCaja
-  const nMovimientos = gastos.length + transferencias.length
+  const nMovimientos =
+    gastos.length + transferencias.length + domicilios.length
 
   return (
     <>
@@ -140,7 +162,9 @@ export function CierreCajaShell({
                 {formatPesos(dineroFinal)}
               </span>
             </div>
-            {(cuadre.totalGastos > 0 || cuadre.totalTransferencias > 0) && (
+            {(cuadre.totalGastos > 0 ||
+              cuadre.totalTransferencias > 0 ||
+              cuadre.totalDomicilios > 0) && (
               <div className="text-xs text-text-secondary">
                 {nMovimientos} mov.
               </div>
@@ -206,7 +230,7 @@ export function CierreCajaShell({
                     Resumen de caja
                   </p>
                   <p className="text-xs text-text-secondary">
-                    Gastos, transferencias y efectivo del día
+                    Gastos, transferencias, domicilios y efectivo del día
                   </p>
                 </div>
                 <button
@@ -227,26 +251,66 @@ export function CierreCajaShell({
                   emoji="💸"
                   titulo="Gastos del día"
                   total={cuadre.totalGastos}
-                  items={gastos}
+                  items={gastos.map((g) => ({
+                    id: g.id,
+                    etiqueta: g.descripcion,
+                    monto: g.monto,
+                  }))}
                   abierta={abiertas.has('gastos')}
                   colorTotal="text-accent-red"
                   bloqueado={bloqueado}
                   onToggle={() => toggleSeccion('gastos')}
-                  onAgregar={onAgregarGasto}
                   onEliminar={onRemoveGasto}
+                  inputSlot={
+                    !bloqueado ? (
+                      <InputGasto onAgregar={onAgregarGasto} />
+                    ) : undefined
+                  }
                 />
 
                 <SeccionAcordeon
                   emoji="📱"
                   titulo="Transferencias"
                   total={cuadre.totalTransferencias}
-                  items={transferencias}
+                  items={transferencias.map((t) => ({
+                    id: t.id,
+                    etiqueta: t.descripcion,
+                    monto: t.monto,
+                  }))}
                   abierta={abiertas.has('transferencias')}
                   colorTotal="text-text-secondary"
                   bloqueado={bloqueado}
                   onToggle={() => toggleSeccion('transferencias')}
-                  onAgregar={onAgregarTransferencia}
                   onEliminar={onRemoveTransferencia}
+                  inputSlot={
+                    !bloqueado ? (
+                      <InputTransferencia
+                        medios={mediosTransferencia}
+                        onAgregar={onAgregarTransferencia}
+                      />
+                    ) : undefined
+                  }
+                />
+
+                <SeccionAcordeon
+                  emoji="🛵"
+                  titulo="Domicilios"
+                  total={cuadre.totalDomicilios}
+                  items={domicilios.map((d) => ({
+                    id: d.id,
+                    etiqueta: d.descripcion.trim() || 'Domicilio',
+                    monto: d.monto,
+                  }))}
+                  abierta={abiertas.has('domicilios')}
+                  colorTotal="text-amber-400"
+                  bloqueado={bloqueado}
+                  onToggle={() => toggleSeccion('domicilios')}
+                  onEliminar={onRemoveDomicilio}
+                  inputSlot={
+                    !bloqueado ? (
+                      <InputDomicilio onAgregar={onAgregarDomicilio} />
+                    ) : undefined
+                  }
                 />
 
                 <div className="overflow-hidden rounded-[var(--radius-md)] border border-bg-border">
@@ -359,6 +423,10 @@ export function CierreCajaShell({
                         valor={formatPesos(cuadre.totalGastos)}
                       />
                       <Fila
+                        label="− Domicilios"
+                        valor={formatPesos(cuadre.totalDomicilios)}
+                      />
+                      <Fila
                         label="Esperado en caja"
                         valor={formatPesos(cuadre.efectivoEsperado)}
                         bold
@@ -464,19 +532,19 @@ function SeccionAcordeon({
   colorTotal,
   bloqueado,
   onToggle,
-  onAgregar,
   onEliminar,
+  inputSlot,
 }: {
   emoji: string
   titulo: string
   total: number
-  items: LineaMonto[]
+  items: { id: string; etiqueta: string; monto: number }[]
   abierta: boolean
   colorTotal: string
   bloqueado: boolean
   onToggle: () => void
-  onAgregar: (desc: string, monto: number) => void
   onEliminar: (id: string) => void
+  inputSlot?: React.ReactNode
 }) {
   return (
     <div className="overflow-hidden rounded-[var(--radius-md)] border border-bg-border">
@@ -519,24 +587,13 @@ function SeccionAcordeon({
             className="overflow-hidden"
           >
             <div className="space-y-2 border-t border-bg-border px-3.5 pb-3.5">
-              {!bloqueado && (
-                <div className="pt-3">
-                  <InputItem
-                    onAgregar={onAgregar}
-                    placeholderDesc={
-                      titulo.toLowerCase().includes('transfer')
-                        ? 'Ej. Nequi, Bancolombia…'
-                        : 'Ej. gasolina, mercado…'
-                    }
-                  />
-                </div>
-              )}
+              {inputSlot && <div className="pt-3">{inputSlot}</div>}
 
               <AnimatePresence initial={false}>
                 {items.map((item) => (
                   <ItemLista
                     key={item.id}
-                    descripcion={item.descripcion}
+                    descripcion={item.etiqueta}
                     monto={item.monto}
                     bloqueado={bloqueado}
                     onEliminar={() => onEliminar(item.id)}
@@ -557,12 +614,10 @@ function SeccionAcordeon({
   )
 }
 
-function InputItem({
+function InputGasto({
   onAgregar,
-  placeholderDesc = 'Descripción',
 }: {
-  onAgregar: (desc: string, monto: number) => void
-  placeholderDesc?: string
+  onAgregar: (desc: string, m: number) => void
 }) {
   const [desc, setDesc] = useState('')
   const [monto, setMonto] = useState(0)
@@ -586,7 +641,7 @@ function InputItem({
             handleAgregar()
           }
         }}
-        placeholder={placeholderDesc}
+        placeholder="Ej. gasolina, mercado…"
         className="input min-w-0 flex-1 placeholder:text-text-secondary"
       />
       <InputPeso
@@ -608,8 +663,132 @@ function InputItem({
           e.stopPropagation()
           handleAgregar()
         }}
-        aria-label="Agregar"
+        aria-label="Agregar gasto"
         disabled={!desc.trim() || monto <= 0}
+        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[var(--radius-md)] bg-accent-cyan-dim text-accent-cyan transition-colors hover:bg-accent-cyan/20 disabled:cursor-not-allowed disabled:opacity-40"
+      >
+        <Plus size={18} aria-hidden />
+      </button>
+    </div>
+  )
+}
+
+function InputTransferencia({
+  medios,
+  onAgregar,
+}: {
+  medios: MedioTransferencia[]
+  onAgregar: (medioId: string, nombre: string, m: number) => void
+}) {
+  const [medioId, setMedioId] = useState('')
+  const [monto, setMonto] = useState(0)
+
+  function handleAgregar() {
+    if (!medioId || monto <= 0) return
+    const medio = medios.find((m) => m.id === medioId)
+    if (!medio) return
+    onAgregar(medio.id, medio.nombre, monto)
+    setMedioId('')
+    setMonto(0)
+  }
+
+  if (medios.length === 0) {
+    return (
+      <p className="text-xs text-text-secondary">
+        No hay medios configurados. El admin puede agregarlos en Configuración →
+        Transferencias.
+      </p>
+    )
+  }
+
+  return (
+    <div className="flex items-center gap-2">
+      <Select
+        value={medioId}
+        onChange={setMedioId}
+        placeholder="Medio…"
+        aria-label="Medio de transferencia"
+        options={medios.map((m) => ({ value: m.id, label: m.nombre }))}
+      />
+      <InputPeso
+        value={monto}
+        onChange={setMonto}
+        placeholder="Monto $"
+        className="input w-[7.5rem] shrink-0 tabular-nums placeholder:text-text-secondary"
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') {
+            e.preventDefault()
+            handleAgregar()
+          }
+        }}
+      />
+      <button
+        type="button"
+        onClick={(e) => {
+          e.preventDefault()
+          e.stopPropagation()
+          handleAgregar()
+        }}
+        aria-label="Agregar transferencia"
+        disabled={!medioId || monto <= 0}
+        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[var(--radius-md)] bg-accent-cyan-dim text-accent-cyan transition-colors hover:bg-accent-cyan/20 disabled:cursor-not-allowed disabled:opacity-40"
+      >
+        <Plus size={18} aria-hidden />
+      </button>
+    </div>
+  )
+}
+
+function InputDomicilio({
+  onAgregar,
+}: {
+  onAgregar: (desc: string, m: number) => void
+}) {
+  const [desc, setDesc] = useState('')
+  const [monto, setMonto] = useState(0)
+
+  function handleAgregar() {
+    if (monto <= 0) return
+    onAgregar(desc.trim(), monto)
+    setDesc('')
+    setMonto(0)
+  }
+
+  return (
+    <div className="flex items-center gap-2">
+      <input
+        value={desc}
+        onChange={(e) => setDesc(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') {
+            e.preventDefault()
+            handleAgregar()
+          }
+        }}
+        placeholder="Detalle (opcional)"
+        className="input min-w-0 flex-1 placeholder:text-text-secondary"
+      />
+      <InputPeso
+        value={monto}
+        onChange={setMonto}
+        placeholder="Monto $"
+        className="input w-[7.5rem] shrink-0 tabular-nums placeholder:text-text-secondary"
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') {
+            e.preventDefault()
+            handleAgregar()
+          }
+        }}
+      />
+      <button
+        type="button"
+        onClick={(e) => {
+          e.preventDefault()
+          e.stopPropagation()
+          handleAgregar()
+        }}
+        aria-label="Agregar domicilio"
+        disabled={monto <= 0}
         className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[var(--radius-md)] bg-accent-cyan-dim text-accent-cyan transition-colors hover:bg-accent-cyan/20 disabled:cursor-not-allowed disabled:opacity-40"
       >
         <Plus size={18} aria-hidden />

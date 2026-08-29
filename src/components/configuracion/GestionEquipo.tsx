@@ -129,20 +129,20 @@ function EquipoLista({
       </ul>
 
       {/* Vista escritorio: tabla */}
-      <div className="table-surface hidden overflow-x-auto md:block">
-        <table className="w-full min-w-[28rem] text-left text-sm">
+      <div className="table-surface hidden min-w-0 max-w-full md:block">
+        <table className="data-table">
           <thead>
             <tr>
-              <th className="px-4 py-3">Nombre</th>
-              <th className="px-4 py-3">Rol</th>
-              <th className="px-4 py-3">Estado</th>
-              <th className="px-4 py-3 text-right">Acción</th>
+              <th className="col-name">Nombre</th>
+              <th className="col-compact min-w-[5.5rem]">Rol</th>
+              <th className="col-compact min-w-[5.5rem]">Estado</th>
+              <th className="col-compact min-w-[4.5rem] text-right">Acción</th>
             </tr>
           </thead>
           <tbody>
             {filas.map((u) => (
-              <tr key={u.id} className="border-t border-bg-border">
-                <td className="px-4 py-3 font-medium text-text-primary">
+              <tr key={u.id}>
+                <td className="col-name font-medium text-text-primary">
                   {u.nombre}
                   {u.esYo && (
                     <span className="ml-2 text-xs font-normal text-text-muted">
@@ -150,15 +150,15 @@ function EquipoLista({
                     </span>
                   )}
                 </td>
-                <td className="px-4 py-3">
+                <td className="col-compact">
                   <Badge variant={u.rol === 'admin' ? 'admin' : 'empleado'}>
                     {u.rol === 'admin' ? 'Admin' : 'Empleado'}
                   </Badge>
                 </td>
-                <td className="px-4 py-3">
+                <td className="col-compact">
                   <EstadoUsuario activo={u.activo} />
                 </td>
-                <td className="px-4 py-3 text-right">
+                <td className="col-compact text-right">
                   {u.rol === 'empleado' && (
                     <BotonMenuEquipo
                       abierto={menuAbierto === u.id}
