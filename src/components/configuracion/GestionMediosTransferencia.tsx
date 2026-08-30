@@ -44,6 +44,8 @@ export function GestionMediosTransferencia() {
   const [menuPos, setMenuPos] = useState<{ top: number; left: number } | null>(
     null
   )
+  const [eliminarId, setEliminarId] = useState<string | null>(null)
+  const [eliminando, setEliminando] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
 
   const cargar = useCallback(() => {
@@ -185,9 +187,41 @@ export function GestionMediosTransferencia() {
     cargar()
   }
 
+  function pedirEliminar(m: MedioTransferencia) {
+    setMenuAbierto(null)
+    setMenuPos(null)
+    setEliminarId(m.id)
+  }
+
+  async function confirmarEliminar() {
+    if (!eliminarId) return
+    setEliminando(true)
+    const toastId = toastLoading('Eliminando medio...')
+
+    const res = await fetch(`/api/medios-transferencia/${eliminarId}`, {
+      method: 'DELETE',
+    })
+
+    setEliminando(false)
+
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}))
+      toastError(
+        (data as { error?: string }).error ?? 'Error al eliminar',
+        toastId
+      )
+      return
+    }
+
+    toastSuccess('Medio eliminado', toastId)
+    setEliminarId(null)
+    cargar()
+  }
+
   const activos = medios.filter((m) => m.activo)
   const inactivos = medios.filter((m) => !m.activo)
   const medioMenu = medios.find((m) => m.id === menuAbierto)
+  const medioEliminar = medios.find((m) => m.id === eliminarId)
 
   function filaMedio(m: MedioTransferencia, atenuado = false) {
     return (
@@ -312,9 +346,53 @@ export function GestionMediosTransferencia() {
             >
               {medioMenu.activo ? 'Desactivar' : 'Activar'}
             </button>
+            <div className="my-1 border-t border-bg-border" />
+            <button
+              type="button"
+              className="block w-full px-3 py-2 text-left text-sm text-accent-red hover:bg-accent-red-dim"
+              onClick={() => pedirEliminar(medioMenu)}
+            >
+              Eliminar
+            </button>
           </div>,
           document.body
         )}
+
+      <Modal
+        open={eliminarId !== null}
+        onClose={() => !eliminando && setEliminarId(null)}
+        title="Eliminar medio de transferencia"
+      >
+        <p className="mb-6 text-sm text-text-secondary">
+          ¿Eliminar permanentemente{' '}
+          <span className="font-medium capitalize text-text-primary">
+            {medioEliminar?.nombre}
+          </span>
+          ? Esta acción no se puede deshacer. Si el medio ya aparece en cierres,
+          no se podrá borrar (usa Desactivar en ese caso).
+        </p>
+        <div className="flex gap-3">
+          <Button
+            type="button"
+            variant="secondary"
+            className="flex-1"
+            disabled={eliminando}
+            onClick={() => setEliminarId(null)}
+          >
+            Cancelar
+          </Button>
+          <Button
+            type="button"
+            variant="danger"
+            className="flex-1"
+            loading={eliminando}
+            disabled={eliminando}
+            onClick={confirmarEliminar}
+          >
+            Eliminar
+          </Button>
+        </div>
+      </Modal>
     </motion.div>
   )
 }

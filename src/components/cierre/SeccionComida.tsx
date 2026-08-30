@@ -2,8 +2,8 @@
 
 import { Fragment } from 'react'
 import {
+  CeldaCantidadDesktop,
   CeldaCantidadMobile,
-  CeldaNumero,
 } from '@/components/cierre/ConteoTabla'
 import { SeccionHeader } from '@/components/cierre/SeccionHeader'
 import { formatPesos } from '@/lib/utils'
@@ -187,7 +187,7 @@ export function SeccionComida({
             <tr>
               <th className="col-name">Producto / Variante</th>
               <th className="col-compact min-w-[5rem] text-center">Precio</th>
-              <th className="col-compact min-w-[5rem] text-center">Cantidad</th>
+              <th className="col-compact min-w-[4rem] text-center">Cantidad</th>
               {esAdmin && (
                 <th className="col-compact min-w-[5.5rem] text-right">Total</th>
               )}
@@ -220,7 +220,7 @@ export function SeccionComida({
                           {formatPesos(variante.precio)}
                         </td>
                         <td className="col-compact text-center">
-                          <CeldaNumero
+                          <CeldaCantidadDesktop
                             value={cantidad || ''}
                             placeholder="0"
                             disabled={disabled}
@@ -273,7 +273,7 @@ export function SeccionComida({
                       : '—'}
                   </td>
                   <td className="col-compact text-center">
-                    <CeldaNumero
+                    <CeldaCantidadDesktop
                       value={cantidad || ''}
                       placeholder="0"
                       disabled={disabled}

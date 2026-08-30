@@ -10,6 +10,8 @@ export const celdaConteoMobile = 'h-9 min-w-0 text-sm'
 
 const celdaCantidadMobileInput = '!h-10 !w-full !min-w-0 px-1 text-sm'
 
+const celdaCantidadDesktopInput = '!h-8 !w-full !min-w-0 px-1 text-sm'
+
 /** Cantidad compacta para filas mobile (evita conflicto con w-full de cellBase) */
 export function CeldaCantidadMobile({
   className,
@@ -20,6 +22,21 @@ export function CeldaCantidadMobile({
       <CeldaNumero
         {...props}
         className={[celdaCantidadMobileInput, className].filter(Boolean).join(' ')}
+      />
+    </div>
+  )
+}
+
+/** Cantidad compacta para celdas de tabla desktop */
+export function CeldaCantidadDesktop({
+  className,
+  ...props
+}: InputHTMLAttributes<HTMLInputElement> & { readonly?: boolean }) {
+  return (
+    <div className="mx-auto w-14">
+      <CeldaNumero
+        {...props}
+        className={[celdaCantidadDesktopInput, className].filter(Boolean).join(' ')}
       />
     </div>
   )

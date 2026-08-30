@@ -21,9 +21,8 @@ export async function GET(request: Request) {
       variantes:variantes_producto(*)
     `
     )
-    .order('tipo')
-    .order('nombre')
-    .order('onzas')
+    .order('orden', { ascending: true })
+    .order('nombre', { ascending: true })
 
   // Gestión admin: ?todos=true incluye inactivos
   if (!todos) query = query.eq('activo', true)

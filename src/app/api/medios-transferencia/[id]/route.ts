@@ -51,3 +51,64 @@ export async function PUT(
   if (error) return NextResponse.json({ error: error.message }, { status: 400 })
   return NextResponse.json(data)
 }
+
+export async function DELETE(
+  _request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { id } = await params
+  const auth = await requireAdminApi()
+  if (!auth.ok) return auth.response
+
+  const { supabase } = auth.ctx
+
+  const { data: existente, error: fetchError } = await supabase
+    .from('medios_transferencia')
+    .select('id')
+    .eq('id', id)
+    .single()
+
+  if (fetchError || !existente) {
+    return NextResponse.json({ error: 'Medio no encontrado' }, { status: 404 })
+  }
+
+  const { count, error: countError } = await supabase
+    .from('transferencias_dia')
+    .select('id', { count: 'exact', head: true })
+    .eq('medio_id', id)
+
+  if (countError) {
+    return NextResponse.json({ error: countError.message }, { status: 400 })
+  }
+
+  if ((count ?? 0) > 0) {
+    return NextResponse.json(
+      {
+        error:
+          'No se puede eliminar: este medio ya aparece en cierres. Desactívalo para ocultarlo.',
+      },
+      { status: 409 }
+    )
+  }
+
+  const { error } = await supabase
+    .from('medios_transferencia')
+    .delete()
+    .eq('id', id)
+
+  if (error) {
+    const msg = error.message.toLowerCase()
+    if (msg.includes('foreign key') || msg.includes('violates')) {
+      return NextResponse.json(
+        {
+          error:
+            'No se puede eliminar: el medio está en uso. Desactívalo para ocultarlo.',
+        },
+        { status: 409 }
+      )
+    }
+    return NextResponse.json({ error: error.message }, { status: 400 })
+  }
+
+  return NextResponse.json({ ok: true })
+}

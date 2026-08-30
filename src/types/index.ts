@@ -63,6 +63,7 @@ export interface Producto {
   unidad?: string; // ej: 'porción', 'unidad', 'caja' para comida/insumo
   precio?: number; // null/undefined para insumos
   activo: boolean;
+  orden: number;
   talla_id?: string; // solo para tipo 'vaso'
   tiene_variantes: boolean;
   talla?: TallaVaso;

@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useId, useRef, useState } from 'react'
+import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Check, ChevronDown } from 'lucide-react'
 
@@ -32,27 +32,11 @@ export function Select({
   const triggerRef = useRef<HTMLButtonElement>(null)
   const menuRef = useRef<HTMLDivElement>(null)
   const [open, setOpen] = useState(false)
-  const [menuStyle, setMenuStyle] = useState<{
-    top: number
-    left: number
-    width: number
-  } | null>(null)
 
   const selected = options.find((o) => o.value === value)
 
-  function updateMenuPosition() {
-    const rect = triggerRef.current?.getBoundingClientRect()
-    if (!rect) return
-    setMenuStyle({
-      top: rect.bottom + 4,
-      left: rect.left,
-      width: rect.width,
-    })
-  }
-
   function openMenu() {
     if (disabled) return
-    updateMenuPosition()
     setOpen(true)
   }
 
@@ -66,6 +50,61 @@ export function Select({
     triggerRef.current?.focus()
   }
 
+  useLayoutEffect(() => {
+    if (!open) return
+
+    const menu = menuRef.current
+    const trigger = triggerRef.current
+    if (!menu || !trigger) return
+
+    function syncPosition() {
+      const currentMenu = menuRef.current
+      const currentTrigger = triggerRef.current
+      if (!currentMenu || !currentTrigger) return
+      const rect = currentTrigger.getBoundingClientRect()
+      currentMenu.style.top = `${rect.bottom + 4}px`
+      currentMenu.style.left = `${rect.left}px`
+      currentMenu.style.width = `${rect.width}px`
+    }
+
+    function trapWheel(e: WheelEvent) {
+      const currentMenu = menuRef.current
+      if (!currentMenu) return
+      e.stopPropagation()
+      const { scrollTop, scrollHeight, clientHeight } = currentMenu
+      const delta = e.deltaY
+      const atTop = scrollTop <= 0
+      const atBottom = scrollTop + clientHeight >= scrollHeight - 1
+      if ((delta < 0 && atTop) || (delta > 0 && atBottom)) {
+        e.preventDefault()
+      }
+    }
+
+    function trapTouchMove(e: TouchEvent) {
+      e.stopPropagation()
+    }
+
+    syncPosition()
+
+    let rafId = 0
+    function loop() {
+      syncPosition()
+      rafId = requestAnimationFrame(loop)
+    }
+    rafId = requestAnimationFrame(loop)
+
+    menu.addEventListener('wheel', trapWheel, { passive: false })
+    menu.addEventListener('touchmove', trapTouchMove, { passive: true })
+    window.addEventListener('resize', syncPosition)
+
+    return () => {
+      cancelAnimationFrame(rafId)
+      menu.removeEventListener('wheel', trapWheel)
+      menu.removeEventListener('touchmove', trapTouchMove)
+      window.removeEventListener('resize', syncPosition)
+    }
+  }, [open])
+
   useEffect(() => {
     if (!open) return
 
@@ -76,20 +115,14 @@ export function Select({
       closeMenu()
     }
 
-    function onScroll() {
-      closeMenu()
-    }
-
     function onKeyDown(e: KeyboardEvent) {
       if (e.key === 'Escape') closeMenu()
     }
 
     document.addEventListener('mousedown', onPointerDown)
-    window.addEventListener('scroll', onScroll, true)
     document.addEventListener('keydown', onKeyDown)
     return () => {
       document.removeEventListener('mousedown', onPointerDown)
-      window.removeEventListener('scroll', onScroll, true)
       document.removeEventListener('keydown', onKeyDown)
     }
   }, [open])
@@ -133,7 +166,6 @@ export function Select({
       </button>
 
       {open &&
-        menuStyle &&
         typeof document !== 'undefined' &&
         createPortal(
           <div
@@ -141,12 +173,8 @@ export function Select({
             id={listboxId}
             role="listbox"
             aria-label={ariaLabel}
-            className="fixed z-[250] max-h-56 overflow-y-auto overscroll-contain rounded-[var(--radius-md)] border border-bg-border bg-bg-surface py-1 shadow-xl"
-            style={{
-              top: menuStyle.top,
-              left: menuStyle.left,
-              width: menuStyle.width,
-            }}
+            data-lenis-prevent
+            className="scroll-touch fixed z-[250] max-h-56 overflow-y-auto overscroll-contain rounded-[var(--radius-md)] border border-bg-border bg-bg-surface py-1 shadow-xl"
           >
             {options.length === 0 ? (
               <p className="px-3 py-2 text-sm text-text-muted">

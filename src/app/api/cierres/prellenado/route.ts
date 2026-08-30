@@ -62,8 +62,8 @@ export async function GET() {
     .from('productos')
     .select('*, talla:tallas_vasos(*)')
     .eq('activo', true)
-    .order('tipo')
-    .order('nombre')
+    .order('orden', { ascending: true })
+    .order('nombre', { ascending: true })
 
   const productos = (productosData ?? []) as Producto[]
 

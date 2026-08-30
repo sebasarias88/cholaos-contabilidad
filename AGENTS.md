@@ -82,6 +82,16 @@ Alternativa: `mutateJson()` en `@/lib/api-client`.
 
 Preferir `@/components/ui/*` (Button, Input, Card, Badge, Modal, StatCard, Skeleton) sobre clases sueltas cuando aplique.
 
+## Variables de entorno (Vercel: tipo **Sensitive**, sin prefijo `NEXT_PUBLIC_`)
+
+| Variable | Uso |
+|----------|-----|
+| `SUPABASE_URL` | URL del proyecto — solo servidor |
+| `SUPABASE_ANON_KEY` | Anon key — middleware, SSR, API routes |
+| `SUPABASE_SERVICE_ROLE_KEY` | Crear/eliminar usuarios auth (solo admin API) |
+
+Copia `.env.example` → `.env` en local. Auth del navegador va por `/api/auth` (POST login, PATCH contraseña, DELETE logout).
+
 ## APIs
 
 - Productos activos: `GET /api/productos`
