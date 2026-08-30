@@ -7,7 +7,6 @@ import toast from 'react-hot-toast'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { fadeUp, staggerContainer } from '@/lib/animations'
-import { createClient } from '@/lib/supabase/client'
 import { getIniciales } from '@/lib/utils'
 import { isValidPassword } from '@/lib/validators'
 import type { Usuario } from '@/types'
@@ -75,25 +74,24 @@ export function MiCuenta({ usuario, email, onNombreActualizado }: MiCuentaProps)
 
     setGuardandoPassword(true)
     const id = toast.loading('Actualizando contraseña...')
-    const supabase = createClient()
 
-    const { error: loginError } = await supabase.auth.signInWithPassword({
-      email,
-      password: passwordActual,
+    const res = await fetch('/api/auth', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        passwordActual,
+        passwordNueva,
+      }),
     })
-
-    if (loginError) {
-      toast.error('La contraseña actual es incorrecta', { id })
-      setGuardandoPassword(false)
-      return
-    }
-
-    const { error } = await supabase.auth.updateUser({ password: passwordNueva })
 
     setGuardandoPassword(false)
 
-    if (error) {
-      toast.error(error.message || 'Error al cambiar contraseña', { id })
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}))
+      toast.error(
+        (data as { error?: string }).error ?? 'Error al cambiar contraseña',
+        { id }
+      )
       return
     }
 

@@ -63,6 +63,7 @@ export interface Producto {
   unidad?: string; // ej: 'porción', 'unidad', 'caja' para comida/insumo
   precio?: number; // null/undefined para insumos
   activo: boolean;
+  orden: number;
   talla_id?: string; // solo para tipo 'vaso'
   tiene_variantes: boolean;
   talla?: TallaVaso;
@@ -182,6 +183,7 @@ export interface CierreDia {
   dinero_final: number;
   total_transferencias: number;
   total_gastos: number;
+  total_domicilios: number;
   total_ventas: number; // SOLO visible para admin
   efectivo_esperado: number; // campo generado por Postgres
   diferencia: number; // campo generado por Postgres
@@ -193,6 +195,7 @@ export interface CierreDia {
   usuario?: Usuario;
   gastos?: GastoDia[];
   transferencias?: TransferenciaDia[];
+  domicilios?: DomicilioDia[];
   conteo_vasos?: ConteoVaso[];
   ventas_variantes?: VentaVarianteCierre[];
   ventas_comida?: VentaComidaCierre[];
@@ -207,6 +210,7 @@ export interface CierreDiaEmpleado {
   dinero_final: number;
   total_transferencias: number;
   total_gastos: number;
+  total_domicilios: number;
   observaciones?: string;
   // NO incluye: total_ventas, efectivo_esperado, diferencia
   efectivo_final_esperado: number; // calculado en API sin revelar ventas
@@ -215,6 +219,7 @@ export interface CierreDiaEmpleado {
   estado: EstadoCierre;
   gastos?: GastoDia[];
   transferencias?: TransferenciaDia[];
+  domicilios?: DomicilioDia[];
   conteo_vasos?: ConteoVaso[];
   ventas_variantes?: VentaVarianteCierre[];
   ventas_comida?: VentaComidaCierre[];
@@ -239,16 +244,51 @@ export interface NuevoGasto {
 // ============================================================
 // TRANSFERENCIAS
 // ============================================================
+export interface MedioTransferencia {
+  id: string;
+  nombre: string;
+  activo: boolean;
+  orden: number;
+  created_at: string;
+}
+
+/** Body POST /api/medios-transferencia */
+export interface CrearMedioTransferenciaPayload {
+  nombre: string;
+}
+
+/** Body PUT /api/medios-transferencia/[id] */
+export interface ActualizarMedioTransferenciaPayload {
+  nombre?: string;
+  activo?: boolean;
+}
+
 export interface TransferenciaDia {
   id: string;
   cierre_id: string;
   descripcion: string;
   monto: number;
+  medio_id?: string | null;
+  medio?: Pick<MedioTransferencia, 'nombre'>;
   created_at: string;
 }
 
 export interface NuevaTransferencia {
-  descripcion: string;
+  medio_id: string;
+  descripcion?: string;
+  monto: number;
+}
+
+export interface DomicilioDia {
+  id: string;
+  cierre_id: string;
+  descripcion?: string | null;
+  monto: number;
+  created_at: string;
+}
+
+export interface NuevoDomicilio {
+  descripcion?: string;
   monto: number;
 }
 
@@ -414,6 +454,7 @@ export interface GuardarCierrePayload {
   observaciones?: string;
   gastos: NuevoGasto[];
   transferencias: NuevaTransferencia[];
+  domicilios: NuevoDomicilio[];
   /** Vasos e insumos (conteo de inventario) */
   conteo_productos: ConteoProductoInput[];
   /** Pizzas / productos con variantes */
@@ -430,6 +471,7 @@ export interface GuardarCierreResponse {
   total_ventas?: number;
   total_gastos?: number;
   total_transferencias?: number;
+  total_domicilios?: number;
 }
 
 // --- GET /api/cierres/prellenado ---

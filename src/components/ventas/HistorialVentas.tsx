@@ -117,36 +117,38 @@ function VentaDetalleTabla({ venta }: { venta: Venta }) {
   }
 
   return (
-    <table className="w-full text-left text-sm">
+    <div className="table-scroll-wrap min-w-0 max-w-full overflow-x-auto">
+      <table className="data-table">
       <thead>
-        <tr className="text-text-secondary">
-          <th className="pb-2 pr-4 font-medium">Producto</th>
-          <th className="pb-2 pr-4 font-medium">Onzas</th>
-          <th className="pb-2 pr-4 font-medium">Cantidad</th>
-          <th className="pb-2 pr-4 font-medium">Precio unit.</th>
-          <th className="pb-2 font-medium text-right">Subtotal</th>
+        <tr>
+          <th className="col-name">Producto</th>
+          <th className="col-compact min-w-[4.5rem]">Onzas</th>
+          <th className="col-compact min-w-[4.5rem]">Cantidad</th>
+          <th className="col-compact min-w-[6rem]">Precio unit.</th>
+          <th className="col-compact min-w-[6rem] text-right">Subtotal</th>
         </tr>
       </thead>
       <tbody>
         {venta.detalle.map((d) => (
-          <tr key={d.id} className="border-t border-bg-border/50">
-            <td className="py-2 pr-4 text-text-primary">
+          <tr key={d.id}>
+            <td className="col-name text-text-primary">
               {d.producto?.nombre ?? '—'}
             </td>
-            <td className="py-2 pr-4 text-text-secondary tabular-nums">
+            <td className="col-compact text-text-secondary tabular-nums">
               {d.producto?.onzas ?? '—'} oz
             </td>
-            <td className="py-2 pr-4 tabular-nums">{d.cantidad}</td>
-            <td className="py-2 pr-4 text-text-secondary tabular-nums">
+            <td className="col-compact tabular-nums">{d.cantidad}</td>
+            <td className="col-compact text-text-secondary tabular-nums">
               {formatPesos(d.precio_unitario)}
             </td>
-            <td className="py-2 text-right font-medium text-accent-cyan tabular-nums">
+            <td className="col-compact text-right font-medium text-accent-cyan tabular-nums">
               {formatPesos(d.subtotal)}
             </td>
           </tr>
         ))}
       </tbody>
-    </table>
+      </table>
+    </div>
   )
 }
 
@@ -396,17 +398,17 @@ export function HistorialVentas({ usuarioId, rol }: HistorialVentasProps) {
           </ul>
 
           {/* Vista escritorio: tabla */}
-          <div className="table-surface table-surface--expandable hidden md:block">
-            <table className="w-full min-w-[36rem] text-left text-sm">
+          <div className="table-surface table-surface--expandable hidden min-w-0 max-w-full md:block">
+            <table className="data-table">
               <thead>
                 <tr>
-                  <th className="px-4 py-3">Fecha</th>
+                  <th className="col-compact min-w-[7rem]">Fecha</th>
                   {mostrarEmpleado && (
-                    <th className="px-4 py-3">Empleado</th>
+                    <th className="col-name min-w-[8rem]">Empleado</th>
                   )}
-                  <th className="px-4 py-3">Vasos</th>
-                  <th className="px-4 py-3">Total</th>
-                  <th className="px-4 py-3 text-right">Acciones</th>
+                  <th className="col-compact min-w-[4.5rem]">Vasos</th>
+                  <th className="col-compact min-w-[6.5rem]">Total</th>
+                  <th className="col-compact min-w-[5rem] text-right">Acciones</th>
                 </tr>
               </thead>
               <tbody>
@@ -419,11 +421,11 @@ export function HistorialVentas({ usuarioId, rol }: HistorialVentasProps) {
                         className="cursor-pointer border-t border-bg-border transition-surface hover:bg-bg-elevated/50"
                         onClick={() => toggleExpand(venta.id)}
                       >
-                        <td className="px-4 py-3 text-text-primary">
+                        <td className="col-compact text-text-primary">
                           {formatFecha(venta.fecha)}
                         </td>
                         {mostrarEmpleado && (
-                          <td className="px-4 py-3">
+                          <td className="col-name">
                             <span className="inline-flex flex-wrap items-center gap-1">
                               <span className="text-text-secondary">
                                 {venta.usuario?.nombre ?? '—'}
@@ -434,15 +436,15 @@ export function HistorialVentas({ usuarioId, rol }: HistorialVentasProps) {
                             </span>
                           </td>
                         )}
-                        <td className="px-4 py-3">
+                        <td className="col-compact">
                           <span className="badge-cyan tabular-nums">
                             {totalVasos(venta)}
                           </span>
                         </td>
-                        <td className="px-4 py-3 font-medium text-accent-cyan tabular-nums">
+                        <td className="col-compact font-medium text-accent-cyan tabular-nums">
                           {formatPesos(venta.total)}
                         </td>
-                        <td className="px-4 py-3 text-right">
+                        <td className="col-compact text-right">
                           <BotonExpandir
                             abierta={abierta}
                             compacto

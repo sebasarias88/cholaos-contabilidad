@@ -3,7 +3,6 @@
 import { usePathname, useRouter } from 'next/navigation'
 import { AnimatePresence, motion } from 'framer-motion'
 import { LogOut, Snowflake, X } from 'lucide-react'
-import { createClient } from '@/lib/supabase/client'
 import { filterNavLinksForRol, NAV_LINKS } from '@/lib/navigation'
 import { getIniciales } from '@/lib/utils'
 import { toastSuccess } from '@/lib/toast'
@@ -107,8 +106,7 @@ export function Sidebar({ usuario, open, onClose }: SidebarProps) {
   const links = filterNavLinksForRol(NAV_LINKS, usuario?.rol)
 
   async function handleLogout() {
-    const supabase = createClient()
-    await supabase.auth.signOut()
+    await fetch('/api/auth', { method: 'DELETE' })
     toastSuccess('Sesión cerrada')
     onClose()
     router.push('/login')

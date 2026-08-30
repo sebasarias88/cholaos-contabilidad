@@ -266,7 +266,7 @@ function ProductoPrecio({
     const max = Math.max(...precios)
     return (
       <span
-        className="text-sm font-medium text-text-secondary tabular-nums"
+        className="inline-block text-sm font-medium text-accent-cyan tabular-nums whitespace-nowrap"
         title={activas.map((v) => `${v.nombre}: ${formatPesos(v.precio)}`).join(' · ')}
       >
         {min === max
@@ -639,33 +639,41 @@ export function GestionProductos() {
           </ul>
 
           {/* Vista escritorio: tabla */}
-          <div className="table-surface hidden overflow-x-auto md:block">
-            <table className="w-full min-w-[36rem] text-left text-sm">
+          <div className="table-surface hidden min-w-0 max-w-full md:block">
+            <table className="data-table">
+              <colgroup>
+                <col style={{ minWidth: '10rem' }} />
+                <col style={{ minWidth: '7.5rem' }} />
+                <col style={{ minWidth: '6.5rem' }} />
+                <col style={{ minWidth: '9rem' }} />
+                <col style={{ minWidth: '5.5rem' }} />
+                <col style={{ minWidth: '4.5rem' }} />
+              </colgroup>
               <thead>
                 <tr>
-                  <th className="px-4 py-3">Nombre</th>
-                  <th className="px-4 py-3">Tipo</th>
-                  <th className="px-4 py-3">Onzas / Unidad</th>
-                  <th className="px-4 py-3">Precio</th>
-                  <th className="px-4 py-3">Estado</th>
-                  <th className="px-4 py-3 text-right">Acciones</th>
+                  <th className="col-name">Nombre</th>
+                  <th className="col-compact">Tipo</th>
+                  <th className="col-compact">Onzas / Unidad</th>
+                  <th className="col-compact">Precio</th>
+                  <th className="col-compact">Estado</th>
+                  <th className="col-compact text-right">Acciones</th>
                 </tr>
               </thead>
               <tbody>
                 {filtrados.map((p) => {
                   const tipo = tipoProducto(p)
                   return (
-                    <tr key={p.id} className="border-t border-bg-border">
-                      <td className="px-4 py-3 font-medium text-text-primary">
+                    <tr key={p.id}>
+                      <td className="col-name font-medium text-text-primary">
                         {p.nombre}
                       </td>
-                      <td className="px-4 py-3">
+                      <td className="col-compact">
                         <BadgeTipo tipo={tipo} />
                       </td>
-                      <td className="px-4 py-3 text-text-secondary tabular-nums">
+                      <td className="col-compact text-text-secondary tabular-nums">
                         {medidaProducto(p)}
                       </td>
-                      <td className="px-4 py-3">
+                      <td className="col-compact">
                         <ProductoPrecio
                           producto={p}
                           editingPrecioId={editingPrecioId}
@@ -676,13 +684,13 @@ export function GestionProductos() {
                           onCancel={() => setEditingPrecioId(null)}
                         />
                       </td>
-                      <td className="px-4 py-3">
+                      <td className="col-compact">
                         <ProductoEstado
                           producto={p}
                           onToggle={() => toggleActivo(p)}
                         />
                       </td>
-                      <td className="px-4 py-3 text-right">
+                      <td className="col-compact text-right">
                         <BotonMenuProducto
                           abierto={isOpen(p.id)}
                           onClick={(e) => toggle(p.id, e)}

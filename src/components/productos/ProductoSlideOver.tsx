@@ -1,5 +1,6 @@
 'use client'
 
+import { useEffect } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { Plus, X } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
@@ -101,6 +102,15 @@ export function ProductoSlideOver({
     })
   }
 
+  useEffect(() => {
+    if (!open) return
+    const prev = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.body.style.overflow = prev
+    }
+  }, [open])
+
   return (
     <AnimatePresence>
       {open && (
@@ -120,7 +130,7 @@ export function ProductoSlideOver({
           <motion.aside
             role="dialog"
             aria-modal
-            className="relative z-10 flex h-full w-full max-w-md flex-col border-l border-bg-border bg-bg-surface shadow-glow-cyan-strong"
+            className="relative z-10 flex h-dvh max-h-dvh w-full max-w-md flex-col overflow-hidden border-l border-bg-border bg-bg-surface shadow-glow-cyan-strong md:h-full md:max-h-none"
             initial={{ x: '100%' }}
             animate={{ x: 0 }}
             exit={{ x: '100%' }}
@@ -131,7 +141,7 @@ export function ProductoSlideOver({
             }}
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between border-b border-bg-border px-6 py-4">
+            <div className="flex shrink-0 items-center justify-between border-b border-bg-border px-6 py-4">
               <h2 className="font-display text-lg font-bold text-text-primary">
                 {producto ? 'Editar producto' : 'Nuevo producto'}
               </h2>
@@ -147,8 +157,13 @@ export function ProductoSlideOver({
 
             <form
               onSubmit={onSubmit}
-              className="flex flex-1 flex-col gap-5 overflow-y-auto p-6"
+              className="flex min-h-0 flex-1 flex-col overflow-hidden"
             >
+              <div
+                data-lenis-prevent
+                className="scroll-touch min-h-0 flex-1 overflow-y-auto overscroll-contain px-6 py-5"
+              >
+                <div className="flex flex-col gap-5">
               <Input
                 label="Nombre"
                 value={form.nombre}
@@ -173,7 +188,7 @@ export function ProductoSlideOver({
                           'rounded-[var(--radius-md)] border p-3 text-left transition-all',
                           activo
                             ? 'border-accent-cyan bg-accent-cyan-dim'
-                            : 'border-bg-border bg-bg-elevated hover:border-bg-border/60',
+                            : 'border-bg-border bg-bg-elevated hover:border-accent-cyan/30',
                         ].join(' ')}
                       >
                         <span className="mb-1 block text-xl" aria-hidden>
@@ -182,7 +197,7 @@ export function ProductoSlideOver({
                         <span className="block text-sm font-medium text-text-primary">
                           {t.label}
                         </span>
-                        <span className="mt-0.5 block text-[10px] leading-snug text-text-muted sm:text-xs">
+                        <span className="mt-0.5 block text-[10px] leading-snug text-text-secondary sm:text-xs">
                           {t.desc}
                         </span>
                       </button>
@@ -329,7 +344,7 @@ export function ProductoSlideOver({
                       }
                       required
                     />
-                    <p className="rounded-[var(--radius-md)] border border-bg-border/80 bg-bg-elevated/40 px-3 py-2 text-xs leading-relaxed text-text-muted">
+                    <p className="rounded-[var(--radius-md)] border border-bg-border bg-bg-elevated/50 px-3 py-2 text-xs leading-relaxed text-text-secondary">
                       Los insumos no generan venta — solo se lleva conteo de
                       inventario.
                     </p>
@@ -355,8 +370,10 @@ export function ProductoSlideOver({
                   placeholder="Notas del producto..."
                 />
               </div>
+                </div>
+              </div>
 
-              <div className="mt-auto flex gap-3 pt-4">
+              <div className="flex shrink-0 gap-3 border-t border-bg-border bg-bg-surface px-6 py-4">
                 <Button
                   type="button"
                   variant="secondary"

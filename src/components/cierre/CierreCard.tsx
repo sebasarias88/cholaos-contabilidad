@@ -25,7 +25,7 @@ const TABS: { id: TabHistorial; label: string }[] = [
   { id: 'resumen', label: 'Resumen' },
   { id: 'productos', label: 'Productos' },
   { id: 'vasos', label: 'Vasos' },
-  { id: 'gastos', label: 'Gastos y Trans.' },
+  { id: 'gastos', label: 'Gastos y mov.' },
 ]
 
 function TabResumen({
@@ -41,7 +41,8 @@ function TabResumen({
     cierre.dinero_base_inicio +
       cierre.total_ventas -
       cierre.total_transferencias -
-      cierre.total_gastos
+      cierre.total_gastos -
+      (cierre.total_domicilios ?? 0)
 
   return (
     <div className="space-y-4">
@@ -67,6 +68,11 @@ function TabResumen({
               label: '− Transfer.',
               value: formatPesos(cierre.total_transferencias),
               color: 'text-amber-400',
+            },
+            {
+              label: '− Domicilios',
+              value: formatPesos(cierre.total_domicilios ?? 0),
+              color: 'text-orange-400',
             },
           ].map((s) => (
             <div
@@ -171,7 +177,7 @@ function TabProductos({
     <div className="space-y-5">
       {items.length > 0 && (
         <div className="space-y-1">
-          <p className="mb-2 text-xs font-medium uppercase tracking-wide text-text-muted">
+          <p className="mb-2 text-xs font-medium uppercase tracking-wide text-text-secondary">
             Vasos
           </p>
           <ul className="divide-y divide-bg-border/60">
@@ -197,7 +203,7 @@ function TabProductos({
 
       {hayComida && (
         <div className="space-y-2">
-          <p className="mb-2 text-xs font-medium uppercase tracking-wide text-text-muted">
+          <p className="mb-2 text-xs font-medium uppercase tracking-wide text-text-secondary">
             Comida
           </p>
 
@@ -354,9 +360,18 @@ function TabVasos({ cierre }: { cierre: CierreDia }) {
 function TabGastosTransferencias({ cierre }: { cierre: CierreDia }) {
   const gastos = cierre.gastos ?? []
   const transferencias = cierre.transferencias ?? []
+  const domicilios = cierre.domicilios ?? []
 
-  if (gastos.length === 0 && transferencias.length === 0) {
-    return <p className="text-sm text-text-muted">Sin gastos ni transferencias.</p>
+  if (
+    gastos.length === 0 &&
+    transferencias.length === 0 &&
+    domicilios.length === 0
+  ) {
+    return (
+      <p className="text-sm text-text-muted">
+        Sin gastos, transferencias ni domicilios.
+      </p>
+    )
   }
 
   return (
@@ -377,9 +392,24 @@ function TabGastosTransferencias({ cierre }: { cierre: CierreDia }) {
           key={t.id}
           className="flex justify-between gap-3 py-2.5 text-sm"
         >
-          <span className="text-text-primary">Transfer. — {t.descripcion}</span>
+          <span className="text-text-primary capitalize">
+            Transfer. — {t.medio?.nombre ?? t.descripcion}
+          </span>
           <span className="shrink-0 tabular-nums text-text-secondary">
             {formatPesos(t.monto)}
+          </span>
+        </li>
+      ))}
+      {domicilios.map((d) => (
+        <li
+          key={d.id}
+          className="flex justify-between gap-3 py-2.5 text-sm"
+        >
+          <span className="text-text-primary">
+            Domicilio{d.descripcion ? ` — ${d.descripcion}` : ''}
+          </span>
+          <span className="shrink-0 tabular-nums text-text-secondary">
+            {formatPesos(d.monto)}
           </span>
         </li>
       ))}

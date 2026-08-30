@@ -5,7 +5,8 @@ export const CIERRE_SELECT = `
   *,
   usuario:usuarios(nombre, rol),
   gastos:gastos_dia(*),
-  transferencias:transferencias_dia(*),
+  transferencias:transferencias_dia(*, medio:medios_transferencia(nombre)),
+  domicilios:domicilios_dia(*),
   conteo_vasos:conteo_vasos(
     *,
     talla:tallas_vasos(*),
@@ -37,7 +38,8 @@ export function sanitizarCierreParaEmpleado(cierre: CierreRow): CierreDiaEmplead
     cierre.dinero_base_inicio +
     cierre.total_ventas -
     cierre.total_transferencias -
-    cierre.total_gastos
+    cierre.total_gastos -
+    (cierre.total_domicilios ?? 0)
 
   return {
     id: cierre.id,
@@ -46,6 +48,7 @@ export function sanitizarCierreParaEmpleado(cierre: CierreRow): CierreDiaEmplead
     dinero_final: cierre.dinero_final,
     total_transferencias: cierre.total_transferencias,
     total_gastos: cierre.total_gastos,
+    total_domicilios: cierre.total_domicilios ?? 0,
     efectivo_final_esperado: efectivo_calculado,
     diferencia_caja: cierre.dinero_final - efectivo_calculado,
     cuadre_ok: cierre.dinero_final === efectivo_calculado,
@@ -53,6 +56,7 @@ export function sanitizarCierreParaEmpleado(cierre: CierreRow): CierreDiaEmplead
     observaciones: cierre.observaciones,
     gastos: cierre.gastos,
     transferencias: cierre.transferencias,
+    domicilios: cierre.domicilios,
     conteo_vasos: cierre.conteo_vasos,
     ventas_variantes: cierre.ventas_variantes,
     ventas_comida: cierre.ventas_comida,

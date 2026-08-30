@@ -2,6 +2,7 @@
 
 import { AnimatePresence, motion } from 'framer-motion'
 import { AlertTriangle, Minus, Plus, Trash2 } from 'lucide-react'
+import { Select } from '@/components/ui/Select'
 import type { MotivoNovedad, NovedadVasoInput } from '@/types'
 
 interface NovedadesVasoProps {
@@ -37,7 +38,7 @@ function StepperCantidad({
         disabled={disabled || value <= 1}
         aria-label="Menos uno"
         onClick={() => onChange(Math.max(1, value - 1))}
-        className={`flex w-8 ${CONTROL_H} items-center justify-center text-text-muted transition-colors hover:bg-bg-elevated hover:text-text-primary disabled:cursor-not-allowed disabled:opacity-40`}
+        className={`flex w-8 ${CONTROL_H} items-center justify-center text-text-secondary transition-colors hover:bg-bg-elevated hover:text-text-primary disabled:cursor-not-allowed disabled:opacity-40`}
       >
         <Minus size={13} aria-hidden />
       </button>
@@ -116,9 +117,9 @@ export function NovedadesVaso({
           <button
             type="button"
             onClick={agregar}
-            className="inline-flex shrink-0 items-center gap-1 rounded-[var(--radius-md)] border border-dashed border-bg-border px-2 py-1 text-[11px] font-medium text-text-muted transition-colors hover:border-accent-amber/50 hover:text-accent-amber"
+            className="btn-add-dashed-amber"
           >
-            <Plus size={11} aria-hidden />
+            <Plus size={12} aria-hidden />
             Agregar
           </button>
         )}
@@ -131,14 +132,13 @@ export function NovedadesVaso({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="rounded-[var(--radius-md)] border border-dashed border-bg-border/80 px-3 py-2 text-center text-[11px] text-text-muted"
+            className="empty-dashed"
           >
             Sin novedades
           </motion.p>
         ) : (
           novedades.map((novedad, i) => {
             const esOtro = novedad.motivo_id === motivoOtro?.id
-            const motivoActual = motivos.find((m) => m.id === novedad.motivo_id)
 
             return (
               <motion.div
@@ -148,32 +148,20 @@ export function NovedadesVaso({
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -4 }}
                 transition={{ duration: 0.15 }}
-                className="space-y-1.5 rounded-[var(--radius-md)] border border-bg-border/80 bg-bg-surface/80 p-2"
+                className="surface-bordered space-y-1.5 p-2.5"
               >
                 <div className="flex flex-wrap items-center gap-1.5">
-                  <div className="relative w-[14rem] shrink-0">
-                    <span
-                      className="pointer-events-none absolute left-2 top-1/2 z-[1] -translate-y-1/2 text-sm leading-none"
-                      aria-hidden
-                    >
-                      {motivoActual?.emoji ?? '⚪'}
-                    </span>
-                    <select
-                      value={novedad.motivo_id}
-                      disabled={disabled}
-                      aria-label="Motivo de novedad"
-                      onChange={(e) =>
-                        actualizar(i, 'motivo_id', e.target.value)
-                      }
-                      className={`${fieldClass} !pl-7 !pr-6`}
-                    >
-                      {motivos.map((m) => (
-                        <option key={m.id} value={m.id}>
-                          {m.descripcion}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
+                  <Select
+                    value={novedad.motivo_id}
+                    disabled={disabled}
+                    aria-label="Motivo de novedad"
+                    onChange={(motivoId) => actualizar(i, 'motivo_id', motivoId)}
+                    options={motivos.map((m) => ({
+                      value: m.id,
+                      label: `${m.emoji} ${m.descripcion}`,
+                    }))}
+                    className="!h-9 !flex-none w-[14rem] shrink-0 !py-0 text-xs"
+                  />
 
                   <StepperCantidad
                     value={novedad.cantidad}
@@ -186,7 +174,7 @@ export function NovedadesVaso({
                       type="button"
                       onClick={() => eliminar(i)}
                       aria-label="Quitar novedad"
-                      className={`flex ${CONTROL_H} w-9 shrink-0 items-center justify-center rounded-[var(--radius-md)] text-text-muted transition-colors hover:bg-accent-red-dim hover:text-accent-red`}
+                      className={`flex ${CONTROL_H} w-9 shrink-0 items-center justify-center rounded-[var(--radius-md)] text-text-secondary transition-colors hover:bg-accent-red-dim hover:text-accent-red`}
                     >
                       <Trash2 size={14} aria-hidden />
                     </button>

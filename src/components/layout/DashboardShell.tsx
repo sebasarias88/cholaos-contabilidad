@@ -22,7 +22,7 @@ export function DashboardShell({ children, usuario }: DashboardShellProps) {
       />
       <div className="flex min-h-screen min-w-0 flex-col md:ml-60">
         <Header onMenuClick={() => setSidebarOpen(true)} />
-        <main className="flex-1">{children}</main>
+        <main className="min-w-0 flex-1">{children}</main>
       </div>
     </div>
   )

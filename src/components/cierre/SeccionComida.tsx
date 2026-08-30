@@ -1,7 +1,10 @@
 'use client'
 
 import { Fragment } from 'react'
-import { CeldaNumero } from '@/components/cierre/ConteoTabla'
+import {
+  CeldaCantidadDesktop,
+  CeldaCantidadMobile,
+} from '@/components/cierre/ConteoTabla'
 import { SeccionHeader } from '@/components/cierre/SeccionHeader'
 import { formatPesos } from '@/lib/utils'
 import type { Producto, VentaComidaInput, VentaVarianteInput } from '@/types'
@@ -79,62 +82,55 @@ export function SeccionComida({
         esAdmin={esAdmin}
       />
 
-      {/* Mobile: cards */}
-      <ul className="flex flex-col gap-3 md:hidden">
+      {/* Mobile: filas compactas */}
+      <ul className="flex flex-col gap-2.5 md:hidden">
         {conVariantes.map((producto) => (
           <li
             key={producto.id}
-            className="rounded-[var(--radius-md)] border border-bg-border bg-bg-surface p-3.5"
+            className="rounded-[var(--radius-md)] border border-bg-border bg-bg-surface p-3"
           >
-            <p className="mb-3 text-sm font-semibold text-text-primary">
+            <p className="mb-2 text-sm font-semibold text-text-primary">
               {producto.nombre}
             </p>
-            <ul className="space-y-3 pl-6">
+            <ul className="divide-y divide-bg-border">
               {variantesOrdenadas(producto).map((variante) => {
-                  const cantidad =
-                    ventasVariantes.find((v) => v.variante_id === variante.id)
-                      ?.cantidad ?? 0
-                  const subtotal = cantidad * variante.precio
-                  return (
-                    <li
-                      key={variante.id}
-                      className="border-t border-bg-border pt-3 first:border-t-0 first:pt-0"
-                    >
-                      <div className="mb-2 flex items-start justify-between gap-2">
-                        <div className="min-w-0">
-                          <p className="text-sm text-text-primary">
-                            {variante.nombre}
-                          </p>
-                          <p className="text-xs text-text-secondary tabular-nums">
-                            {formatPesos(variante.precio)}
-                          </p>
-                        </div>
+                const cantidad =
+                  ventasVariantes.find((v) => v.variante_id === variante.id)
+                    ?.cantidad ?? 0
+                const subtotal = cantidad * variante.precio
+                return (
+                  <li
+                    key={variante.id}
+                    className="grid grid-cols-[minmax(0,1fr)_4rem] items-center gap-x-3 py-2.5 first:pt-0 last:pb-0"
+                  >
+                    <div className="min-w-0">
+                      <p className="truncate text-sm text-text-primary">
+                        {variante.nombre}
+                      </p>
+                      <p className="truncate text-xs text-text-secondary tabular-nums">
+                        {formatPesos(variante.precio)}
                         {esAdmin && subtotal > 0 && (
-                          <span className="shrink-0 text-xs font-semibold text-accent-green tabular-nums">
-                            {formatPesos(subtotal)}
+                          <span className="ml-1.5 font-medium text-accent-green">
+                            · {formatPesos(subtotal)}
                           </span>
                         )}
-                      </div>
-                      <label className="flex flex-col gap-1">
-                        <span className="text-[10px] font-semibold uppercase tracking-wide text-text-secondary">
-                          Cantidad
-                        </span>
-                        <CeldaNumero
-                          value={cantidad || ''}
-                          placeholder="0"
-                          disabled={disabled}
-                          className="h-10 min-w-0 text-base"
-                          onChange={(e) =>
-                            onVarianteChange(
-                              variante.id,
-                              Math.max(0, Number(e.target.value) || 0)
-                            )
-                          }
-                        />
-                      </label>
-                    </li>
-                  )
-                })}
+                      </p>
+                    </div>
+                    <CeldaCantidadMobile
+                      value={cantidad || ''}
+                      placeholder="0"
+                      disabled={disabled}
+                      aria-label={`Cantidad ${producto.nombre} ${variante.nombre}`}
+                      onChange={(e) =>
+                        onVarianteChange(
+                          variante.id,
+                          Math.max(0, Number(e.target.value) || 0)
+                        )
+                      }
+                    />
+                  </li>
+                )
+              })}
             </ul>
           </li>
         ))}
@@ -147,70 +143,53 @@ export function SeccionComida({
           return (
             <li
               key={producto.id}
-              className="rounded-[var(--radius-md)] border border-bg-border bg-bg-surface p-3.5"
+              className="grid grid-cols-[minmax(0,1fr)_4rem] items-center gap-x-3 rounded-[var(--radius-md)] border border-bg-border bg-bg-surface p-3"
             >
-              <div className="mb-3 flex items-start justify-between gap-2">
-                <div className="min-w-0">
-                  <p className="text-sm font-semibold text-text-primary">
-                    {producto.nombre}
+              <div className="min-w-0">
+                <p className="truncate text-sm font-semibold text-text-primary">
+                  {producto.nombre}
+                </p>
+                {producto.descripcion && (
+                  <p className="mt-0.5 truncate text-xs text-text-muted">
+                    {producto.descripcion}
                   </p>
-                  {producto.descripcion && (
-                    <p className="mt-0.5 text-xs text-text-muted">
-                      {producto.descripcion}
-                    </p>
-                  )}
-                  <p className="mt-1 text-xs text-text-secondary tabular-nums">
-                    {producto.precio != null
-                      ? formatPesos(producto.precio)
-                      : '—'}
-                  </p>
-                </div>
-                {esAdmin && subtotal > 0 && (
-                  <span className="shrink-0 text-xs font-semibold text-accent-green tabular-nums">
-                    {formatPesos(subtotal)}
-                  </span>
                 )}
+                <p className="mt-0.5 truncate text-xs text-text-secondary tabular-nums">
+                  {producto.precio != null ? formatPesos(producto.precio) : '—'}
+                  {esAdmin && subtotal > 0 && (
+                    <span className="ml-1.5 font-medium text-accent-green">
+                      · {formatPesos(subtotal)}
+                    </span>
+                  )}
+                </p>
               </div>
-              <label className="flex flex-col gap-1">
-                <span className="text-[10px] font-semibold uppercase tracking-wide text-text-secondary">
-                  Cantidad
-                </span>
-                <CeldaNumero
-                  value={cantidad || ''}
-                  placeholder="0"
-                  disabled={disabled}
-                  className="h-10 min-w-0 text-base"
-                  onChange={(e) =>
-                    onComidaChange(
-                      producto.id,
-                      Math.max(0, Number(e.target.value) || 0)
-                    )
-                  }
-                />
-              </label>
+              <CeldaCantidadMobile
+                value={cantidad || ''}
+                placeholder="0"
+                disabled={disabled}
+                aria-label={`Cantidad ${producto.nombre}`}
+                onChange={(e) =>
+                  onComidaChange(
+                    producto.id,
+                    Math.max(0, Number(e.target.value) || 0)
+                  )
+                }
+              />
             </li>
           )
         })}
       </ul>
 
       {/* Desktop: tabla */}
-      <div className="hidden overflow-x-auto rounded-[var(--radius-md)] border border-bg-border md:block">
-        <table className="w-full min-w-[26rem] border-collapse text-left text-sm">
+      <div className="table-scroll-wrap hidden min-w-0 max-w-full overflow-x-auto rounded-[var(--radius-md)] border border-bg-border md:block">
+        <table className="data-table">
           <thead>
-            <tr className="border-b border-bg-border bg-bg-elevated/60">
-              <th className="px-2 py-1.5 text-xs font-semibold uppercase tracking-wide text-text-secondary">
-                Producto / Variante
-              </th>
-              <th className="w-20 px-2 py-1.5 text-center text-xs font-semibold uppercase tracking-wide text-text-secondary">
-                Precio
-              </th>
-              <th className="w-20 px-2 py-1.5 text-center text-xs font-semibold uppercase tracking-wide text-text-secondary">
-                Cantidad
-              </th>
+            <tr>
+              <th className="col-name">Producto / Variante</th>
+              <th className="col-compact min-w-[5rem] text-center">Precio</th>
+              <th className="col-compact min-w-[4rem] text-center">Cantidad</th>
               {esAdmin && (
-                <th className="w-24 px-2 py-1.5 text-right text-xs font-semibold uppercase tracking-wide text-text-secondary">
-                  Total
-                </th>
+                <th className="col-compact min-w-[5.5rem] text-right">Total</th>
               )}
             </tr>
           </thead>
@@ -222,7 +201,7 @@ export function SeccionComida({
                   <tr className="border-t border-bg-border bg-bg-elevated/40">
                     <td
                       colSpan={colCount}
-                      className="px-2 py-1.5 text-xs font-semibold text-text-secondary"
+                      className="col-name text-xs font-semibold text-text-secondary"
                     >
                       {producto.nombre}
                     </td>
@@ -233,18 +212,15 @@ export function SeccionComida({
                         ?.cantidad ?? 0
                     const subtotal = cantidad * variante.precio
                     return (
-                      <tr
-                        key={variante.id}
-                        className="border-t border-bg-border/80 hover:bg-bg-elevated/30"
-                      >
-                        <td className="px-2 py-1.5 pl-6 text-sm text-text-primary">
+                      <tr key={variante.id}>
+                        <td className="col-name pl-8 text-sm text-text-primary">
                           {variante.nombre}
                         </td>
-                        <td className="px-2 py-1.5 text-center text-xs text-text-secondary tabular-nums">
+                        <td className="col-compact text-center text-xs text-text-secondary tabular-nums">
                           {formatPesos(variante.precio)}
                         </td>
-                        <td className="px-1.5 py-1">
-                          <CeldaNumero
+                        <td className="col-compact text-center">
+                          <CeldaCantidadDesktop
                             value={cantidad || ''}
                             placeholder="0"
                             disabled={disabled}
@@ -257,7 +233,7 @@ export function SeccionComida({
                           />
                         </td>
                         {esAdmin && (
-                          <td className="px-2 py-1.5 text-right text-xs font-semibold tabular-nums">
+                          <td className="col-compact text-right text-xs font-semibold tabular-nums">
                             {subtotal > 0 ? (
                               <span className="text-accent-green">
                                 {formatPesos(subtotal)}
@@ -280,11 +256,8 @@ export function SeccionComida({
                   ?.cantidad ?? 0
               const subtotal = cantidad * (producto.precio ?? 0)
               return (
-                <tr
-                  key={producto.id}
-                  className="border-t border-bg-border/80 hover:bg-bg-elevated/30"
-                >
-                  <td className="px-2 py-1.5">
+                <tr key={producto.id}>
+                  <td className="col-name">
                     <p className="text-sm font-semibold text-text-primary">
                       {producto.nombre}
                     </p>
@@ -294,13 +267,13 @@ export function SeccionComida({
                       </p>
                     )}
                   </td>
-                  <td className="px-2 py-1.5 text-center text-xs text-text-secondary tabular-nums">
+                  <td className="col-compact text-center text-xs text-text-secondary tabular-nums">
                     {producto.precio != null
                       ? formatPesos(producto.precio)
                       : '—'}
                   </td>
-                  <td className="px-1.5 py-1">
-                    <CeldaNumero
+                  <td className="col-compact text-center">
+                    <CeldaCantidadDesktop
                       value={cantidad || ''}
                       placeholder="0"
                       disabled={disabled}
@@ -313,7 +286,7 @@ export function SeccionComida({
                     />
                   </td>
                   {esAdmin && (
-                    <td className="px-2 py-1.5 text-right text-xs font-semibold tabular-nums">
+                    <td className="col-compact text-right text-xs font-semibold tabular-nums">
                       {subtotal > 0 ? (
                         <span className="text-accent-green">
                           {formatPesos(subtotal)}

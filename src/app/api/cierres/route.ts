@@ -76,7 +76,12 @@ export async function GET(request: Request) {
 }
 
 type GastoBody = { descripcion?: string; monto?: number }
-type TransferenciaBody = { descripcion?: string; monto?: number }
+type TransferenciaBody = {
+  descripcion?: string
+  medio_id?: string
+  monto?: number
+}
+type DomicilioBody = { descripcion?: string | null; monto?: number }
 type NovedadVasoBody = {
   motivo_id?: string
   motivo_custom?: string
@@ -159,6 +164,7 @@ export async function POST(request: Request) {
 
   const gastos = asArray<GastoBody>(raw.gastos)
   const transferencias = asArray<TransferenciaBody>(raw.transferencias)
+  const domicilios = asArray<DomicilioBody>(raw.domicilios)
   const conteoProductos = asArray<ConteoProductoBody>(raw.conteo_productos)
   const ventas_variantes = asArray<VentaVarianteBody>(raw.ventas_variantes)
   const ventas_comida = asArray<VentaComidaBody>(raw.ventas_comida)
@@ -170,6 +176,10 @@ export async function POST(request: Request) {
   const total_gastos = gastos.reduce((s, g) => s + (Number(g?.monto) || 0), 0)
   const total_transferencias = transferencias.reduce(
     (s, t) => s + (Number(t?.monto) || 0),
+    0
+  )
+  const total_domicilios = domicilios.reduce(
+    (s, d) => s + (Number(d?.monto) || 0),
     0
   )
   const total_ventas_vasos = calcularTotalVentas(conteoProductos)
@@ -204,6 +214,7 @@ export async function POST(request: Request) {
     dinero_final,
     total_gastos,
     total_transferencias,
+    total_domicilios,
     total_ventas,
     observaciones,
     estado: 'cerrado' as const,
@@ -227,6 +238,7 @@ export async function POST(request: Request) {
 
     await supabase.from('gastos_dia').delete().eq('cierre_id', cierre_id)
     await supabase.from('transferencias_dia').delete().eq('cierre_id', cierre_id)
+    await supabase.from('domicilios_dia').delete().eq('cierre_id', cierre_id)
     // novedades_vasos se eliminan en cascada al borrar conteo_vasos
     await supabase.from('conteo_vasos').delete().eq('cierre_id', cierre_id)
     await supabase.from('ventas_variantes').delete().eq('cierre_id', cierre_id)
@@ -280,18 +292,62 @@ export async function POST(request: Request) {
     }
   }
 
-  const transValidas = transferencias.filter((t) => t?.descripcion?.trim())
+  const transValidas = transferencias.filter(
+    (t) =>
+      Number(t?.monto) > 0 &&
+      (Boolean(t?.medio_id?.trim()) || Boolean(t?.descripcion?.trim()))
+  )
   if (transValidas.length > 0) {
+    const medioIds = [
+      ...new Set(
+        transValidas
+          .map((t) => t.medio_id?.trim())
+          .filter((id): id is string => Boolean(id))
+      ),
+    ]
+    const nombresMedio = new Map<string, string>()
+    if (medioIds.length > 0) {
+      const { data: medios } = await supabase
+        .from('medios_transferencia')
+        .select('id, nombre')
+        .in('id', medioIds)
+      for (const m of medios ?? []) {
+        nombresMedio.set(m.id, m.nombre)
+      }
+    }
+
     const { error } = await supabase.from('transferencias_dia').insert(
-      transValidas.map((t) => ({
-        cierre_id,
-        descripcion: t.descripcion!.trim(),
-        monto: Number(t.monto) || 0,
-      }))
+      transValidas.map((t) => {
+        const medioId = t.medio_id?.trim() || null
+        const nombreMedio = medioId ? nombresMedio.get(medioId) : undefined
+        return {
+          cierre_id,
+          medio_id: medioId,
+          descripcion: (nombreMedio ?? t.descripcion ?? '').trim(),
+          monto: Number(t.monto),
+        }
+      })
     )
     if (error) {
       return NextResponse.json(
         { error: `Error insertando transferencias: ${error.message}` },
+        { status: 400 }
+      )
+    }
+  }
+
+  const domValidos = domicilios.filter((d) => Number(d?.monto) > 0)
+  if (domValidos.length > 0) {
+    const { error } = await supabase.from('domicilios_dia').insert(
+      domValidos.map((d) => ({
+        cierre_id,
+        descripcion: d.descripcion?.trim() || null,
+        monto: Number(d.monto),
+      }))
+    )
+    if (error) {
+      return NextResponse.json(
+        { error: `Error insertando domicilios: ${error.message}` },
         { status: 400 }
       )
     }
@@ -453,6 +509,7 @@ export async function POST(request: Request) {
       total_ventas,
       total_gastos,
       total_transferencias,
+      total_domicilios,
     },
     { status: cierreExistente ? 200 : 201 }
   )

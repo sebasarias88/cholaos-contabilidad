@@ -26,9 +26,11 @@ import type {
   ConteoProductoPrellenado,
   ConteoVaso,
   EstadoCierre,
+  DomicilioDia,
   GastoDia,
   GuardarCierrePayload,
   GuardarCierreResponse,
+  MedioTransferencia,
   MotivoNovedad,
   PrellenadoCierreResponse,
   Producto,
@@ -51,7 +53,20 @@ type ConteoProductoRow = ConteoProductoValor & {
   producto: Producto
 }
 
-type LineaMonto = {
+type LineaGasto = {
+  id: string
+  descripcion: string
+  monto: number
+}
+
+type LineaTransferencia = {
+  id: string
+  medio_id: string
+  descripcion: string
+  monto: number
+}
+
+type LineaDomicilio = {
   id: string
   descripcion: string
   monto: number
@@ -81,10 +96,12 @@ function tallaDesdeProducto(producto: Producto, tallaId: string): TallaVaso {
 function aplicarPrellenadoProductos(filas: ConteoProductoPrellenado[]) {
   const vasos: ConteoVasoRow[] = []
   const insumos: ConteoProductoRow[] = []
+  const tallasVistas = new Set<string>()
 
   for (const c of filas) {
     if (c.tipo === 'vaso') {
-      if (!c.talla_id) continue
+      if (!c.talla_id || tallasVistas.has(c.talla_id)) continue
+      tallasVistas.add(c.talla_id)
       vasos.push({
         talla_id: c.talla_id,
         talla: tallaDesdeProducto(c.producto, c.talla_id),
@@ -130,8 +147,14 @@ export function FormCierreDia({ rol }: FormCierreDiaProps) {
   )
   const [ventasComida, setVentasComida] = useState<VentaComidaInput[]>([])
 
-  const [gastos, setGastos] = useState<LineaMonto[]>([])
-  const [transferencias, setTransferencias] = useState<LineaMonto[]>([])
+  const [gastos, setGastos] = useState<LineaGasto[]>([])
+  const [transferencias, setTransferencias] = useState<LineaTransferencia[]>(
+    []
+  )
+  const [domicilios, setDomicilios] = useState<LineaDomicilio[]>([])
+  const [mediosTransferencia, setMediosTransferencia] = useState<
+    MedioTransferencia[]
+  >([])
 
   const [dineroBase, setDineroBase] = useState(0)
   const [dineroFinal, setDineroFinal] = useState(0)
@@ -155,8 +178,16 @@ export function FormCierreDia({ rol }: FormCierreDiaProps) {
       setTransferencias(
         (cierre.transferencias ?? []).map((t: TransferenciaDia) => ({
           id: t.id,
-          descripcion: t.descripcion,
+          medio_id: t.medio_id ?? '',
+          descripcion: t.medio?.nombre ?? t.descripcion,
           monto: t.monto,
+        }))
+      )
+      setDomicilios(
+        (cierre.domicilios ?? []).map((d: DomicilioDia) => ({
+          id: d.id,
+          descripcion: d.descripcion?.trim() ?? '',
+          monto: d.monto,
         }))
       )
 
@@ -227,10 +258,11 @@ export function FormCierreDia({ rol }: FormCierreDiaProps) {
     async function init() {
       setLoading(true)
       try {
-        const [preRes, prodRes, motivosRes] = await Promise.all([
+        const [preRes, prodRes, motivosRes, mediosRes] = await Promise.all([
           fetch('/api/cierres/prellenado'),
           fetch('/api/productos'),
           fetch('/api/motivos-novedad'),
+          fetch('/api/medios-transferencia'),
         ])
 
         if (!preRes.ok) throw new Error('prellenado')
@@ -239,9 +271,15 @@ export function FormCierreDia({ rol }: FormCierreDiaProps) {
         const motivosData: MotivoNovedad[] = motivosRes.ok
           ? await motivosRes.json()
           : []
+        const mediosData: MedioTransferencia[] = mediosRes.ok
+          ? await mediosRes.json()
+          : []
         if (cancelled) return
         setProductos(prods)
         setMotivos(motivosData)
+        setMediosTransferencia(
+          mediosData.filter((m) => m.activo).sort((a, b) => a.orden - b.orden)
+        )
 
         if (pre.tipo === 'cierre_existente' && pre.cierre) {
           aplicarCierre(pre.cierre, prods)
@@ -254,6 +292,9 @@ export function FormCierreDia({ rol }: FormCierreDiaProps) {
           setConteoInsumos(insumos)
           setVentasVariantes([])
           setVentasComida([])
+          setGastos([])
+          setTransferencias([])
+          setDomicilios([])
         }
       } catch {
         toastError('Error cargando el cierre del día')
@@ -322,7 +363,9 @@ export function FormCierreDia({ rol }: FormCierreDiaProps) {
   const productosPorTalla = useMemo(() => {
     const map: Record<string, Producto | undefined> = {}
     for (const p of productos) {
-      if (p.talla_id) map[p.talla_id] = p
+      if (p.talla_id && p.activo && tipoProducto(p) === 'vaso') {
+        map[p.talla_id] = p
+      }
     }
     return map
   }, [productos])
@@ -347,6 +390,7 @@ export function FormCierreDia({ rol }: FormCierreDiaProps) {
     itemsVendidos,
     transferencias,
     gastos,
+    domicilios,
     esAdmin,
   })
 
@@ -400,8 +444,18 @@ export function FormCierreDia({ rol }: FormCierreDiaProps) {
     setGastos((g) => [...g, { id: tempId(), descripcion, monto }])
   }
 
-  function agregarTransferencia(descripcion: string, monto: number) {
-    setTransferencias((t) => [...t, { id: tempId(), descripcion, monto }])
+  function agregarTransferencia(medioId: string, nombre: string, monto: number) {
+    setTransferencias((t) => [
+      ...t,
+      { id: tempId(), medio_id: medioId, descripcion: nombre, monto },
+    ])
+  }
+
+  function agregarDomicilio(descripcion: string, monto: number) {
+    setDomicilios((d) => [
+      ...d,
+      { id: tempId(), descripcion, monto },
+    ])
   }
 
   function buildPayload(): GuardarCierrePayload {
@@ -434,8 +488,13 @@ export function FormCierreDia({ rol }: FormCierreDiaProps) {
       dinero_base_inicio: dineroBase,
       dinero_final: dineroFinal,
       gastos: gastos.map(({ descripcion, monto }) => ({ descripcion, monto })),
-      transferencias: transferencias.map(({ descripcion, monto }) => ({
+      transferencias: transferencias.map(({ medio_id, descripcion, monto }) => ({
+        medio_id,
         descripcion,
+        monto,
+      })),
+      domicilios: domicilios.map(({ descripcion, monto }) => ({
+        descripcion: descripcion.trim() || undefined,
         monto,
       })),
       conteo_productos: [...vasos, ...insumos],
@@ -589,6 +648,8 @@ export function FormCierreDia({ rol }: FormCierreDiaProps) {
         dineroBase={dineroBase}
         gastos={gastos}
         transferencias={transferencias}
+        domicilios={domicilios}
+        mediosTransferencia={mediosTransferencia}
         onDineroBaseChange={setDineroBase}
         onDineroFinalChange={setDineroFinal}
         onRemoveGasto={(id) =>
@@ -597,8 +658,12 @@ export function FormCierreDia({ rol }: FormCierreDiaProps) {
         onRemoveTransferencia={(id) =>
           setTransferencias((list) => list.filter((x) => x.id !== id))
         }
+        onRemoveDomicilio={(id) =>
+          setDomicilios((list) => list.filter((x) => x.id !== id))
+        }
         onAgregarGasto={agregarGasto}
         onAgregarTransferencia={agregarTransferencia}
+        onAgregarDomicilio={agregarDomicilio}
         onCerrarDia={handleCerrarDia}
       />
 

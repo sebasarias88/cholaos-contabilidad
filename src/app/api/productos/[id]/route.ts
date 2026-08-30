@@ -1,5 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { requireAdminApi } from '@/lib/api-auth'
+import { ensureTallaProducto } from '@/lib/ensure-talla-producto'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { NextResponse } from 'next/server'
 import type { ProductoUpdateInput, TipoProducto } from '@/types'
 
@@ -98,6 +100,16 @@ export async function PUT(
     return NextResponse.json({ error: 'Sin cambios' }, { status: 400 })
   }
 
+  const { data: actual } = await supabase
+    .from('productos')
+    .select('id, nombre, tipo, onzas, talla_id')
+    .eq('id', id)
+    .single()
+
+  if (!actual) {
+    return NextResponse.json({ error: 'Producto no encontrado' }, { status: 404 })
+  }
+
   const { data, error } = await supabase
     .from('productos')
     .update(parsed.patch)
@@ -106,6 +118,34 @@ export async function PUT(
     .single()
 
   if (error) return NextResponse.json({ error: error.message }, { status: 400 })
+
+  const tipoFinal = (parsed.patch.tipo ?? actual.tipo) as TipoProducto
+  if (tipoFinal === 'vaso') {
+    const nombreFinal = String(parsed.patch.nombre ?? data.nombre)
+    const onzasFinal = Number(parsed.patch.onzas ?? data.onzas)
+    const admin = createAdminClient()
+    const linked = await ensureTallaProducto(admin, {
+      productoId: id,
+      nombre: nombreFinal,
+      onzas: onzasFinal,
+      tallaId: data.talla_id,
+    })
+    if (linked.error) {
+      return NextResponse.json({ error: linked.error }, { status: 400 })
+    }
+    if (linked.talla_id && linked.talla_id !== data.talla_id) {
+      const { data: refreshed, error: refreshError } = await supabase
+        .from('productos')
+        .select('*, talla:tallas_vasos(*), variantes:variantes_producto(*)')
+        .eq('id', id)
+        .single()
+      if (refreshError) {
+        return NextResponse.json({ error: refreshError.message }, { status: 400 })
+      }
+      return NextResponse.json(refreshed)
+    }
+  }
+
   return NextResponse.json(data)
 }
 

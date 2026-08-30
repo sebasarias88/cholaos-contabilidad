@@ -3,6 +3,7 @@
 import type { ReactNode } from 'react'
 import {
   CeldaNumero,
+  celdaConteoMobile,
   displayCantidad,
   parseCantidad,
   TablaConteoShell,
@@ -26,8 +27,7 @@ type ProductoRow = ConteoProductoValor & {
   producto: Producto
 }
 
-const celdaMobile =
-  'h-10 min-w-0 text-base'
+const celdaMobile = celdaConteoMobile
 
 function nombreVaso(talla: Pick<TallaVaso, 'onzas' | 'descripcion' | 'tipo'>) {
   if (talla.descripcion) {
@@ -55,7 +55,7 @@ function CampoConteo({
 
 function CardShell({ children }: { children: ReactNode }) {
   return (
-    <li className="rounded-[var(--radius-md)] border border-bg-border bg-bg-surface p-3.5">
+    <li className="rounded-[var(--radius-md)] border border-bg-border bg-bg-surface p-3">
       {children}
     </li>
   )
@@ -98,7 +98,7 @@ export function TablaVasos({
 
           return (
             <CardShell key={row.talla_id}>
-              <div className="mb-3 flex items-start justify-between gap-2">
+              <div className="mb-2 flex items-start justify-between gap-2">
                 <div className="min-w-0">
                   <p className="text-sm font-semibold text-text-primary">
                     {titulo}
@@ -117,7 +117,7 @@ export function TablaVasos({
                     'h-8 shrink-0 rounded-[var(--radius-md)] border px-2.5 text-xs font-medium transition-colors',
                     novTotal > 0
                       ? 'border-accent-amber/40 bg-accent-amber/15 text-accent-amber'
-                      : 'border-bg-border bg-bg-elevated text-text-muted',
+                      : 'border-bg-border bg-bg-elevated text-text-secondary hover:border-accent-amber/40 hover:text-accent-amber',
                     disabled ? 'opacity-50' : '',
                   ].join(' ')}
                 >
@@ -125,7 +125,7 @@ export function TablaVasos({
                 </button>
               </div>
 
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-3 gap-1.5">
                 <CampoConteo label="Inicio">
                   <CeldaNumero
                     readonly
@@ -166,7 +166,7 @@ export function TablaVasos({
                 </CampoConteo>
               </div>
 
-              <div className="mt-3 flex items-center justify-between border-t border-bg-border pt-2.5">
+              <div className="mt-2 flex items-center justify-between border-t border-bg-border pt-2">
                 <span className="text-xs text-text-secondary">Vendidos</span>
                 <span
                   className={[
@@ -183,7 +183,7 @@ export function TablaVasos({
       </ul>
 
       {/* Desktop: tabla */}
-      <div className="hidden md:block">
+      <div className="hidden min-w-0 max-w-full md:block">
         <TablaConteoShell
           columns={[
             { key: 'nombre', label: 'Producto', className: 'min-w-[9rem]' },
@@ -207,10 +207,10 @@ export function TablaVasos({
             return (
               <tr
                 key={row.talla_id}
-                className="border-t border-bg-border/80 hover:bg-bg-elevated/30"
+                className="border-t border-bg-border hover:bg-bg-elevated/30"
               >
-                <td className="max-w-[11rem] px-2 py-1.5">
-                  <p className="truncate text-sm font-semibold text-text-primary">
+                <td className="col-name">
+                  <p className="text-sm font-semibold text-text-primary">
                     {titulo}
                   </p>
                   {esAdmin && producto?.precio != null && producto.precio > 0 && (
@@ -219,14 +219,14 @@ export function TablaVasos({
                     </p>
                   )}
                 </td>
-                <td className="px-1.5 py-1">
+                <td className="col-compact min-w-[4.5rem]">
                   <CeldaNumero
                     readonly
                     value={row.cantidad_inicio}
                     disabled={disabled}
                   />
                 </td>
-                <td className="px-1.5 py-1">
+                <td className="col-compact min-w-[4.5rem]">
                   <CeldaNumero
                     value={displayCantidad(row.cantidad_nuevos, true)}
                     placeholder="0"
@@ -240,7 +240,7 @@ export function TablaVasos({
                     }
                   />
                 </td>
-                <td className="px-1.5 py-1">
+                <td className="col-compact min-w-[4.5rem]">
                   <CeldaNumero
                     value={displayCantidad(row.cantidad_final, true)}
                     placeholder="0"
@@ -254,7 +254,7 @@ export function TablaVasos({
                     }
                   />
                 </td>
-                <td className="px-1.5 py-1 text-center">
+                <td className="col-compact min-w-[3.5rem] text-center">
                   <span
                     className={[
                       'tabular-nums text-xs font-semibold',
@@ -264,7 +264,7 @@ export function TablaVasos({
                     {vendidos}
                   </span>
                 </td>
-                <td className="px-1.5 py-1 text-center">
+                <td className="col-compact min-w-[3.5rem] text-center">
                   <button
                     type="button"
                     disabled={disabled}
@@ -273,7 +273,7 @@ export function TablaVasos({
                       'h-7 min-w-[2.5rem] rounded border px-1.5 text-[11px] font-medium transition-colors',
                       novTotal > 0
                         ? 'border-accent-amber/40 bg-accent-amber/15 text-accent-amber'
-                        : 'border-bg-border bg-bg-elevated text-text-muted hover:border-accent-amber/40 hover:text-accent-amber',
+                        : 'border-bg-border bg-bg-elevated text-text-secondary hover:border-accent-amber/40 hover:text-accent-amber',
                       disabled ? 'opacity-50' : '',
                     ].join(' ')}
                   >
@@ -330,23 +330,16 @@ export function TablaProductos({
 
           return (
             <CardShell key={row.producto_id}>
-              <div className="mb-3 min-w-0">
+              <div className="mb-2 min-w-0">
                 <p className="text-sm font-semibold text-text-primary">
                   {row.producto.nombre}
                 </p>
                 <p className="mt-0.5 text-xs text-text-secondary">
                   {unidad}
-                  {modo === 'comida' && esAdmin && precio > 0 && (
-                    <span className="tabular-nums">
-                      {' · '}
-                      {formatPesos(precio)} c/u
-                      {res > 0 ? ` · ${formatPesos(res * precio)}` : ''}
-                    </span>
-                  )}
                 </p>
               </div>
 
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-3 gap-1.5">
                 <CampoConteo label="Inicio">
                   <CeldaNumero
                     readonly
@@ -387,7 +380,7 @@ export function TablaProductos({
                 </CampoConteo>
               </div>
 
-              <div className="mt-3 flex items-center justify-between border-t border-bg-border pt-2.5">
+              <div className="mt-2 flex items-center justify-between border-t border-bg-border pt-2">
                 <span className="text-xs text-text-secondary">{labelResultado}</span>
                 <span
                   className={[
@@ -408,7 +401,7 @@ export function TablaProductos({
       </ul>
 
       {/* Desktop: tabla */}
-      <div className="hidden md:block">
+      <div className="hidden min-w-0 max-w-full md:block">
         <TablaConteoShell
           columns={[
             { key: 'nombre', label: 'Producto', className: 'min-w-[9rem]' },
@@ -426,10 +419,10 @@ export function TablaProductos({
             return (
               <tr
                 key={row.producto_id}
-                className="border-t border-bg-border/80 hover:bg-bg-elevated/30"
+                className="border-t border-bg-border hover:bg-bg-elevated/30"
               >
-                <td className="max-w-[11rem] px-2 py-1.5">
-                  <p className="truncate text-sm font-semibold text-text-primary">
+                <td className="col-name">
+                  <p className="text-sm font-semibold text-text-primary">
                     {row.producto.nombre}
                   </p>
                   {modo === 'comida' && esAdmin && precio > 0 && (
@@ -439,17 +432,17 @@ export function TablaProductos({
                     </p>
                   )}
                 </td>
-                <td className="px-2 py-1.5 text-xs text-text-secondary">
+                <td className="col-compact min-w-[4.5rem] text-xs text-text-secondary">
                   {row.producto.unidad ?? '—'}
                 </td>
-                <td className="px-1.5 py-1">
+                <td className="col-compact min-w-[4.5rem]">
                   <CeldaNumero
                     readonly
                     value={row.cantidad_inicio}
                     disabled={disabled}
                   />
                 </td>
-                <td className="px-1.5 py-1">
+                <td className="col-compact min-w-[4.5rem]">
                   <CeldaNumero
                     value={displayCantidad(row.cantidad_nuevos, true)}
                     placeholder="0"
@@ -463,7 +456,7 @@ export function TablaProductos({
                     }
                   />
                 </td>
-                <td className="px-1.5 py-1">
+                <td className="col-compact min-w-[4.5rem]">
                   <CeldaNumero
                     value={displayCantidad(row.cantidad_final, true)}
                     placeholder="0"
@@ -477,7 +470,7 @@ export function TablaProductos({
                     }
                   />
                 </td>
-                <td className="px-1.5 py-1 text-center">
+                <td className="col-compact min-w-[3.5rem] text-center">
                   <span
                     className={[
                       'tabular-nums text-xs font-semibold',

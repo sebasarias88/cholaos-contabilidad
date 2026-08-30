@@ -8,6 +8,7 @@ export type CuadreInput = {
   itemsVendidos: { cantidad: number; precio_unitario: number }[]
   transferencias: { monto: number }[]
   gastos: { monto: number }[]
+  domicilios: { monto: number }[]
   esAdmin: boolean
 }
 
@@ -17,6 +18,7 @@ export function calcularCuadre({
   itemsVendidos,
   transferencias,
   gastos,
+  domicilios,
 }: Omit<CuadreInput, 'esAdmin'>) {
   const totalVentas = itemsVendidos.reduce(
     (s, i) => s + i.cantidad * i.precio_unitario,
@@ -24,15 +26,21 @@ export function calcularCuadre({
   )
   const totalTransferencias = transferencias.reduce((s, t) => s + t.monto, 0)
   const totalGastos = gastos.reduce((s, g) => s + g.monto, 0)
+  const totalDomicilios = domicilios.reduce((s, d) => s + d.monto, 0)
 
   const efectivoEsperado =
-    dineroBaseInicio + totalVentas - totalTransferencias - totalGastos
+    dineroBaseInicio +
+    totalVentas -
+    totalTransferencias -
+    totalGastos -
+    totalDomicilios
   const diferencia = dineroFinal - efectivoEsperado
 
   return {
     totalVentas,
     totalTransferencias,
     totalGastos,
+    totalDomicilios,
     efectivoEsperado,
     diferencia,
     cuadreOk: diferencia === 0,
@@ -47,6 +55,7 @@ export function useCuadre(input: CuadreInput) {
     itemsVendidos,
     transferencias,
     gastos,
+    domicilios,
   } = input
 
   return useMemo(
@@ -57,6 +66,7 @@ export function useCuadre(input: CuadreInput) {
         itemsVendidos,
         transferencias,
         gastos,
+        domicilios,
       }),
     [
       dineroBaseInicio,
@@ -64,6 +74,7 @@ export function useCuadre(input: CuadreInput) {
       itemsVendidos,
       transferencias,
       gastos,
+      domicilios,
     ]
   )
 }

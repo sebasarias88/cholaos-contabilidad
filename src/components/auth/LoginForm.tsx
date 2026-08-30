@@ -6,7 +6,6 @@ import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { Eye, EyeOff, LogIn, Snowflake } from 'lucide-react'
 import toast from 'react-hot-toast'
-import { createClient } from '@/lib/supabase/client'
 
 const containerVariants = {
   hidden: {},
@@ -40,44 +39,18 @@ export function LoginForm() {
     setLoading(true)
     const id = toast.loading('Verificando...')
 
-    const supabase = createClient()
-    const { error } = await supabase.auth.signInWithPassword({
-      email: email.trim(),
-      password,
+    const res = await fetch('/api/auth', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: email.trim(), password }),
     })
 
-    if (error) {
-      toast.error('Credenciales incorrectas', { id })
-      setLoading(false)
-      return
-    }
-
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) {
-      toast.error('Credenciales incorrectas', { id })
-      setLoading(false)
-      return
-    }
-
-    const { data: perfil, error: perfilError } = await supabase
-      .from('usuarios')
-      .select('activo')
-      .eq('id', user.id)
-      .single()
-
-    if (perfilError || !perfil) {
-      await supabase.auth.signOut()
-      toast.error('No se encontró tu perfil. Contacta al administrador.', { id })
-      setLoading(false)
-      return
-    }
-
-    if (!perfil.activo) {
-      await supabase.auth.signOut()
-      toast.error('Tu cuenta está desactivada. Contacta al admin.', { id })
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}))
+      toast.error(
+        (data as { error?: string }).error ?? 'Credenciales incorrectas',
+        { id }
+      )
       setLoading(false)
       return
     }
