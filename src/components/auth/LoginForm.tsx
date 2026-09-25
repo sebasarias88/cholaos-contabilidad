@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
@@ -9,15 +9,15 @@ import toast from 'react-hot-toast'
 
 const containerVariants = {
   hidden: {},
-  visible: { transition: { staggerChildren: 0.1 } },
+  visible: { transition: { staggerChildren: 0.08 } },
 }
 
 const itemVariants = {
-  hidden: { opacity: 0, y: 20 },
+  hidden: { opacity: 0, y: 16 },
   visible: {
     opacity: 1,
     y: 0,
-    transition: { duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] as const },
+    transition: { duration: 0.45, ease: [0.25, 0.46, 0.45, 0.94] as const },
   },
 }
 
@@ -27,6 +27,41 @@ export function LoginForm() {
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const router = useRouter()
+
+  useEffect(() => {
+    const html = document.documentElement
+    const body = document.body
+    const prevHtmlOverflow = html.style.overflow
+    const prevBodyOverflow = body.style.overflow
+    const prevHtmlHeight = html.style.height
+    const prevBodyHeight = body.style.height
+    const mq = window.matchMedia('(max-width: 767px)')
+
+    function applyScrollLock() {
+      if (mq.matches) {
+        html.style.overflow = 'hidden'
+        body.style.overflow = 'hidden'
+        html.style.height = '100%'
+        body.style.height = '100%'
+      } else {
+        html.style.overflow = ''
+        body.style.overflow = ''
+        html.style.height = ''
+        body.style.height = ''
+      }
+    }
+
+    applyScrollLock()
+    mq.addEventListener('change', applyScrollLock)
+
+    return () => {
+      mq.removeEventListener('change', applyScrollLock)
+      html.style.overflow = prevHtmlOverflow
+      body.style.overflow = prevBodyOverflow
+      html.style.height = prevHtmlHeight
+      body.style.height = prevBodyHeight
+    }
+  }, [])
 
   async function handleLogin(e?: React.FormEvent) {
     e?.preventDefault()
@@ -62,59 +97,69 @@ export function LoginForm() {
 
   return (
     <motion.div
-      className="grid min-h-screen md:grid-cols-2"
-      style={{ background: 'var(--bg-base)' }}
+      data-lenis-prevent
+      className="relative h-dvh max-h-dvh overflow-hidden bg-bg-base md:h-auto md:min-h-screen md:max-h-none md:grid md:grid-cols-2 md:overflow-visible"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.3 }}
     >
-      {/* Panel izquierdo — formulario */}
-      <div className="flex min-h-screen flex-col justify-between p-8 md:p-12">
-        <motion.div
-          initial={{ opacity: 0, x: -20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.5 }}
-          className="flex items-center gap-2"
-        >
-          <Image
-            src="/images/logo.JPG"
-            alt="Cholao Oscar"
-            width={60}
-            height={60}
-            className="rounded-lg object-cover"
-          />
-          <span
-            className="font-display text-lg"
-            style={{ color: 'var(--text-primary)' }}
-          >
-            Cholao Oscar
-          </span>
-        </motion.div>
+      {/* Fondo mobile — hero difuminado */}
+      <div className="absolute inset-0 overflow-hidden md:hidden" aria-hidden>
+        <Image
+          src="/images/cholao-hero.jpg"
+          alt=""
+          fill
+          className="object-cover object-[center_30%]"
+          priority
+          sizes="100vw"
+        />
+        <div className="absolute inset-0 bg-bg-base/68 backdrop-blur-[3px]" />
+        <div className="absolute inset-0 bg-gradient-to-b from-bg-base/30 via-bg-base/75 to-bg-base" />
+      </div>
 
-        <motion.form
-          variants={containerVariants}
-          initial="hidden"
-          animate="visible"
-          onSubmit={handleLogin}
-          className="mx-auto w-full max-w-sm space-y-6"
-        >
-          <motion.div variants={itemVariants} className="space-y-1">
-            <h1
-              className="font-display text-3xl"
-              style={{ color: 'var(--text-primary)' }}
-            >
-              Bienvenido de nuevo
-            </h1>
-            <p style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>
-              Ingresa tus credenciales para continuar
-            </p>
+      {/* Panel formulario */}
+      <div className="relative flex h-full min-h-0 flex-col justify-center px-4 pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] sm:px-6 md:min-h-screen md:justify-between md:bg-bg-base md:px-12 md:py-10 lg:px-16">
+        <div className="relative mx-auto w-full max-w-sm md:flex md:flex-1 md:flex-col md:justify-center">
+          <motion.form
+            variants={containerVariants}
+            initial="hidden"
+            animate="visible"
+            onSubmit={handleLogin}
+            className={[
+              'relative w-full shrink-0',
+              'max-md:overflow-hidden max-md:rounded-[var(--radius-xl)] max-md:border max-md:border-bg-border/80',
+              'max-md:bg-bg-surface/95 max-md:px-5 max-md:py-5 max-md:shadow-glow-cyan max-md:backdrop-blur-md',
+              'max-md:before:absolute max-md:before:inset-x-0 max-md:before:top-0 max-md:before:h-0.5',
+              'max-md:before:bg-gradient-to-r max-md:before:from-transparent max-md:before:via-accent-cyan max-md:before:to-transparent max-md:before:content-[""]',
+            ].join(' ')}
+          >
+          <motion.div variants={itemVariants} className="mb-5 space-y-2.5 md:mb-8 md:space-y-1.5">
+            <div className="flex items-center gap-2.5 md:hidden">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[var(--radius-md)] bg-accent-cyan-dim shadow-glow-cyan">
+                <Snowflake size={18} className="text-accent-cyan" aria-hidden />
+              </div>
+              <div className="min-w-0">
+                <p className="truncate font-display text-sm font-bold tracking-tight text-text-primary">
+                  Cholao Oscar
+                </p>
+                <p className="text-[11px] text-text-secondary">Contabilidad · Armenia</p>
+              </div>
+            </div>
+            <div className="space-y-0.5">
+              <h1 className="font-display text-lg font-semibold text-text-primary sm:text-xl md:text-3xl">
+                Bienvenido de nuevo
+              </h1>
+              <p className="text-xs text-text-secondary sm:text-sm">
+                Ingresa tus credenciales para continuar
+              </p>
+            </div>
           </motion.div>
 
-          <motion.div variants={itemVariants} className="space-y-4">
-            <motion.div className="space-y-1.5">
+          <motion.div variants={itemVariants} className="space-y-3.5 md:space-y-4">
+            <div className="space-y-1.5">
               <label
                 htmlFor="email"
-                style={{ fontSize: '13px', color: 'var(--text-secondary)' }}
+                className="text-[13px] font-medium text-text-secondary"
               >
                 Correo electrónico
               </label>
@@ -124,16 +169,16 @@ export function LoginForm() {
                 value={email}
                 onChange={(ev) => setEmail(ev.target.value)}
                 placeholder="usuario@cholaooscar.com"
-                className="input w-full"
+                className="input min-h-10 w-full text-base md:min-h-0 md:text-sm"
                 autoComplete="email"
                 disabled={loading}
               />
-            </motion.div>
+            </div>
 
-            <motion.div className="space-y-1.5">
+            <div className="space-y-1.5">
               <label
                 htmlFor="password"
-                style={{ fontSize: '13px', color: 'var(--text-secondary)' }}
+                className="text-[13px] font-medium text-text-secondary"
               >
                 Contraseña
               </label>
@@ -144,27 +189,28 @@ export function LoginForm() {
                   value={password}
                   onChange={(ev) => setPassword(ev.target.value)}
                   placeholder="••••••••"
-                  className="input w-full pr-10"
+                  className="input min-h-10 w-full pr-11 text-base md:min-h-0 md:pr-10 md:text-sm"
                   autoComplete="current-password"
                   disabled={loading}
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute top-1/2 right-3 -translate-y-1/2"
-                  style={{ color: 'var(--text-muted)' }}
-                  aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                  className="absolute top-1/2 right-1 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-[var(--radius-md)] text-text-muted hover:bg-bg-elevated hover:text-text-secondary"
+                  aria-label={
+                    showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'
+                  }
                   tabIndex={-1}
                 >
-                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
               </div>
-            </motion.div>
+            </div>
 
             <button
               type="submit"
               disabled={loading}
-              className="btn-primary flex w-full items-center justify-center gap-2 py-2.5"
+              className="btn-primary mt-0.5 flex min-h-10 w-full items-center justify-center gap-2 py-2 text-base md:min-h-0 md:py-2.5 md:text-sm"
             >
               {loading ? (
                 <motion.span
@@ -181,20 +227,25 @@ export function LoginForm() {
                 </>
               )}
             </button>
+
+            <p className="max-md:pt-2 max-md:text-center max-md:text-[10px] max-md:leading-snug text-text-muted md:hidden">
+              Sistema interno · solo personal autorizado
+            </p>
           </motion.div>
         </motion.form>
+        </div>
 
         <motion.p
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ delay: 0.8 }}
-          style={{ fontSize: '12px', color: 'var(--text-muted)' }}
+          transition={{ delay: 0.6 }}
+          className="relative mx-auto mt-5 hidden w-full max-w-sm shrink-0 text-xs text-text-muted md:mx-0 md:mt-0 md:block md:max-w-none"
         >
           v1.0 · Cholao Oscar Armenia · Sistema interno
         </motion.p>
       </div>
 
-      {/* Panel derecho — imagen (solo desktop) */}
+      {/* Panel hero — solo desktop */}
       <div className="relative hidden overflow-hidden md:block">
         <Image
           src="/images/cholao-hero.jpg"
@@ -204,18 +255,12 @@ export function LoginForm() {
           priority
           sizes="50vw"
         />
-        <div
-          className="absolute inset-0"
-          style={{
-            background:
-              'linear-gradient(135deg, rgba(8,12,16,0.7) 0%, rgba(8,12,16,0.3) 100%)',
-          }}
-        />
+        <div className="absolute inset-0 bg-gradient-to-br from-bg-base/70 via-bg-base/20 to-transparent" />
         <div className="absolute right-10 bottom-12 left-10">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.6, duration: 0.7 }}
+            transition={{ delay: 0.4, duration: 0.7 }}
           >
             <p className="font-display text-4xl leading-tight text-white">
               Refrescante,

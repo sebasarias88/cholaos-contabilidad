@@ -64,6 +64,13 @@ function normalizarUpdate(body: ProductoUpdateInput) {
     }
   }
 
+  if (body.talla_id !== undefined) {
+    patch.talla_id =
+      typeof body.talla_id === 'string' && body.talla_id
+        ? body.talla_id
+        : null
+  }
+
   // Si se cambia a insumo vía payload completo, forzar precio null
   if (body.tipo === 'insumo' && body.precio === undefined) {
     patch.precio = null
@@ -121,29 +128,36 @@ export async function PUT(
 
   const tipoFinal = (parsed.patch.tipo ?? actual.tipo) as TipoProducto
   if (tipoFinal === 'vaso') {
-    const nombreFinal = String(parsed.patch.nombre ?? data.nombre)
     const onzasFinal = Number(parsed.patch.onzas ?? data.onzas)
+    const tallaIdFinal =
+      body.talla_id !== undefined
+        ? body.talla_id
+        : (data.talla_id as string | null)
+    const bodyExtra = body as ProductoUpdateInput & {
+      tipo_vaso?: string
+      talla_descripcion?: string | null
+      crear_talla?: boolean
+    }
     const admin = createAdminClient()
     const linked = await ensureTallaProducto(admin, {
       productoId: id,
-      nombre: nombreFinal,
       onzas: onzasFinal,
-      tallaId: data.talla_id,
+      tallaId: bodyExtra.crear_talla ? null : tallaIdFinal,
+      tipoVaso: bodyExtra.tipo_vaso as 'normal' | 'ancho' | 'angosto' | undefined,
+      descripcionTalla: bodyExtra.talla_descripcion,
     })
     if (linked.error) {
       return NextResponse.json({ error: linked.error }, { status: 400 })
     }
-    if (linked.talla_id && linked.talla_id !== data.talla_id) {
-      const { data: refreshed, error: refreshError } = await supabase
-        .from('productos')
-        .select('*, talla:tallas_vasos(*), variantes:variantes_producto(*)')
-        .eq('id', id)
-        .single()
-      if (refreshError) {
-        return NextResponse.json({ error: refreshError.message }, { status: 400 })
-      }
-      return NextResponse.json(refreshed)
+    const { data: refreshed, error: refreshError } = await supabase
+      .from('productos')
+      .select('*, talla:tallas_vasos(*), variantes:variantes_producto(*)')
+      .eq('id', id)
+      .single()
+    if (refreshError) {
+      return NextResponse.json({ error: refreshError.message }, { status: 400 })
     }
+    return NextResponse.json(refreshed)
   }
 
   return NextResponse.json(data)

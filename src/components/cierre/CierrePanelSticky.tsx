@@ -51,7 +51,16 @@ interface CierreCajaShellProps {
   onAgregarGasto: (d: string, m: number) => void
   onAgregarTransferencia: (medioId: string, nombre: string, m: number) => void
   onAgregarDomicilio: (d: string, m: number) => void
+  onEditarGasto: (id: string, descripcion: string, monto: number) => void
+  onEditarTransferencia: (
+    id: string,
+    medioId: string,
+    nombre: string,
+    monto: number
+  ) => void
+  onEditarDomicilio: (id: string, descripcion: string, monto: number) => void
   onCerrarDia: () => void
+  textoCerrar?: string
 }
 
 function etiquetaCuadre(
@@ -99,7 +108,11 @@ export function CierreCajaShell({
   onAgregarGasto,
   onAgregarTransferencia,
   onAgregarDomicilio,
+  onEditarGasto,
+  onEditarTransferencia,
+  onEditarDomicilio,
   onCerrarDia,
+  textoCerrar = 'Cerrar día',
 }: CierreCajaShellProps) {
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [abiertas, setAbiertas] = useState<Set<SeccionId>>(
@@ -193,7 +206,7 @@ export function CierreCajaShell({
                 className="h-10 flex-1 sm:min-w-[8.5rem] sm:flex-none"
                 onClick={onCerrarDia}
               >
-                Cerrar día
+                {textoCerrar}
               </Button>
             )}
           </div>
@@ -261,6 +274,11 @@ export function CierreCajaShell({
                   bloqueado={bloqueado}
                   onToggle={() => toggleSeccion('gastos')}
                   onEliminar={onRemoveGasto}
+                  edicion={{
+                    tipo: 'texto',
+                    placeholder: 'Ej. gasolina, mercado…',
+                    onChange: onEditarGasto,
+                  }}
                   inputSlot={
                     !bloqueado ? (
                       <InputGasto onAgregar={onAgregarGasto} />
@@ -276,12 +294,18 @@ export function CierreCajaShell({
                     id: t.id,
                     etiqueta: t.descripcion,
                     monto: t.monto,
+                    medioId: t.medio_id,
                   }))}
                   abierta={abiertas.has('transferencias')}
                   colorTotal="text-text-secondary"
                   bloqueado={bloqueado}
                   onToggle={() => toggleSeccion('transferencias')}
                   onEliminar={onRemoveTransferencia}
+                  edicion={{
+                    tipo: 'medio',
+                    medios: mediosTransferencia,
+                    onChange: onEditarTransferencia,
+                  }}
                   inputSlot={
                     !bloqueado ? (
                       <InputTransferencia
@@ -298,7 +322,7 @@ export function CierreCajaShell({
                   total={cuadre.totalDomicilios}
                   items={domicilios.map((d) => ({
                     id: d.id,
-                    etiqueta: d.descripcion.trim() || 'Domicilio',
+                    etiqueta: d.descripcion,
                     monto: d.monto,
                   }))}
                   abierta={abiertas.has('domicilios')}
@@ -306,6 +330,11 @@ export function CierreCajaShell({
                   bloqueado={bloqueado}
                   onToggle={() => toggleSeccion('domicilios')}
                   onEliminar={onRemoveDomicilio}
+                  edicion={{
+                    tipo: 'texto',
+                    placeholder: 'Detalle (opcional)',
+                    onChange: onEditarDomicilio,
+                  }}
                   inputSlot={
                     !bloqueado ? (
                       <InputDomicilio onAgregar={onAgregarDomicilio} />
@@ -479,7 +508,7 @@ export function CierreCajaShell({
                       onCerrarDia()
                     }}
                   >
-                    Cerrar día
+                    {textoCerrar}
                   </Button>
                 </div>
               )}
@@ -523,6 +552,30 @@ function Fila({
   )
 }
 
+type ItemFila = {
+  id: string
+  etiqueta: string
+  monto: number
+  medioId?: string
+}
+
+type EdicionFila =
+  | {
+      tipo: 'texto'
+      placeholder: string
+      onChange: (id: string, descripcion: string, monto: number) => void
+    }
+  | {
+      tipo: 'medio'
+      medios: MedioTransferencia[]
+      onChange: (
+        id: string,
+        medioId: string,
+        nombre: string,
+        monto: number
+      ) => void
+    }
+
 function SeccionAcordeon({
   emoji,
   titulo,
@@ -534,17 +587,19 @@ function SeccionAcordeon({
   onToggle,
   onEliminar,
   inputSlot,
+  edicion,
 }: {
   emoji: string
   titulo: string
   total: number
-  items: { id: string; etiqueta: string; monto: number }[]
+  items: ItemFila[]
   abierta: boolean
   colorTotal: string
   bloqueado: boolean
   onToggle: () => void
   onEliminar: (id: string) => void
   inputSlot?: React.ReactNode
+  edicion?: EdicionFila
 }) {
   return (
     <div className="overflow-hidden rounded-[var(--radius-md)] border border-bg-border">
@@ -590,15 +645,24 @@ function SeccionAcordeon({
               {inputSlot && <div className="pt-3">{inputSlot}</div>}
 
               <AnimatePresence initial={false}>
-                {items.map((item) => (
-                  <ItemLista
-                    key={item.id}
-                    descripcion={item.etiqueta}
-                    monto={item.monto}
-                    bloqueado={bloqueado}
-                    onEliminar={() => onEliminar(item.id)}
-                  />
-                ))}
+                {items.map((item) =>
+                  !bloqueado && edicion ? (
+                    <FilaEditable
+                      key={item.id}
+                      item={item}
+                      edicion={edicion}
+                      onEliminar={() => onEliminar(item.id)}
+                    />
+                  ) : (
+                    <ItemLista
+                      key={item.id}
+                      descripcion={item.etiqueta.trim() || 'Sin detalle'}
+                      monto={item.monto}
+                      bloqueado={bloqueado}
+                      onEliminar={() => onEliminar(item.id)}
+                    />
+                  )
+                )}
               </AnimatePresence>
 
               {items.length === 0 && (
@@ -794,6 +858,80 @@ function InputDomicilio({
         <Plus size={18} aria-hidden />
       </button>
     </div>
+  )
+}
+
+function FilaEditable({
+  item,
+  edicion,
+  onEliminar,
+}: {
+  item: ItemFila
+  edicion: EdicionFila
+  onEliminar: () => void
+}) {
+  const medios =
+    edicion.tipo === 'medio'
+      ? [
+          ...edicion.medios.map((m) => ({ id: m.id, nombre: m.nombre })),
+          ...(item.medioId && !edicion.medios.some((m) => m.id === item.medioId)
+            ? [{ id: item.medioId, nombre: item.etiqueta || 'Medio' }]
+            : []),
+        ]
+      : []
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, x: -8 }}
+      animate={{ opacity: 1, x: 0 }}
+      exit={{ opacity: 0, x: 8 }}
+      className="flex items-center gap-2"
+    >
+      {edicion.tipo === 'texto' ? (
+        <input
+          value={item.etiqueta}
+          onChange={(e) => edicion.onChange(item.id, e.target.value, item.monto)}
+          placeholder={edicion.placeholder}
+          aria-label="Descripción"
+          className="input min-w-0 flex-1 placeholder:text-text-secondary"
+        />
+      ) : (
+        <Select
+          value={item.medioId ?? ''}
+          onChange={(medioId) => {
+            const medio = medios.find((m) => m.id === medioId)
+            edicion.onChange(
+              item.id,
+              medioId,
+              medio?.nombre ?? item.etiqueta,
+              item.monto
+            )
+          }}
+          placeholder="Medio…"
+          aria-label="Medio de transferencia"
+          options={medios.map((m) => ({ value: m.id, label: m.nombre }))}
+        />
+      )}
+      <InputPeso
+        value={item.monto}
+        onChange={(monto) => {
+          if (edicion.tipo === 'texto') {
+            edicion.onChange(item.id, item.etiqueta, monto)
+            return
+          }
+          edicion.onChange(item.id, item.medioId ?? '', item.etiqueta, monto)
+        }}
+        className="input w-[6.75rem] shrink-0 tabular-nums sm:w-[7.5rem]"
+      />
+      <button
+        type="button"
+        onClick={onEliminar}
+        aria-label="Eliminar"
+        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[var(--radius-md)] text-text-secondary transition-colors hover:bg-accent-red-dim hover:text-accent-red"
+      >
+        <X size={16} aria-hidden />
+      </button>
+    </motion.div>
   )
 }
 

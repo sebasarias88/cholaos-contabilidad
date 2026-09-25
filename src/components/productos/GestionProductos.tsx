@@ -23,7 +23,7 @@ import {
 import { formatPesos } from '@/lib/utils'
 import toast from 'react-hot-toast'
 import { toastError, toastLoading, toastSuccess } from '@/lib/toast'
-import type { Producto, TipoProducto, VarianteProducto } from '@/types'
+import type { Producto, TallaVaso, TipoProducto, VarianteProducto } from '@/types'
 
 type FiltroTipo = 'todos' | TipoProducto
 
@@ -36,6 +36,9 @@ const formVacio = (): ProductoFormState => ({
   descripcion: '',
   tiene_variantes: false,
   variantes: [],
+  talla_id: '',
+  tipo_vaso: 'normal',
+  talla_descripcion: '',
 })
 
 function formDesdeProducto(p: Producto): ProductoFormState {
@@ -54,6 +57,9 @@ function formDesdeProducto(p: Producto): ProductoFormState {
       nombre: v.nombre,
       precio: String(v.precio),
     })),
+    talla_id: p.talla_id ?? '',
+    tipo_vaso: p.talla?.tipo ?? 'normal',
+    talla_descripcion: p.talla?.descripcion ?? '',
   }
 }
 
@@ -63,12 +69,17 @@ function buildPayload(form: ProductoFormState) {
   const base = { nombre, tipo: form.tipo, descripcion }
 
   if (form.tipo === 'vaso') {
+    const creandoNueva = !form.talla_id
     return {
       ...base,
       onzas: Number(form.onzas),
       precio: Number(form.precio),
       unidad: null,
       tiene_variantes: false,
+      talla_id: creandoNueva ? null : form.talla_id,
+      crear_talla: creandoNueva,
+      tipo_vaso: form.tipo_vaso,
+      talla_descripcion: form.talla_descripcion.trim() || null,
     }
   }
 
@@ -80,6 +91,7 @@ function buildPayload(form: ProductoFormState) {
       precio: tiene ? null : Number(form.precio),
       onzas: null,
       tiene_variantes: tiene,
+      talla_id: null,
     }
   }
 
@@ -89,13 +101,18 @@ function buildPayload(form: ProductoFormState) {
     precio: null,
     onzas: null,
     tiene_variantes: false,
+    talla_id: null,
   }
 }
 
 function validarForm(form: ProductoFormState): string | null {
   if (!form.nombre.trim()) return 'El nombre es requerido'
   if (form.tipo === 'vaso') {
-    if (!form.onzas || Number(form.onzas) <= 0) return 'Indica las onzas'
+    if (!form.talla_id) {
+      if (!form.onzas || Number(form.onzas) <= 0) return 'Indica las onzas del vaso'
+    } else if (!form.onzas || Number(form.onzas) <= 0) {
+      return 'El vaso seleccionado no tiene onzas válidas'
+    }
     if (!form.precio || Number(form.precio) < 0 || Number.isNaN(Number(form.precio))) {
       return 'Indica un precio válido'
     }
@@ -312,6 +329,7 @@ function ProductoPrecio({
 
 export function GestionProductos() {
   const [productos, setProductos] = useState<Producto[]>([])
+  const [tallas, setTallas] = useState<TallaVaso[]>([])
   const [loading, setLoading] = useState(true)
   const [busqueda, setBusqueda] = useState('')
   const [filtroTipo, setFiltroTipo] = useState<FiltroTipo>('todos')
@@ -338,9 +356,22 @@ export function GestionProductos() {
       .finally(() => setLoading(false))
   }, [])
 
+  const cargarTallas = useCallback(() => {
+    fetch('/api/tallas-vasos?todas=1')
+      .then((r) => {
+        if (!r.ok) throw new Error()
+        return r.json()
+      })
+      .then((data: TallaVaso[]) => setTallas(Array.isArray(data) ? data : []))
+      .catch(() => {
+        /* opcional: el panel de vaso puede crear tallas nuevas */
+      })
+  }, [])
+
   useEffect(() => {
     cargarProductos()
-  }, [cargarProductos])
+    cargarTallas()
+  }, [cargarProductos, cargarTallas])
 
   const filtrados = useMemo(() => {
     const q = busqueda.trim().toLowerCase()
@@ -426,6 +457,7 @@ export function GestionProductos() {
     )
     cerrarPanel()
     cargarProductos()
+    cargarTallas()
   }
 
   async function guardarPrecioInline(id: string) {
@@ -756,6 +788,7 @@ export function GestionProductos() {
         open={panelOpen}
         producto={editando}
         form={form}
+        tallas={tallas}
         guardando={guardando}
         onClose={cerrarPanel}
         onChange={setForm}

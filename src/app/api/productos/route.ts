@@ -106,26 +106,32 @@ export async function POST(request: Request) {
   if (error) return NextResponse.json({ error: error.message }, { status: 400 })
 
   if (tipo === 'vaso' && data) {
+    const tipoVaso =
+      typeof body.tipo_vaso === 'string' ? body.tipo_vaso : undefined
+    const descripcionTalla =
+      typeof body.talla_descripcion === 'string'
+        ? body.talla_descripcion
+        : null
+
     const linked = await ensureTallaProducto(supabase, {
       productoId: data.id,
-      nombre: data.nombre,
       onzas: Number(onzas),
       tallaId: talla_id,
+      tipoVaso: tipoVaso as 'normal' | 'ancho' | 'angosto' | undefined,
+      descripcionTalla,
     })
     if (linked.error) {
       return NextResponse.json({ error: linked.error }, { status: 400 })
     }
-    if (linked.talla_id && linked.talla_id !== data.talla_id) {
-      const { data: refreshed, error: refreshError } = await supabase
-        .from('productos')
-        .select('*, talla:tallas_vasos(*), variantes:variantes_producto(*)')
-        .eq('id', data.id)
-        .single()
-      if (refreshError) {
-        return NextResponse.json({ error: refreshError.message }, { status: 400 })
-      }
-      return NextResponse.json(refreshed, { status: 201 })
+    const { data: refreshed, error: refreshError } = await supabase
+      .from('productos')
+      .select('*, talla:tallas_vasos(*), variantes:variantes_producto(*)')
+      .eq('id', data.id)
+      .single()
+    if (refreshError) {
+      return NextResponse.json({ error: refreshError.message }, { status: 400 })
     }
+    return NextResponse.json(refreshed, { status: 201 })
   }
 
   return NextResponse.json(data, { status: 201 })

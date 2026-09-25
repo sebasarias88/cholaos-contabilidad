@@ -1,11 +1,13 @@
 'use client'
 
 import { useCallback, useState } from 'react'
+import Link from 'next/link'
 import { AnimatePresence, motion } from 'framer-motion'
 import {
   AlertCircle,
   CheckCircle2,
   ChevronDown,
+  Pencil,
   XCircle,
 } from 'lucide-react'
 import {
@@ -25,7 +27,7 @@ const TABS: { id: TabHistorial; label: string }[] = [
   { id: 'resumen', label: 'Resumen' },
   { id: 'productos', label: 'Productos' },
   { id: 'vasos', label: 'Vasos' },
-  { id: 'gastos', label: 'Gastos y mov.' },
+  { id: 'gastos', label: 'Movimientos' },
 ]
 
 function TabResumen({
@@ -44,53 +46,85 @@ function TabResumen({
       cierre.total_gastos -
       (cierre.total_domicilios ?? 0)
 
+  const movimientos = [
+    {
+      label: 'Base inicio',
+      value: formatPesos(cierre.dinero_base_inicio),
+      color: 'text-text-primary',
+    },
+    {
+      label: 'Ventas',
+      value: formatPesos(cierre.total_ventas),
+      color: 'text-accent-cyan',
+    },
+    {
+      label: 'Gastos',
+      value: formatPesos(cierre.total_gastos),
+      color: 'text-accent-red',
+    },
+    {
+      label: 'Transferencias',
+      value: formatPesos(cierre.total_transferencias),
+      color: 'text-amber-400',
+    },
+    {
+      label: 'Domicilios',
+      value: formatPesos(cierre.total_domicilios ?? 0),
+      color: 'text-orange-400',
+    },
+  ]
+
+  const textoDiferencia =
+    diferencia === 0
+      ? 'Cuadre exacto'
+      : diferencia < 0
+        ? `Falta ${formatPesos(Math.abs(diferencia))}`
+        : `Sobran ${formatPesos(diferencia)}`
+
+  const colorDiferencia =
+    diferencia === 0
+      ? 'text-emerald-400'
+      : diferencia < 0
+        ? 'text-accent-red'
+        : 'text-amber-400'
+
   return (
     <div className="space-y-4">
       {esAdmin && (
-        <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-          {[
-            {
-              label: 'Base inicio',
-              value: formatPesos(cierre.dinero_base_inicio),
-              color: 'text-text-secondary',
-            },
-            {
-              label: 'Ventas',
-              value: formatPesos(cierre.total_ventas),
-              color: 'text-accent-cyan',
-            },
-            {
-              label: '− Gastos',
-              value: formatPesos(cierre.total_gastos),
-              color: 'text-accent-red',
-            },
-            {
-              label: '− Transfer.',
-              value: formatPesos(cierre.total_transferencias),
-              color: 'text-amber-400',
-            },
-            {
-              label: '− Domicilios',
-              value: formatPesos(cierre.total_domicilios ?? 0),
-              color: 'text-orange-400',
-            },
-          ].map((s) => (
-            <div
-              key={s.label}
-              className="rounded-[var(--radius-md)] bg-bg-elevated p-3"
-            >
-              <p className="text-xs text-text-muted">{s.label}</p>
-              <p
-                className={`mt-1 text-sm font-medium tabular-nums ${s.color}`}
+        <>
+          <div className="divide-y divide-bg-border/70 overflow-hidden rounded-[var(--radius-md)] border border-bg-border md:hidden">
+            {movimientos.map((s) => (
+              <div
+                key={s.label}
+                className="flex items-center justify-between gap-3 px-3 py-2.5"
               >
-                {s.value}
-              </p>
-            </div>
-          ))}
-        </div>
+                <span className="text-sm text-text-secondary">{s.label}</span>
+                <span className={`text-sm font-semibold tabular-nums ${s.color}`}>
+                  {s.value}
+                </span>
+              </div>
+            ))}
+          </div>
+
+          <div className="hidden md:grid md:grid-cols-5 md:gap-3">
+            {movimientos.map((s) => (
+              <div
+                key={s.label}
+                className="rounded-[var(--radius-md)] border border-bg-border bg-bg-elevated/60 px-3 py-3"
+              >
+                <p className="text-[11px] font-medium uppercase tracking-wide text-text-muted">
+                  {s.label}
+                </p>
+                <p className={`mt-1.5 text-base font-semibold tabular-nums ${s.color}`}>
+                  {s.value}
+                </p>
+              </div>
+            ))}
+          </div>
+        </>
       )}
 
-      <div className="rounded-[var(--radius-md)] bg-bg-elevated p-4 space-y-2 text-sm">
+      <div className="space-y-2 rounded-[var(--radius-md)] bg-bg-elevated p-4 text-sm md:hidden">
         {esAdmin && (
           <div className="flex justify-between gap-3">
             <span className="text-text-secondary">Efectivo esperado</span>
@@ -107,22 +141,7 @@ function TabResumen({
         </div>
         <div className="flex justify-between gap-3 border-t border-bg-border pt-2 font-medium">
           <span className="text-text-secondary">Diferencia</span>
-          <span
-            className={[
-              'tabular-nums',
-              diferencia === 0
-                ? 'text-emerald-400'
-                : diferencia < 0
-                  ? 'text-accent-red'
-                  : 'text-amber-400',
-            ].join(' ')}
-          >
-            {diferencia === 0
-              ? 'Cuadre exacto'
-              : diferencia < 0
-                ? `Falta ${formatPesos(Math.abs(diferencia))}`
-                : `Sobran ${formatPesos(diferencia)}`}
-          </span>
+          <span className={`tabular-nums ${colorDiferencia}`}>{textoDiferencia}</span>
         </div>
         {cierre.usuario?.nombre && (
           <p className="border-t border-bg-border pt-2 text-xs text-text-muted">
@@ -130,13 +149,51 @@ function TabResumen({
             <span className="capitalize">{cierre.estado}</span>
           </p>
         )}
-        {cierre.observaciones && (
-          <p className="text-xs text-text-secondary">
-            <span className="text-text-primary">Nota:</span>{' '}
-            {cierre.observaciones}
-          </p>
-        )}
       </div>
+
+      <div className="hidden md:grid md:grid-cols-3 md:gap-3">
+        {esAdmin && (
+          <div className="rounded-[var(--radius-md)] border border-bg-border px-4 py-3">
+            <p className="text-[11px] font-medium uppercase tracking-wide text-text-muted">
+              Efectivo esperado
+            </p>
+            <p className="mt-1.5 text-lg font-semibold tabular-nums text-text-primary">
+              {formatPesos(esperado)}
+            </p>
+          </div>
+        )}
+        <div className="rounded-[var(--radius-md)] border border-bg-border px-4 py-3">
+          <p className="text-[11px] font-medium uppercase tracking-wide text-text-muted">
+            Dinero contado
+          </p>
+          <p className="mt-1.5 text-lg font-semibold tabular-nums text-text-primary">
+            {formatPesos(cierre.dinero_final)}
+          </p>
+        </div>
+        <div
+          className={[
+            'rounded-[var(--radius-md)] border px-4 py-3',
+            diferencia === 0
+              ? 'border-emerald-400/30 bg-emerald-400/10'
+              : diferencia < 0
+                ? 'border-accent-red/30 bg-accent-red-dim'
+                : 'border-amber-400/30 bg-amber-500/10',
+          ].join(' ')}
+        >
+          <p className="text-[11px] font-medium uppercase tracking-wide text-text-muted">
+            Diferencia
+          </p>
+          <p className={`mt-1.5 text-lg font-semibold tabular-nums ${colorDiferencia}`}>
+            {textoDiferencia}
+          </p>
+        </div>
+      </div>
+
+      {cierre.observaciones && (
+        <p className="text-xs text-text-secondary">
+          <span className="text-text-primary">Nota:</span> {cierre.observaciones}
+        </p>
+      )}
     </div>
   )
 }
@@ -267,7 +324,7 @@ function TabVasos({ cierre }: { cierre: CierreDia }) {
 
   return (
     <motion.div layout className="space-y-3">
-      <div className="hidden grid-cols-5 gap-2 text-xs text-text-muted sm:grid">
+      <div className="hidden grid-cols-5 gap-2 text-xs text-text-muted md:grid">
         <span className="col-span-2">Talla</span>
         <span className="text-center">Inicio</span>
         <span className="text-center">Nuevos</span>
@@ -297,7 +354,49 @@ function TabVasos({ cierre }: { cierre: CierreDia }) {
 
         return (
           <motion.div key={conteo.id} layout className="space-y-2">
-            <div className="grid grid-cols-5 gap-2 text-sm">
+            <div className="rounded-[var(--radius-md)] border border-bg-border px-3 py-2.5 md:hidden">
+              <p className="text-sm text-text-primary">
+                {titulo}
+                {conteo.talla && (
+                  <span className="ml-1 text-xs text-text-muted">
+                    {conteo.talla.onzas} oz
+                  </span>
+                )}
+              </p>
+              <div className="mt-2 grid grid-cols-3 gap-2 text-center">
+                <div>
+                  <p className="text-[10px] uppercase tracking-wide text-text-muted">
+                    Inicio
+                  </p>
+                  <p className="text-sm tabular-nums text-text-secondary">
+                    {conteo.cantidad_inicio}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-[10px] uppercase tracking-wide text-text-muted">
+                    Nuevos
+                  </p>
+                  <p className="text-sm tabular-nums text-text-secondary">
+                    +{conteo.cantidad_nuevos}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-[10px] uppercase tracking-wide text-text-muted">
+                    Vendidos
+                  </p>
+                  <p className="text-sm font-medium tabular-nums text-accent-cyan">
+                    {vendidos}
+                  </p>
+                </div>
+              </div>
+              {totalNovedades > 0 && (
+                <p className="mt-1.5 text-right text-xs tabular-nums text-accent-amber">
+                  {totalNovedades} novedades
+                </p>
+              )}
+            </div>
+
+            <div className="hidden grid-cols-5 gap-2 text-sm md:grid">
               <span className="col-span-2 text-text-primary">
                 {titulo}
                 {conteo.talla && (
@@ -491,47 +590,63 @@ export function CierreCard({ cierre, esAdmin = true }: CierreCardProps) {
         type="button"
         onClick={toggleAbierto}
         aria-expanded={abierto}
-        className="flex w-full items-center justify-between gap-3 p-4 text-left transition-colors hover:bg-bg-elevated/50"
+        className="flex w-full items-center justify-between gap-3 p-4 text-left transition-colors hover:bg-bg-elevated/40"
       >
-        <div className="flex min-w-0 flex-1 items-start gap-3">
-          <IconoCuadre
-            size={18}
-            className={`mt-0.5 shrink-0 ${iconoColor}`}
-            aria-hidden
-          />
+        <div className="flex min-w-0 flex-1 items-center gap-3">
+          <span
+            className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-bg-elevated ${iconoColor}`}
+          >
+            <IconoCuadre size={18} aria-hidden />
+          </span>
           <div className="min-w-0">
-            <p className="text-sm font-medium text-text-primary">
+            <p className="font-display text-base font-semibold tracking-tight text-text-primary">
               {formatFecha(cierre.fecha)}
             </p>
-            <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-text-muted">
+            <p className="mt-0.5 text-xs text-text-muted">
+              {cierre.usuario?.nombre ?? 'Sin responsable'}
+              {cierre.estado === 'cerrado' ? ' · Cerrado' : ' · Abierto'}
+            </p>
+            <p className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 sm:hidden">
               {esAdmin && (
-                <span className="font-medium text-accent-cyan tabular-nums">
-                  {formatPesos(cierre.total_ventas)} vendido
+                <span className="text-sm font-semibold tabular-nums text-accent-cyan">
+                  {formatPesos(cierre.total_ventas)}
                 </span>
               )}
-              <span className="tabular-nums">{vasosGastados} vasos</span>
-              <span className="tabular-nums">
-                {formatPesos(cierre.total_gastos)} gastos
+              <span className="text-xs text-text-muted tabular-nums">
+                {vasosGastados} vasos
               </span>
-            </div>
+              <span
+                className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${badgeCuadre}`}
+              >
+                {badgeTexto}
+              </span>
+            </p>
           </div>
         </div>
 
-        <div className="flex shrink-0 flex-col items-end gap-2 sm:flex-row sm:items-center">
+        <div className="flex shrink-0 items-center gap-3">
+          <div className="hidden text-right sm:block">
+            {esAdmin && (
+              <p className="text-sm font-semibold tabular-nums text-accent-cyan">
+                {formatPesos(cierre.total_ventas)}
+              </p>
+            )}
+            <p className="text-xs text-text-muted tabular-nums">
+              {vasosGastados} vasos
+            </p>
+          </div>
           <span
-            className={`rounded-full px-2 py-0.5 text-xs font-medium ${badgeCuadre}`}
+            className={`hidden rounded-full px-2.5 py-1 text-xs font-medium sm:inline ${badgeCuadre}`}
           >
             {badgeTexto}
           </span>
-          <span className="flex items-center gap-1 text-xs text-text-muted">
-            {abierto ? 'Ver menos' : 'Ver más'}
-            <motion.span
-              animate={{ rotate: abierto ? 180 : 0 }}
-              transition={{ duration: 0.2 }}
-            >
-              <ChevronDown size={16} aria-hidden />
-            </motion.span>
-          </span>
+          <motion.span
+            animate={{ rotate: abierto ? 180 : 0 }}
+            transition={{ duration: 0.2 }}
+            className="text-text-muted"
+          >
+            <ChevronDown size={18} aria-hidden />
+          </motion.span>
         </div>
       </button>
 
@@ -545,22 +660,34 @@ export function CierreCard({ cierre, esAdmin = true }: CierreCardProps) {
             className="overflow-hidden"
           >
             <div className="space-y-4 border-t border-bg-border p-4">
-              <div className="flex gap-1 rounded-[var(--radius-md)] bg-bg-elevated p-1">
-                {TABS.map((t) => (
-                  <button
-                    key={t.id}
-                    type="button"
-                    onClick={() => setTab(t.id)}
-                    className={[
-                      'flex-1 rounded-[var(--radius-sm)] py-1.5 text-xs transition-colors',
-                      tab === t.id
-                        ? 'bg-bg-surface font-medium text-text-primary'
-                        : 'text-text-muted hover:text-text-secondary',
-                    ].join(' ')}
+              <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                <div className="-mx-1 flex min-w-0 flex-1 gap-1 overflow-x-auto px-1 md:mx-0 md:overflow-visible md:rounded-[var(--radius-md)] md:bg-bg-elevated md:p-1">
+                  {TABS.map((t) => (
+                    <button
+                      key={t.id}
+                      type="button"
+                      onClick={() => setTab(t.id)}
+                      className={[
+                        'shrink-0 rounded-full px-3 py-1.5 text-xs transition-colors md:flex-1 md:rounded-[var(--radius-sm)] md:px-3 md:py-2',
+                        tab === t.id
+                          ? 'bg-bg-surface font-medium text-text-primary shadow-sm ring-1 ring-bg-border md:ring-0'
+                          : 'bg-bg-elevated text-text-muted hover:text-text-secondary md:bg-transparent',
+                      ].join(' ')}
+                    >
+                      {t.label}
+                    </button>
+                  ))}
+                </div>
+
+                {esAdmin && cierre.estado === 'cerrado' && (
+                  <Link
+                    href={`/dashboard/cierre?fecha=${cierre.fecha}`}
+                    className="inline-flex w-full shrink-0 items-center justify-center gap-1.5 rounded-[var(--radius-md)] border border-bg-border px-3 py-2.5 text-xs font-medium text-text-secondary transition-colors hover:border-accent-cyan/40 hover:text-text-primary md:w-auto md:py-2"
                   >
-                    {t.label}
-                  </button>
-                ))}
+                    <Pencil size={13} aria-hidden />
+                    Corregir este día
+                  </Link>
+                )}
               </div>
 
               <AnimatePresence mode="wait">

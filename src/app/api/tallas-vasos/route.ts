@@ -1,67 +1,76 @@
+import { requireAdminApi } from '@/lib/api-auth'
 import { createClient } from '@/lib/supabase/server'
-import { NextResponse } from 'next/server'
 import { esTipoVaso } from '@/lib/utils'
-import type { CrearTallaVasoPayload, TallaVaso, TipoVaso } from '@/types'
+import { NextResponse } from 'next/server'
+import type { TipoVaso } from '@/types'
 
-async function requireAdmin(supabase: Awaited<ReturnType<typeof createClient>>) {
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return { error: NextResponse.json({ error: 'No autenticado' }, { status: 401 }) }
-
-  const { data: miUsuario } = await supabase
-    .from('usuarios')
-    .select('rol')
-    .eq('id', user.id)
-    .single()
-
-  if (miUsuario?.rol !== 'admin') {
-    return { error: NextResponse.json({ error: 'No autorizado' }, { status: 403 }) }
-  }
-
-  return { user }
-}
-
+/** Lista tallas de vaso (vaso físico). Admin ve todas; otros solo activas. */
 export async function GET(request: Request) {
   const supabase = await createClient()
   const { searchParams } = new URL(request.url)
   const todas = searchParams.get('todas') === '1'
 
-  if (todas) {
-    const auth = await requireAdmin(supabase)
-    if (auth.error) return auth.error
-  }
+  let query = supabase
+    .from('tallas_vasos')
+    .select('*')
+    .order('onzas', { ascending: true })
+    .order('tipo', { ascending: true })
 
-  let query = supabase.from('tallas_vasos').select('*').order('onzas')
-  if (!todas) query = query.eq('activo', true)
+  if (todas) {
+    const auth = await requireAdminApi()
+    if (!auth.ok) return auth.response
+  } else {
+    query = query.eq('activo', true)
+  }
 
   const { data, error } = await query
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   return NextResponse.json(data)
 }
 
+/** Crea un vaso físico nuevo (sin producto). Solo admin. */
 export async function POST(request: Request) {
-  const supabase = await createClient()
-  const auth = await requireAdmin(supabase)
-  if (auth.error) return auth.error
+  const auth = await requireAdminApi()
+  if (!auth.ok) return auth.response
 
-  const body = (await request.json()) as CrearTallaVasoPayload
-  const onzas = Number(body.onzas)
-  if (!Number.isFinite(onzas) || onzas <= 0) {
-    return NextResponse.json({ error: 'Las onzas deben ser un número mayor a 0' }, { status: 400 })
+  const { supabase } = auth.ctx
+  let body: Record<string, unknown>
+  try {
+    body = await request.json()
+  } catch {
+    return NextResponse.json({ error: 'Body inválido' }, { status: 400 })
   }
 
-  const tipo: TipoVaso = esTipoVaso(body.tipo) ? body.tipo : 'normal'
+  const onzas = Number(body.onzas)
+  const tipo = body.tipo as TipoVaso | undefined
+  const descripcion =
+    typeof body.descripcion === 'string' ? body.descripcion.trim() : ''
+
+  if (!Number.isFinite(onzas) || onzas <= 0) {
+    return NextResponse.json({ error: 'Onzas inválidas' }, { status: 400 })
+  }
+  if (!tipo || !esTipoVaso(tipo)) {
+    return NextResponse.json(
+      { error: 'Tipo de vaso inválido (normal, ancho, angosto)' },
+      { status: 400 }
+    )
+  }
+
+  const label =
+    descripcion ||
+    (tipo === 'normal' ? `${onzas} oz` : `${onzas} oz ${tipo}`)
 
   const { data, error } = await supabase
     .from('tallas_vasos')
     .insert({
       onzas,
-      descripcion: body.descripcion?.trim() || null,
       tipo,
+      descripcion: label,
       activo: true,
     })
     .select()
     .single()
 
   if (error) return NextResponse.json({ error: error.message }, { status: 400 })
-  return NextResponse.json(data as TallaVaso, { status: 201 })
+  return NextResponse.json(data, { status: 201 })
 }

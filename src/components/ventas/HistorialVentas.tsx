@@ -8,7 +8,7 @@ import { SkeletonTabla } from '@/components/ui/Skeleton'
 import { fadeUp } from '@/lib/animations'
 import { formatFecha, formatPesos, getRangoFecha } from '@/lib/utils'
 import toast from 'react-hot-toast'
-import type { Rol, Venta } from '@/types'
+import type { DetalleVenta, Rol, Venta } from '@/types'
 
 type RangoPreset = 'hoy' | 'semana' | 'quincena' | 'mes' | 'custom'
 
@@ -24,8 +24,35 @@ interface HistorialVentasProps {
   rol: Rol
 }
 
-function totalVasos(venta: Venta) {
-  return venta.detalle?.reduce((acc, d) => acc + d.cantidad, 0) ?? 0
+function resumenCantidades(venta: Venta) {
+  let vasos = 0
+  let comida = 0
+  for (const d of venta.detalle ?? []) {
+    if ((d.origen ?? 'vaso') === 'vaso') vasos += d.cantidad
+    else comida += d.cantidad
+  }
+  return { vasos, comida }
+}
+
+function etiquetaCantidades(venta: Venta) {
+  const { vasos, comida } = resumenCantidades(venta)
+  const partes: string[] = []
+  if (vasos > 0) partes.push(`${vasos} vaso${vasos === 1 ? '' : 's'}`)
+  if (comida > 0) partes.push(`${comida} comida`)
+  return partes.length > 0 ? partes.join(' · ') : 'Sin ítems'
+}
+
+function etiquetaTipo(d: DetalleVenta) {
+  if (d.origen === 'variante') return 'Variante'
+  if (d.origen === 'comida' || d.producto?.tipo === 'comida') return 'Comida'
+  return 'Vaso'
+}
+
+function medidaLinea(d: DetalleVenta) {
+  if ((d.origen ?? 'vaso') === 'vaso' && d.producto?.onzas) {
+    return `${d.producto.onzas} oz`
+  }
+  return d.producto?.unidad ?? '—'
 }
 
 function RolBadge({ rol }: { rol: Rol }) {
@@ -54,11 +81,11 @@ function VentaDetallePanel({ venta }: { venta: Venta }) {
           <p className="font-medium text-text-primary">
             {d.producto?.nombre ?? '—'}
           </p>
+          <p className="mt-0.5 text-xs text-text-muted">
+            {etiquetaTipo(d)}
+            {medidaLinea(d) !== '—' ? ` · ${medidaLinea(d)}` : ''}
+          </p>
           <dl className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1.5 text-sm">
-            <dt className="text-text-muted">Onzas</dt>
-            <dd className="text-right text-text-secondary tabular-nums">
-              {d.producto?.onzas ?? '—'} oz
-            </dd>
             <dt className="text-text-muted">Cantidad</dt>
             <dd className="text-right text-text-primary tabular-nums">
               {d.cantidad}
@@ -122,7 +149,7 @@ function VentaDetalleTabla({ venta }: { venta: Venta }) {
       <thead>
         <tr>
           <th className="col-name">Producto</th>
-          <th className="col-compact min-w-[4.5rem]">Onzas</th>
+          <th className="col-compact min-w-[5.5rem]">Tipo</th>
           <th className="col-compact min-w-[4.5rem]">Cantidad</th>
           <th className="col-compact min-w-[6rem]">Precio unit.</th>
           <th className="col-compact min-w-[6rem] text-right">Subtotal</th>
@@ -133,9 +160,14 @@ function VentaDetalleTabla({ venta }: { venta: Venta }) {
           <tr key={d.id}>
             <td className="col-name text-text-primary">
               {d.producto?.nombre ?? '—'}
+              {medidaLinea(d) !== '—' && (
+                <span className="mt-0.5 block text-xs text-text-muted">
+                  {medidaLinea(d)}
+                </span>
+              )}
             </td>
-            <td className="col-compact text-text-secondary tabular-nums">
-              {d.producto?.onzas ?? '—'} oz
+            <td className="col-compact text-text-secondary">
+              {etiquetaTipo(d)}
             </td>
             <td className="col-compact tabular-nums">{d.cantidad}</td>
             <td className="col-compact text-text-secondary tabular-nums">
@@ -199,7 +231,10 @@ export function HistorialVentas({ usuarioId, rol }: HistorialVentasProps) {
       return (
         nombre.includes(q) ||
         fechaFmt.includes(q) ||
-        v.fecha.includes(q)
+        v.fecha.includes(q) ||
+        (v.detalle ?? []).some((d) =>
+          (d.producto?.nombre ?? '').toLowerCase().includes(q)
+        )
       )
     })
   }, [ventas, rol, usuarioId, busqueda])
@@ -302,7 +337,7 @@ export function HistorialVentas({ usuarioId, rol }: HistorialVentasProps) {
           />
           <input
             type="search"
-            placeholder="Buscar por fecha o empleado..."
+            placeholder="Buscar por fecha, empleado o producto..."
             value={busqueda}
             onChange={(e) => setBusqueda(e.target.value)}
             className="select-field select-field--with-icon w-full min-w-0"
@@ -357,7 +392,7 @@ export function HistorialVentas({ usuarioId, rol }: HistorialVentasProps) {
                           <RolBadge rol={venta.usuario.rol} />
                         )}
                         <span className="badge-cyan tabular-nums">
-                          {totalVasos(venta)} vasos
+                          {etiquetaCantidades(venta)}
                         </span>
                       </div>
                     </button>
@@ -406,7 +441,7 @@ export function HistorialVentas({ usuarioId, rol }: HistorialVentasProps) {
                   {mostrarEmpleado && (
                     <th className="col-name min-w-[8rem]">Empleado</th>
                   )}
-                  <th className="col-compact min-w-[4.5rem]">Vasos</th>
+                  <th className="col-compact min-w-[8rem]">Detalle</th>
                   <th className="col-compact min-w-[6.5rem]">Total</th>
                   <th className="col-compact min-w-[5rem] text-right">Acciones</th>
                 </tr>
@@ -438,7 +473,7 @@ export function HistorialVentas({ usuarioId, rol }: HistorialVentasProps) {
                         )}
                         <td className="col-compact">
                           <span className="badge-cyan tabular-nums">
-                            {totalVasos(venta)}
+                            {etiquetaCantidades(venta)}
                           </span>
                         </td>
                         <td className="col-compact font-medium text-accent-cyan tabular-nums">

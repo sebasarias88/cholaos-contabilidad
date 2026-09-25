@@ -42,6 +42,17 @@ export interface ConfiguracionNegocioInput {
 // ============================================================
 export type TipoProducto = "vaso" | "comida" | "insumo";
 
+export type TipoVaso = "normal" | "ancho" | "angosto";
+
+export interface TallaVaso {
+  id: string;
+  onzas: number;
+  descripcion?: string;
+  tipo: TipoVaso;
+  activo: boolean;
+  created_at: string;
+}
+
 // ============================================================
 // VARIANTE DE PRODUCTO
 // ============================================================
@@ -80,7 +91,12 @@ export interface ProductoCreateInput {
   onzas?: number | null;
   unidad?: string | null;
   precio?: number | null;
+  /** Vincular a vaso físico existente (varios productos pueden compartir) */
   talla_id?: string | null;
+  /** Si no hay talla_id: tipo del vaso nuevo */
+  tipo_vaso?: TipoVaso;
+  /** Etiqueta del vaso nuevo (ej. "14 oz ancho") */
+  talla_descripcion?: string | null;
   tiene_variantes?: boolean;
 }
 
@@ -93,6 +109,10 @@ export interface ProductoUpdateInput {
   unidad?: string | null;
   precio?: number | null;
   talla_id?: string | null;
+  /** true = crear vaso físico nuevo en vez de reutilizar talla_id */
+  crear_talla?: boolean;
+  tipo_vaso?: TipoVaso;
+  talla_descripcion?: string | null;
   activo?: boolean;
   tiene_variantes?: boolean;
 }
@@ -122,6 +142,8 @@ export interface Venta {
   detalle?: DetalleVenta[];
 }
 
+export type OrigenLineaVenta = 'vaso' | 'comida' | 'variante';
+
 export interface DetalleVenta {
   id: string;
   venta_id: string;
@@ -129,6 +151,8 @@ export interface DetalleVenta {
   cantidad: number;
   precio_unitario: number;
   subtotal: number; // campo generado por Postgres
+  /** vaso = detalle_ventas; comida/variante se arman desde el cierre del mismo día */
+  origen?: OrigenLineaVenta;
   producto?: ProductoResumen;
 }
 
@@ -157,18 +181,8 @@ export interface ResumenDia {
 }
 
 // ============================================================
-// TALLAS DE VASOS
+// TALLAS DE VASOS (definidas arriba junto a TipoProducto)
 // ============================================================
-export type TipoVaso = "normal" | "ancho" | "angosto";
-
-export interface TallaVaso {
-  id: string;
-  onzas: number;
-  descripcion?: string;
-  tipo: TipoVaso;
-  activo: boolean;
-  created_at: string;
-}
 
 // ============================================================
 // CIERRE DEL DÍA
@@ -301,7 +315,7 @@ export interface VentaVarianteCierre {
   variante_id: string;
   cantidad: number;
   variante?: VarianteProducto & {
-    producto?: Pick<Producto, 'nombre'>;
+    producto?: Pick<Producto, 'nombre' | 'unidad'>;
   };
 }
 
@@ -310,7 +324,7 @@ export interface VentaComidaCierre {
   cierre_id: string;
   producto_id: string;
   cantidad: number;
-  producto?: Pick<Producto, 'nombre' | 'precio'>;
+  producto?: Pick<Producto, 'nombre' | 'precio' | 'unidad'>;
 }
 
 // ============================================================
@@ -381,6 +395,29 @@ export interface ConteoVasoInput {
   novedades: NovedadVasoInput[]; // default []
 }
 
+/** Línea de desglose: cuántos vasos vendidos van a cada producto (precio) */
+export type DesgloseVasoProducto = {
+  producto_id: string;
+  cantidad: number;
+};
+
+/** Estado editable en UI del cierre (comida/insumo) */
+export type ConteoProductoValor = {
+  cantidad_inicio: number;
+  cantidad_nuevos: number | null;
+  cantidad_final: number | null;
+};
+
+/** Estado editable en UI del cierre (vasos) */
+export type ConteoVasoValor = {
+  cantidad_inicio: number;
+  cantidad_nuevos: number | null;
+  cantidad_final: number | null;
+  novedades: NovedadVasoInput[];
+  /** Cantidades por producto que comparten esta talla (suma = vendidos) */
+  desglose: DesgloseVasoProducto[];
+};
+
 // ============================================================
 // CONTEO — generalizado para todos los tipos
 // ============================================================
@@ -396,8 +433,17 @@ export interface ConteoProductoInput {
   cantidad_final: number;
   observacion?: string;
   novedades?: NovedadVasoInput[]; // solo para vasos
-  /** Precio unitario para calcular ventas (vaso/comida); no aplica a insumos */
+  /** Precio unitario (legacy / un solo producto); preferir desglose */
   precio_unitario?: number;
+  /**
+   * Desglose de ventas por producto cuando varios productos
+   * comparten el mismo vaso físico. Suma debe = vendidos.
+   */
+  desglose?: {
+    producto_id: string;
+    cantidad: number;
+    precio_unitario: number;
+  }[];
 }
 
 export interface ConteoProducto {
@@ -532,18 +578,3 @@ export type GetCierreAdminResponse = CierreDia | CierreDia[];
 
 /** Empleado: ?fecha= → un cierre sanitizado */
 export type GetCierreEmpleadoResponse = CierreDiaEmpleado;
-
-// --- POST /api/tallas-vasos ---
-
-export interface CrearTallaVasoPayload {
-  onzas: number;
-  descripcion?: string;
-  tipo: TipoVaso;
-}
-
-export interface ActualizarTallaVasoPayload {
-  onzas?: number;
-  descripcion?: string;
-  tipo?: TipoVaso;
-  activo?: boolean;
-}
