@@ -3,9 +3,9 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { format } from 'date-fns'
 import { motion } from 'framer-motion'
+import { ArrowLeft } from 'lucide-react'
 import { CierreCajaShell } from '@/components/cierre/CierrePanelSticky'
-import type { ConteoProductoValor } from '@/components/cierre/ConteoComidaCard'
-import type { ConteoVasoValor } from '@/components/cierre/ConteoVasoCard'
+import type { ConteoProductoValor, ConteoVasoValor } from '@/types'
 import { NovedadesDrawer } from '@/components/cierre/NovedadesDrawer'
 import { SeccionComida } from '@/components/cierre/SeccionComida'
 import { SeccionHeader } from '@/components/cierre/SeccionHeader'
@@ -16,9 +16,11 @@ import { fadeUp } from '@/lib/animations'
 import { tipoProducto } from '@/lib/productos-ui'
 import {
   calcularItemsVendidos,
+  erroresDesgloseVasos,
   vendidosReales,
 } from '@/lib/ventas-desde-vasos'
 import { toastError, toastLoading, toastSuccess } from '@/lib/toast'
+import { formatFecha } from '@/lib/utils'
 import type {
   CierreDia,
   CierreDiaEmpleado,
@@ -33,6 +35,7 @@ import type {
   MedioTransferencia,
   MotivoNovedad,
   PrellenadoCierreResponse,
+  DetalleVenta,
   Producto,
   Rol,
   TallaVaso,
@@ -109,6 +112,7 @@ function aplicarPrellenadoProductos(filas: ConteoProductoPrellenado[]) {
         cantidad_nuevos: vacíoSiCero(c.cantidad_nuevos),
         cantidad_final: vacíoSiCero(c.cantidad_final),
         novedades: c.novedades ?? [],
+        desglose: [],
       })
       continue
     }
@@ -127,16 +131,60 @@ function aplicarPrellenadoProductos(filas: ConteoProductoPrellenado[]) {
   return { vasos, insumos }
 }
 
-interface FormCierreDiaProps {
-  rol: Rol
+function desgloseGuardado(
+  vasos: ConteoVasoRow[],
+  prods: Producto[],
+  detalle: DetalleVenta[]
+): ConteoVasoRow[] {
+  return vasos.map((row) => {
+    const delTalla = prods
+      .filter(
+        (p) =>
+          p.activo &&
+          p.talla_id === row.talla_id &&
+          tipoProducto(p) === 'vaso'
+      )
+      .sort(
+        (a, b) =>
+          (a.orden ?? 0) - (b.orden ?? 0) || a.nombre.localeCompare(b.nombre, 'es')
+      )
+    if (delTalla.length < 2) return row
+
+    const desglose = delTalla.flatMap((p) => {
+      const line = detalle.find(
+        (d) => d.producto_id === p.id && (d.origen ?? 'vaso') === 'vaso'
+      )
+      if (!line || line.cantidad <= 0) return []
+      return [
+        {
+          producto_id: p.id,
+          cantidad: line.cantidad,
+          precio_unitario: line.precio_unitario,
+        },
+      ]
+    })
+    return { ...row, desglose }
+  })
 }
 
-export function FormCierreDia({ rol }: FormCierreDiaProps) {
+interface FormCierreDiaProps {
+  rol: Rol
+  /** Admin corrige un día ya cerrado. Nunca es hoy. */
+  fechaCorreccion?: string | null
+}
+
+export function FormCierreDia({
+  rol,
+  fechaCorreccion = null,
+}: FormCierreDiaProps) {
   const esAdmin = rol === 'admin'
+  const fechaTrabajo = fechaCorreccion ?? HOY
+  const esOtraFecha = Boolean(fechaCorreccion)
   const [loading, setLoading] = useState(true)
   const [guardando, setGuardando] = useState(false)
   const [cierreId, setCierreId] = useState<string | null>(null)
   const [estado, setEstado] = useState<EstadoCierre | null>(null)
+  const [corrigiendo, setCorrigiendo] = useState(false)
 
   const [conteoVasos, setConteoVasos] = useState<ConteoVasoRow[]>([])
   const [conteoInsumos, setConteoInsumos] = useState<ConteoProductoRow[]>([])
@@ -160,10 +208,14 @@ export function FormCierreDia({ rol }: FormCierreDiaProps) {
   const [dineroFinal, setDineroFinal] = useState(0)
   const [novedadesTallaId, setNovedadesTallaId] = useState<string | null>(null)
 
-  const bloqueado = estado === 'cerrado'
+  const bloqueado = estado === 'cerrado' && !(esAdmin && corrigiendo)
 
   const aplicarCierre = useCallback(
-    (cierre: CierreDia | CierreDiaEmpleado, prods: Producto[]) => {
+    (
+      cierre: CierreDia | CierreDiaEmpleado,
+      prods: Producto[],
+      detalle: DetalleVenta[] = []
+    ) => {
       setCierreId(cierre.id)
       setEstado(cierre.estado)
       setDineroBase(cierre.dinero_base_inicio)
@@ -221,6 +273,7 @@ export function FormCierreDia({ rol }: FormCierreDiaProps) {
               motivo_custom: n.motivo_custom,
               cantidad: n.cantidad,
             })),
+            desglose: [],
           })
           continue
         }
@@ -240,33 +293,37 @@ export function FormCierreDia({ rol }: FormCierreDiaProps) {
         })
       }
 
-      setConteoVasos(vasos)
+      setConteoVasos(
+        detalle.length > 0 ? desgloseGuardado(vasos, prods, detalle) : vasos
+      )
       setConteoInsumos(insumos)
     },
     []
   )
 
   useEffect(() => {
-    if (process.env.NODE_ENV === 'development') {
-      import('@/lib/api-tests').then((m) => m.registerCierreApiTestsInBrowser())
-    }
-  }, [])
-
-  useEffect(() => {
     let cancelled = false
 
     async function init() {
       setLoading(true)
+      setCorrigiendo(false)
       try {
         const [preRes, prodRes, motivosRes, mediosRes] = await Promise.all([
-          fetch('/api/cierres/prellenado'),
+          esOtraFecha
+            ? fetch(`/api/cierres?fecha=${fechaTrabajo}`)
+            : fetch('/api/cierres/prellenado'),
           fetch('/api/productos'),
           fetch('/api/motivos-novedad'),
           fetch('/api/medios-transferencia'),
         ])
 
         if (!preRes.ok) throw new Error('prellenado')
-        const pre = (await preRes.json()) as PrellenadoCierreResponse
+        const pre = esOtraFecha
+          ? null
+          : ((await preRes.json()) as PrellenadoCierreResponse)
+        const cierreOtraFecha = esOtraFecha
+          ? ((await preRes.json()) as CierreDia | null)
+          : null
         const prods: Producto[] = prodRes.ok ? await prodRes.json() : []
         const motivosData: MotivoNovedad[] = motivosRes.ok
           ? await motivosRes.json()
@@ -281,10 +338,32 @@ export function FormCierreDia({ rol }: FormCierreDiaProps) {
           mediosData.filter((m) => m.activo).sort((a, b) => a.orden - b.orden)
         )
 
-        if (pre.tipo === 'cierre_existente' && pre.cierre) {
-          aplicarCierre(pre.cierre, prods)
-        } else if (pre.tipo === 'nuevo') {
+        async function detalleDelDia(fecha: string) {
+          const res = await fetch(`/api/ventas?desde=${fecha}&hasta=${fecha}`)
+          if (!res.ok) return [] as DetalleVenta[]
+          const ventas = (await res.json()) as { detalle?: DetalleVenta[] }[]
+          return ventas.flatMap((v) => v.detalle ?? [])
+        }
+
+        if (esOtraFecha) {
+          if (!cierreOtraFecha) {
+            toastError('No hay cierre en esa fecha')
+          } else {
+            const detalle = await detalleDelDia(fechaTrabajo)
+            if (cancelled) return
+            aplicarCierre(cierreOtraFecha, prods, detalle)
+          }
+        } else if (pre?.tipo === 'cierre_existente' && pre.cierre) {
+          const detalle = await detalleDelDia(HOY)
+          if (cancelled) return
+          aplicarCierre(pre.cierre, prods, detalle)
+        } else if (pre?.tipo === 'nuevo') {
+          setCierreId(null)
+          setEstado(null)
+          setCorrigiendo(false)
+          setNovedadesTallaId(null)
           setDineroBase(pre.dinero_base_inicio ?? 0)
+          setDineroFinal(0)
           const { vasos, insumos } = aplicarPrellenadoProductos(
             pre.conteo_productos ?? []
           )
@@ -307,7 +386,7 @@ export function FormCierreDia({ rol }: FormCierreDiaProps) {
     return () => {
       cancelled = true
     }
-  }, [aplicarCierre])
+  }, [aplicarCierre, esOtraFecha, fechaTrabajo])
 
   const itemsVendidosVasos = useMemo(
     () => calcularItemsVendidos(conteoVasos, productos),
@@ -361,11 +440,17 @@ export function FormCierreDia({ rol }: FormCierreDiaProps) {
   )
 
   const productosPorTalla = useMemo(() => {
-    const map: Record<string, Producto | undefined> = {}
+    const map: Record<string, Producto[]> = {}
     for (const p of productos) {
       if (p.talla_id && p.activo && tipoProducto(p) === 'vaso') {
-        map[p.talla_id] = p
+        if (!map[p.talla_id]) map[p.talla_id] = []
+        map[p.talla_id].push(p)
       }
+    }
+    for (const id of Object.keys(map)) {
+      map[id].sort(
+        (a, b) => a.orden - b.orden || a.nombre.localeCompare(b.nombre)
+      )
     }
     return map
   }, [productos])
@@ -378,8 +463,8 @@ export function FormCierreDia({ rol }: FormCierreDiaProps) {
   const tituloNovedades = useMemo(() => {
     if (!vasoNovedadesActivo) return ''
     const t = vasoNovedadesActivo.talla
-    const prod = productosPorTalla[vasoNovedadesActivo.talla_id]
-    const nombre = t?.descripcion ?? prod?.nombre
+    const prods = productosPorTalla[vasoNovedadesActivo.talla_id] ?? []
+    const nombre = t?.descripcion ?? prods[0]?.nombre
     const oz = t ? `${t.onzas} oz` : ''
     return nombre ? `${nombre}${oz ? ` · ${oz}` : ''}` : oz || 'Vaso'
   }, [vasoNovedadesActivo, productosPorTalla])
@@ -401,6 +486,25 @@ export function FormCierreDia({ rol }: FormCierreDiaProps) {
   ) {
     setConteoVasos((rows) =>
       rows.map((r) => (r.talla_id === tallaId ? { ...r, [campo]: value } : r))
+    )
+  }
+
+  function updateDesgloseVaso(
+    tallaId: string,
+    productoId: string,
+    cantidad: number
+  ) {
+    setConteoVasos((rows) =>
+      rows.map((r) => {
+        if (r.talla_id !== tallaId) return r
+        const qty = Math.max(0, cantidad)
+        const resto = r.desglose.filter((d) => d.producto_id !== productoId)
+        const desglose =
+          qty > 0
+            ? [...resto, { producto_id: productoId, cantidad: qty }]
+            : resto
+        return { ...r, desglose }
+      })
     )
   }
 
@@ -458,20 +562,71 @@ export function FormCierreDia({ rol }: FormCierreDiaProps) {
     ])
   }
 
+  function editarGasto(id: string, descripcion: string, monto: number) {
+    setGastos((list) =>
+      list.map((g) => (g.id === id ? { ...g, descripcion, monto } : g))
+    )
+  }
+
+  function editarTransferencia(
+    id: string,
+    medioId: string,
+    nombre: string,
+    monto: number
+  ) {
+    setTransferencias((list) =>
+      list.map((t) =>
+        t.id === id
+          ? { ...t, medio_id: medioId, descripcion: nombre, monto }
+          : t
+      )
+    )
+  }
+
+  function editarDomicilio(id: string, descripcion: string, monto: number) {
+    setDomicilios((list) =>
+      list.map((d) => (d.id === id ? { ...d, descripcion, monto } : d))
+    )
+  }
+
   function buildPayload(): GuardarCierrePayload {
     const vasos: ConteoProductoInput[] = conteoVasos.map((r) => {
-      const producto = productos.find(
+      const prods = productos.filter(
         (p) => p.activo && p.talla_id === r.talla_id
       )
+      const vendidos = vendidosReales(r)
+      const desglose =
+        r.desglose.length > 0
+          ? r.desglose
+              .filter((d) => d.cantidad > 0)
+              .map((d) => {
+                const producto = prods.find((p) => p.id === d.producto_id)
+                return {
+                  producto_id: d.producto_id,
+                  cantidad: d.cantidad,
+                  precio_unitario: producto?.precio ?? 0,
+                }
+              })
+          : prods.length === 1 && vendidos > 0
+            ? [
+                {
+                  producto_id: prods[0].id,
+                  cantidad: vendidos,
+                  precio_unitario: prods[0].precio ?? 0,
+                },
+              ]
+            : []
+
       return {
-        tipo: 'vaso',
+        tipo: 'vaso' as const,
         talla_id: r.talla_id,
-        producto_id: producto?.id,
+        producto_id: desglose[0]?.producto_id ?? prods[0]?.id,
         cantidad_inicio: r.cantidad_inicio,
         cantidad_nuevos: r.cantidad_nuevos ?? 0,
         cantidad_final: r.cantidad_final ?? 0,
         novedades: r.novedades,
-        precio_unitario: producto?.precio,
+        desglose,
+        precio_unitario: desglose[0]?.precio_unitario,
       }
     })
 
@@ -484,7 +639,7 @@ export function FormCierreDia({ rol }: FormCierreDiaProps) {
     }))
 
     return {
-      fecha: HOY,
+      fecha: fechaTrabajo,
       dinero_base_inicio: dineroBase,
       dinero_final: dineroFinal,
       gastos: gastos.map(({ descripcion, monto }) => ({ descripcion, monto })),
@@ -516,6 +671,22 @@ export function FormCierreDia({ rol }: FormCierreDiaProps) {
   }
 
   async function handleCerrarDia() {
+    const errores = erroresDesgloseVasos(
+      conteoVasos,
+      productos,
+      (tallaId) => {
+        const row = conteoVasos.find((r) => r.talla_id === tallaId)
+        const t = row?.talla
+        if (t?.descripcion) return t.descripcion
+        if (t) return `${t.onzas} oz`
+        return 'Vaso'
+      }
+    )
+    if (errores.length > 0) {
+      toastError(errores[0])
+      return
+    }
+
     setGuardando(true)
     const toastId = toastLoading('Cerrando día...')
 
@@ -548,7 +719,11 @@ export function FormCierreDia({ rol }: FormCierreDiaProps) {
 
     setCierreId(data.cierre_id ?? cierreId)
     setEstado('cerrado')
-    toastSuccess('Día cerrado', toastId)
+    setCorrigiendo(false)
+    toastSuccess(
+      corrigiendo || esOtraFecha ? 'Cierre actualizado' : 'Día cerrado',
+      toastId
+    )
   }
 
   if (loading) {
@@ -570,8 +745,40 @@ export function FormCierreDia({ rol }: FormCierreDiaProps) {
       animate="visible"
     >
       <div className="flex flex-wrap items-center gap-2">
+        {esOtraFecha && (
+          <div className="flex w-full flex-wrap items-center justify-between gap-2">
+            <p className="text-sm text-text-secondary">
+              Corrección del {formatFecha(fechaTrabajo)}. La fecha del cierre no
+              cambia.
+            </p>
+            <button
+              type="button"
+              onClick={() => {
+                window.location.assign('/dashboard/cierre')
+              }}
+              className="inline-flex items-center gap-1.5 rounded-[var(--radius-md)] border border-bg-border px-3 py-1.5 text-xs font-medium text-text-secondary transition-colors hover:text-text-primary"
+            >
+              <ArrowLeft size={14} aria-hidden />
+              Volver al cierre de hoy
+            </button>
+          </div>
+        )}
         {estado === 'cerrado' && <span className="badge-green">Cerrado</span>}
-        {bloqueado && (
+        {esAdmin && estado === 'cerrado' && !corrigiendo && (
+          <button
+            type="button"
+            className="rounded-[var(--radius-md)] border border-bg-border px-3 py-1 text-xs font-medium text-text-secondary hover:text-text-primary"
+            onClick={() => setCorrigiendo(true)}
+          >
+            Corregir cierre
+          </button>
+        )}
+        {corrigiendo && (
+          <span className="text-xs text-amber-400">
+            Editando. Al guardar se reemplaza la información de este día.
+          </span>
+        )}
+        {bloqueado && !esAdmin && (
           <span className="text-xs text-text-muted">Sin edición</span>
         )}
         {totalVasosVendidos > 0 && (
@@ -603,6 +810,7 @@ export function FormCierreDia({ rol }: FormCierreDiaProps) {
               disabled={bloqueado}
               productosPorTalla={productosPorTalla}
               onChange={updateConteoVaso}
+              onDesgloseChange={updateDesgloseVaso}
               onAbrirNovedades={setNovedadesTallaId}
             />
           )}
@@ -664,7 +872,13 @@ export function FormCierreDia({ rol }: FormCierreDiaProps) {
         onAgregarGasto={agregarGasto}
         onAgregarTransferencia={agregarTransferencia}
         onAgregarDomicilio={agregarDomicilio}
+        onEditarGasto={editarGasto}
+        onEditarTransferencia={editarTransferencia}
+        onEditarDomicilio={editarDomicilio}
         onCerrarDia={handleCerrarDia}
+        textoCerrar={
+          corrigiendo || esOtraFecha ? 'Guardar corrección' : 'Cerrar día'
+        }
       />
 
       <NovedadesDrawer

@@ -4,7 +4,8 @@ import type { ResumenDia } from '@/types'
 
 export type ProductoVendidoExport = {
   nombre: string
-  onzas: number
+  tipo: string
+  medida: string
   cantidad: number
   ingresos: number
 }
@@ -58,12 +59,12 @@ export function buildReportesCsv(data: ExportReportesInput): string {
     '',
     fila('RESUMEN'),
     fila('Ingresos totales', data.totalIngresos),
-    fila('Total vasos', data.totalVasos),
+    fila('Vasos vendidos', data.totalVasos),
     fila('Promedio diario', Math.round(data.promedioDiario)),
     fila('Días en el período', data.diasPeriodo),
     '',
     fila('INGRESOS POR DÍA'),
-    fila('Fecha', 'Ingresos', 'Vasos', 'Ventas'),
+    fila('Fecha', 'Ingresos', 'Vasos', 'Cierres'),
   ]
 
   for (const d of data.resumen) {
@@ -73,12 +74,12 @@ export function buildReportesCsv(data: ExportReportesInput): string {
   }
 
   lines.push('')
-  lines.push(fila('PRODUCTOS MÁS VENDIDOS'))
-  lines.push(fila('Producto', 'Onzas', 'Cantidad', 'Ingresos'))
+  lines.push(fila('PRODUCTOS VENDIDOS'))
+  lines.push(fila('Producto', 'Tipo', 'Medida', 'Cantidad', 'Ingresos'))
 
   for (const p of data.productos) {
     lines.push(
-      fila(p.nombre, p.onzas > 0 ? p.onzas : '', p.cantidad, p.ingresos)
+      fila(p.nombre, p.tipo, p.medida, p.cantidad, p.ingresos)
     )
   }
 

@@ -1,7 +1,8 @@
 import { createClient } from '@/lib/supabase/server'
 import { VENTA_SELECT } from '@/lib/supabase/queries'
+import { adjuntarLineasCierre } from '@/lib/ventas-lineas'
 import { NextResponse } from 'next/server'
-import type { NuevaVentaPayload } from '@/types'
+import type { NuevaVentaPayload, Venta } from '@/types'
 
 export async function GET(request: Request) {
   const supabase = await createClient()
@@ -19,7 +20,9 @@ export async function GET(request: Request) {
 
   const { data, error } = await query
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-  return NextResponse.json(data)
+
+  const ventas = await adjuntarLineasCierre(supabase, (data ?? []) as Venta[])
+  return NextResponse.json(ventas)
 }
 
 export async function POST(request: Request) {

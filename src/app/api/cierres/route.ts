@@ -97,6 +97,11 @@ type ConteoProductoBody = {
   observacion?: string | null
   novedades?: NovedadVasoBody[]
   precio_unitario?: number
+  desglose?: {
+    producto_id?: string
+    cantidad?: number
+    precio_unitario?: number
+  }[]
 }
 
 type VentaVarianteBody = {
@@ -127,16 +132,69 @@ function vendidosDesdeConteo(c: ConteoProductoBody): number {
   return Math.max(0, gastados - novedadesTotal)
 }
 
+function lineasDesdeDesglose(c: ConteoProductoBody): {
+  producto_id: string
+  cantidad: number
+  precio_unitario: number
+}[] {
+  const lines = (c.desglose ?? [])
+    .filter((d) => d?.producto_id && Number(d.cantidad) > 0)
+    .map((d) => ({
+      producto_id: d.producto_id!,
+      cantidad: Number(d.cantidad) || 0,
+      precio_unitario: Number(d.precio_unitario) || 0,
+    }))
+
+  if (lines.length > 0) return lines
+
+  // Compat: un solo producto en el conteo
+  if (c.producto_id && c.precio_unitario) {
+    const vendidos = vendidosDesdeConteo(c)
+    if (vendidos > 0) {
+      return [
+        {
+          producto_id: c.producto_id,
+          cantidad: vendidos,
+          precio_unitario: Number(c.precio_unitario),
+        },
+      ]
+    }
+  }
+  return []
+}
+
 function calcularTotalVentas(conteos: ConteoProductoBody[]): number {
   let total = 0
   for (const c of conteos) {
-    // Comida ya no va por conteo; solo vasos (insumos no venden)
     if (c.tipo !== 'vaso') continue
-    if (!c.precio_unitario) continue
     if (!c.talla_id && !c.producto_id) continue
-    total += vendidosDesdeConteo(c) * Number(c.precio_unitario)
+    for (const line of lineasDesdeDesglose(c)) {
+      total += line.cantidad * line.precio_unitario
+    }
   }
   return total
+}
+
+function validarDesgloseVasos(conteos: ConteoProductoBody[]): string | null {
+  for (const c of conteos) {
+    if (c.tipo !== 'vaso') continue
+    const vendidos = vendidosDesdeConteo(c)
+    const lines = (c.desglose ?? []).filter(
+      (d) => d?.producto_id && Number(d.cantidad) > 0
+    )
+    if (lines.length === 0) {
+      // Un producto legacy sin desglose explícito
+      if (vendidos > 0 && !(c.producto_id && c.precio_unitario)) {
+        return 'Hay vasos vendidos sin desglose de productos'
+      }
+      continue
+    }
+    const suma = lines.reduce((s, d) => s + (Number(d.cantidad) || 0), 0)
+    if (suma !== vendidos) {
+      return `El desglose de un vaso suma ${suma} y se vendieron ${vendidos} (deben ser iguales)`
+    }
+  }
+  return null
 }
 
 // POST — cerrar el día (admin o empleado; definitivo en un solo paso)
@@ -173,6 +231,11 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'La fecha es requerida' }, { status: 400 })
   }
 
+  const errorDesglose = validarDesgloseVasos(conteoProductos)
+  if (errorDesglose) {
+    return NextResponse.json({ error: errorDesglose }, { status: 400 })
+  }
+
   const total_gastos = gastos.reduce((s, g) => s + (Number(g?.monto) || 0), 0)
   const total_transferencias = transferencias.reduce(
     (s, t) => s + (Number(t?.monto) || 0),
@@ -196,13 +259,20 @@ export async function POST(request: Request) {
   const total_ventas =
     total_ventas_vasos + total_ventas_variantes + total_ventas_comida
 
+  const { data: perfil } = await auth.ctx.supabase
+    .from('usuarios')
+    .select('rol')
+    .eq('id', user.id)
+    .single()
+  const esAdmin = perfil?.rol === 'admin'
+
   const { data: cierreExistente } = await supabase
     .from('cierres_dia')
-    .select('id, estado')
+    .select('id, estado, fecha')
     .eq('fecha', fecha)
     .maybeSingle()
 
-  if (cierreExistente?.estado === 'cerrado') {
+  if (cierreExistente?.estado === 'cerrado' && !esAdmin) {
     return NextResponse.json(
       { error: 'Este día ya fue cerrado definitivamente' },
       { status: 400 }
@@ -409,15 +479,10 @@ export async function POST(request: Request) {
       }
     }
 
-    // Detalle de venta si tiene producto_id y precio (vaso/comida)
-    if (c.tipo !== 'insumo' && c.precio_unitario && c.producto_id) {
-      const vendidos = vendidosDesdeConteo(c)
-      if (vendidos > 0) {
-        detalleItems.push({
-          producto_id: c.producto_id,
-          cantidad: vendidos,
-          precio_unitario: Number(c.precio_unitario),
-        })
+    // Detalle de venta desde desglose (varios productos por vaso)
+    if (c.tipo === 'vaso') {
+      for (const line of lineasDesdeDesglose(c)) {
+        detalleItems.push(line)
       }
     }
   }

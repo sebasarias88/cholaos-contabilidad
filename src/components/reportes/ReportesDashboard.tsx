@@ -27,7 +27,8 @@ const PERIODOS: { id: PeriodoPreset; label: string }[] = [
 type ProductoVendido = {
   producto_id: string
   nombre: string
-  onzas: number
+  tipo: string
+  medida: string
   cantidad: number
   ingresos: number
 }
@@ -52,25 +53,40 @@ function fillRango(resumen: ResumenDia[], desde: string, hasta: string) {
   return out
 }
 
+function etiquetaTipoProducto(origen: string | undefined, tipo: string | undefined) {
+  if (origen === 'variante') return 'Variante'
+  if (origen === 'comida' || tipo === 'comida') return 'Comida'
+  if (tipo === 'insumo') return 'Insumo'
+  return 'Vaso'
+}
+
+function medidaProducto(origen: string | undefined, onzas?: number, unidad?: string) {
+  if ((origen ?? 'vaso') === 'vaso' && onzas) return `${onzas} oz`
+  return unidad ?? ''
+}
+
 function agruparProductos(ventas: Venta[]): ProductoVendido[] {
   const map = new Map<string, ProductoVendido>()
   for (const venta of ventas) {
     for (const d of venta.detalle ?? []) {
-      const prev = map.get(d.producto_id) ?? {
-        producto_id: d.producto_id,
+      const tipo = etiquetaTipoProducto(d.origen, d.producto?.tipo)
+      const key = `${d.origen ?? 'vaso'}:${d.producto_id}:${d.producto?.nombre ?? ''}`
+      const prev = map.get(key) ?? {
+        producto_id: key,
         nombre: d.producto?.nombre ?? 'Producto',
-        onzas: d.producto?.onzas ?? 0,
+        tipo,
+        medida: medidaProducto(d.origen, d.producto?.onzas, d.producto?.unidad),
         cantidad: 0,
         ingresos: 0,
       }
-      map.set(d.producto_id, {
+      map.set(key, {
         ...prev,
         cantidad: prev.cantidad + d.cantidad,
         ingresos: prev.ingresos + Number(d.subtotal ?? d.cantidad * d.precio_unitario),
       })
     }
   }
-  return Array.from(map.values()).sort((a, b) => b.cantidad - a.cantidad)
+  return Array.from(map.values()).sort((a, b) => b.ingresos - a.ingresos)
 }
 
 function ProductosVendidosLista({
@@ -93,12 +109,16 @@ function ProductosVendidosLista({
                   <span className="text-[10px] font-semibold uppercase tracking-wide text-text-secondary">
                     #{i + 1}
                   </span>
-                  {p.onzas > 0 && (
-                    <span className="badge-cyan tabular-nums">{p.onzas} oz</span>
+                  {p.medida && (
+                    <span className="badge-cyan tabular-nums">{p.medida}</span>
                   )}
                 </div>
                 <p className="mt-1 text-sm font-semibold leading-snug text-text-primary">
                   {p.nombre}
+                </p>
+                <p className="text-xs text-text-muted">
+                  {p.tipo}
+                  {p.medida ? ` · ${p.medida}` : ''}
                 </p>
               </div>
               <p className="shrink-0 text-base font-semibold text-accent-cyan tabular-nums">
@@ -121,7 +141,7 @@ function ProductosVendidosLista({
           <thead>
             <tr>
               <th className="col-name">Producto</th>
-              <th className="col-compact min-w-[4.5rem]">Onzas</th>
+              <th className="col-compact min-w-[5.5rem]">Tipo</th>
               <th className="col-compact min-w-[5rem]">Cantidad</th>
               <th className="col-compact min-w-[6.5rem] text-right">Ingresos</th>
             </tr>
@@ -135,8 +155,13 @@ function ProductosVendidosLista({
                     {p.nombre}
                   </span>
                 </td>
-                <td className="col-compact text-text-secondary tabular-nums">
-                  {p.onzas > 0 ? `${p.onzas} oz` : '—'}
+                <td className="col-compact text-text-secondary">
+                  {p.tipo}
+                  {p.medida ? (
+                    <span className="mt-0.5 block text-xs text-text-muted">
+                      {p.medida}
+                    </span>
+                  ) : null}
                 </td>
                 <td className="col-compact">
                   <span className="badge-cyan tabular-nums">{p.cantidad}</span>
@@ -240,7 +265,8 @@ export function ReportesDashboard() {
         resumen,
         productos: topProductos.map((p) => ({
           nombre: p.nombre,
-          onzas: p.onzas,
+          tipo: p.tipo,
+          medida: p.medida,
           cantidad: p.cantidad,
           ingresos: p.ingresos,
         })),

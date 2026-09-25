@@ -3,49 +3,77 @@ import type { TipoVaso } from '@/types'
 
 type EnsureTallaInput = {
   productoId: string
-  nombre: string
+  /** Onzas del vaso (se sincronizan en el producto) */
   onzas: number
+  /** Si viene, solo vincula el producto a esa talla (no reescribe la talla) */
   tallaId?: string | null
   tipoVaso?: TipoVaso
+  /** Etiqueta del vaso físico al crear uno nuevo (ej. "14 oz ancho") */
+  descripcionTalla?: string | null
 }
 
-/** Crea o actualiza la talla de vaso ligada al producto (requerida para el cierre). */
+/**
+ * Vincula un producto vaso a una talla física.
+ * - Con tallaId: solo asigna (varios productos pueden compartir la misma talla).
+ * - Sin tallaId: crea una talla nueva y la asigna.
+ */
 export async function ensureTallaProducto(
   supabase: SupabaseClient,
   input: EnsureTallaInput
 ): Promise<{ talla_id: string | null; error?: string }> {
-  const nombre = input.nombre.trim()
   const onzas = Number(input.onzas)
   const tipo: TipoVaso = input.tipoVaso ?? 'normal'
 
-  if (!nombre) {
-    return { talla_id: null, error: 'Nombre de producto requerido' }
-  }
   if (!Number.isFinite(onzas) || onzas <= 0) {
     return { talla_id: null, error: 'Onzas inválidas' }
   }
 
   if (input.tallaId) {
-    const { error } = await supabase
+    const { data: talla, error: fetchError } = await supabase
       .from('tallas_vasos')
-      .update({
-        onzas,
-        tipo,
-        descripcion: nombre,
-        activo: true,
-      })
+      .select('id, onzas, tipo, activo')
       .eq('id', input.tallaId)
+      .single()
 
-    if (error) return { talla_id: null, error: error.message }
-    return { talla_id: input.tallaId }
+    if (fetchError || !talla) {
+      return { talla_id: null, error: 'Vaso físico no encontrado' }
+    }
+
+    if (!talla.activo) {
+      const { error: activarError } = await supabase
+        .from('tallas_vasos')
+        .update({ activo: true })
+        .eq('id', talla.id)
+      if (activarError) {
+        return { talla_id: null, error: activarError.message }
+      }
+    }
+
+    const { error: linkError } = await supabase
+      .from('productos')
+      .update({
+        talla_id: talla.id,
+        onzas: Number(talla.onzas),
+      })
+      .eq('id', input.productoId)
+
+    if (linkError) {
+      return { talla_id: null, error: linkError.message }
+    }
+
+    return { talla_id: talla.id }
   }
+
+  const descripcion =
+    input.descripcionTalla?.trim() ||
+    (tipo === 'normal' ? `${onzas} oz` : `${onzas} oz ${tipo}`)
 
   const { data: talla, error: insertError } = await supabase
     .from('tallas_vasos')
     .insert({
       onzas,
       tipo,
-      descripcion: nombre,
+      descripcion,
       activo: true,
     })
     .select('id')
@@ -54,13 +82,16 @@ export async function ensureTallaProducto(
   if (insertError || !talla) {
     return {
       talla_id: null,
-      error: insertError?.message ?? 'No se pudo crear la talla',
+      error: insertError?.message ?? 'No se pudo crear el vaso físico',
     }
   }
 
   const { error: linkError } = await supabase
     .from('productos')
-    .update({ talla_id: talla.id })
+    .update({
+      talla_id: talla.id,
+      onzas,
+    })
     .eq('id', input.productoId)
 
   if (linkError) {

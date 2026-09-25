@@ -44,11 +44,13 @@ export function medidaProducto(p: {
   tipo?: TipoProducto | string | null
   onzas?: number | null
   unidad?: string | null
-  talla?: { onzas: number; tipo?: string } | null
+  talla?: { onzas: number; tipo?: string; descripcion?: string | null } | null
 }): string {
   const tipo = (p.tipo as TipoProducto | undefined) ?? 'vaso'
   if (tipo === 'vaso') {
-    if (p.talla?.onzas != null) {
+    if (p.talla) {
+      const desc = p.talla.descripcion?.trim()
+      if (desc) return desc
       const oz = p.talla.onzas
       const tv = p.talla.tipo
       if (tv && tv !== 'normal') return `${oz} oz (${tv})`

@@ -42,8 +42,6 @@ useEffect(() => {
 }, [])
 ```
 
-Alternativa con helper: `fetchJson<Producto[]>('/api/productos', 'Error cargando productos')` en `@/lib/api-client`.
-
 ## Mutations
 
 ```typescript
@@ -64,8 +62,6 @@ async function guardarVenta(payload: NuevaVentaPayload) {
   }
 }
 ```
-
-Alternativa: `mutateJson()` en `@/lib/api-client`.
 
 ## Página cliente (estructura)
 
@@ -114,21 +110,21 @@ Imágenes del negocio para UI, marketing o branding. **Ruta en código:** `/imag
 
 | Archivo | Uso típico |
 |---------|------------|
-| `logo.JPG` | Logo principal, favicon, sidebar |
-| `cholao.JPG`, `cholao2.JPG` | Fotos del producto/local |
-| `delivery.JPG`, `cholaoDelivery.JPG` | Delivery |
-| `maracuyazo.JPG` | Producto destacado |
+| `icons/icon-512.png`, `icons/icon-192.png` | PWA, favicon |
+| `cholao-hero.jpg` | Fondo login (mobile) y panel derecho (desktop) |
 
 ```tsx
 import Image from 'next/image'
 
-<Image src="/images/logo.JPG" alt="Cholao Oscar" width={120} height={120} />
+<Image src="/icons/icon-512.png" alt="Cholao Oscar" width={64} height={64} />
 ```
+
+Login: fondo `cholao-hero.jpg` en mobile; formulario sin logo PNG (icono copo en mobile, panel hero en desktop).
 
 ### Favicon e iconos PWA (desde `logo.JPG`)
 
-1. Ir a [favicon.io](https://favicon.io) → **PNG to Favicon** (o subir `logo.JPG`)
-2. Subir `public/images/logo.JPG`
+1. Ir a [favicon.io](https://favicon.io) → **PNG to Favicon** (o subir el logo del negocio)
+2. Generar paquete desde el icono base (`public/icons/icon-512.png`)
 3. Descargar el paquete
 4. Copiar a `public/`:
    - `favicon.ico`

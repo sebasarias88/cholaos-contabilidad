@@ -50,6 +50,8 @@ export function mergeProductosVendidos(
 
   for (const venta of ventas) {
     for (const d of venta.detalle ?? []) {
+      if (d.origen && d.origen !== 'vaso') continue
+      if (d.producto?.tipo && d.producto.tipo !== 'vaso') continue
       const key = d.producto_id
       const subtotal = d.subtotal ?? d.cantidad * d.precio_unitario
       const prev = map.get(key)
