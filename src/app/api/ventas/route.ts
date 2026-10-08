@@ -1,80 +1,37 @@
-import { createClient } from '@/lib/supabase/server'
+import { jsonError, requireAdminApi } from '@/lib/api-auth'
+import { esFechaISO } from '@/lib/fechas'
 import { VENTA_SELECT } from '@/lib/supabase/queries'
 import { adjuntarLineasCierre } from '@/lib/ventas-lineas'
 import { NextResponse } from 'next/server'
-import type { NuevaVentaPayload, Venta } from '@/types'
+import type { Venta } from '@/types'
 
+/**
+ * GET /api/ventas?desde=&hasta= — solo admin.
+ * Las ventas se generan únicamente al guardar un cierre (no hay registro manual).
+ */
 export async function GET(request: Request) {
-  const supabase = await createClient()
+  const auth = await requireAdminApi()
+  if (!auth.ok) return auth.response
+  const { supabase } = auth.ctx
+
   const { searchParams } = new URL(request.url)
   const desde = searchParams.get('desde')
   const hasta = searchParams.get('hasta')
+  if ((desde && !esFechaISO(desde)) || (hasta && !esFechaISO(hasta))) {
+    return jsonError('Fecha inválida', 400)
+  }
 
   let query = supabase
     .from('ventas')
     .select(VENTA_SELECT)
-    .order('created_at', { ascending: false })
+    .order('fecha', { ascending: false })
 
   if (desde) query = query.gte('fecha', desde)
   if (hasta) query = query.lte('fecha', hasta)
 
   const { data, error } = await query
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) return jsonError(error.message, 500)
 
   const ventas = await adjuntarLineasCierre(supabase, (data ?? []) as Venta[])
   return NextResponse.json(ventas)
-}
-
-export async function POST(request: Request) {
-  const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-  if (!user) return NextResponse.json({ error: 'No autenticado' }, { status: 401 })
-
-  const body = (await request.json()) as NuevaVentaPayload
-
-  if (!body.items?.length) {
-    return NextResponse.json(
-      { error: 'Debes incluir al menos un ítem en la venta' },
-      { status: 400 }
-    )
-  }
-
-  const total = body.items.reduce(
-    (acc, item) => acc + item.cantidad * item.precio_unitario,
-    0
-  )
-
-  const { data: venta, error: errorVenta } = await supabase
-    .from('ventas')
-    .insert({
-      usuario_id: user.id,
-      total,
-      observaciones: body.observaciones,
-    })
-    .select()
-    .single()
-
-  if (errorVenta) {
-    return NextResponse.json({ error: errorVenta.message }, { status: 400 })
-  }
-
-  const detalles = body.items.map((item) => ({
-    venta_id: venta.id,
-    producto_id: item.producto_id,
-    cantidad: item.cantidad,
-    precio_unitario: item.precio_unitario,
-  }))
-
-  const { error: errorDetalle } = await supabase
-    .from('detalle_ventas')
-    .insert(detalles)
-
-  if (errorDetalle) {
-    await supabase.from('ventas').delete().eq('id', venta.id)
-    return NextResponse.json({ error: errorDetalle.message }, { status: 400 })
-  }
-
-  return NextResponse.json(venta, { status: 201 })
 }

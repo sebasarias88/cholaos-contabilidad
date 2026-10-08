@@ -1,10 +1,17 @@
 import { NextResponse } from 'next/server'
-import { requireAdminApi } from '@/lib/api-auth'
+import { jsonError, leerJson, requireAdminApi } from '@/lib/api-auth'
 import { createAdminClient } from '@/lib/supabase/admin'
-import type { Usuario, UsuarioUpdateInput } from '@/types'
+import { isUuid, isValidPassword, PASSWORD_MIN } from '@/lib/validators'
+import type { Usuario } from '@/types'
 
-const CAMPOS_PERMITIDOS = ['nombre', 'activo'] as const
+const CAMPOS_USUARIO = 'id, nombre, rol, activo, created_at'
+const BLOQUEO_INDEFINIDO = '876000h' // ~100 años
 
+/**
+ * PUT /api/usuarios/[id] — body parcial { nombre?, activo?, password? }
+ * - El admin puede cambiar su propio nombre, pero no desactivarse.
+ * - password: restablece la contraseña de un empleado.
+ */
 export async function PUT(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -13,59 +20,79 @@ export async function PUT(
   if (!auth.ok) return auth.response
 
   const { id } = await params
-  const body = (await request.json()) as UsuarioUpdateInput
-  const { supabase } = auth.ctx
+  if (!isUuid(id)) return jsonError('Usuario no encontrado', 404)
 
+  const body = await leerJson(request)
+  if (!body) return jsonError('Body inválido', 400)
+
+  const { supabase, user } = auth.ctx
   const { data: objetivo } = await supabase
     .from('usuarios')
     .select('rol')
     .eq('id', id)
-    .single()
+    .maybeSingle()
+  if (!objetivo) return jsonError('Usuario no encontrado', 404)
 
-  if (!objetivo) {
-    return NextResponse.json({ error: 'Usuario no encontrado' }, { status: 404 })
-  }
-
-  const esPropioPerfil = id === auth.ctx.user.id
-
-  if (objetivo.rol === 'admin' && !esPropioPerfil) {
-    return NextResponse.json(
-      { error: 'No se puede modificar la cuenta del admin' },
-      { status: 403 }
-    )
+  const esPropio = id === user.id
+  if (objetivo.rol === 'admin' && !esPropio) {
+    return jsonError('No se puede modificar la cuenta del admin', 403)
   }
 
   const update: Record<string, unknown> = {}
-  for (const key of CAMPOS_PERMITIDOS) {
-    if (key in body) update[key] = body[key]
+  if (body.nombre !== undefined) {
+    const nombre = String(body.nombre).trim().slice(0, 80)
+    if (!nombre) return jsonError('El nombre es requerido', 400)
+    update.nombre = nombre
+  }
+  if (body.activo !== undefined) {
+    if (esPropio) return jsonError('No puedes desactivar tu propia cuenta', 400)
+    update.activo = Boolean(body.activo)
   }
 
-  if (esPropioPerfil && objetivo.rol === 'admin') {
-    delete update.activo
-    if (Object.keys(update).length === 0) {
-      return NextResponse.json({ error: 'Sin campos válidos' }, { status: 400 })
+  const password = body.password !== undefined ? String(body.password) : null
+  if (password !== null) {
+    if (esPropio) return jsonError('Cambia tu contraseña desde Mi cuenta', 400)
+    if (!isValidPassword(password)) {
+      return jsonError(`La contraseña debe tener al menos ${PASSWORD_MIN} caracteres`, 400)
     }
   }
 
-  if (Object.keys(update).length === 0) {
-    return NextResponse.json({ error: 'Sin campos válidos' }, { status: 400 })
+  if (Object.keys(update).length === 0 && password === null) {
+    return jsonError('Sin campos válidos', 400)
   }
 
-  const { data, error } = await supabase
-    .from('usuarios')
-    .update(update)
-    .eq('id', id)
-    .select('id, nombre, rol, activo, created_at')
-    .single()
+  const admin = createAdminClient()
 
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 400 })
+  // Cambios en Auth: contraseña y bloqueo de sesión al desactivar
+  const cambiosAuth: { password?: string; ban_duration?: string } = {}
+  if (password !== null) cambiosAuth.password = password
+  if (update.activo !== undefined) {
+    cambiosAuth.ban_duration = update.activo ? 'none' : BLOQUEO_INDEFINIDO
+  }
+  if (Object.keys(cambiosAuth).length > 0) {
+    const { error } = await admin.auth.admin.updateUserById(id, cambiosAuth)
+    if (error) return jsonError(error.message || 'No se pudo actualizar la cuenta', 400)
   }
 
-  return NextResponse.json(data as Usuario)
+  let usuario: Usuario | null = null
+  if (Object.keys(update).length > 0) {
+    const { data, error } = await supabase
+      .from('usuarios')
+      .update(update)
+      .eq('id', id)
+      .select(CAMPOS_USUARIO)
+      .single()
+    if (error) return jsonError(error.message, 400)
+    usuario = data as Usuario
+  } else {
+    const { data } = await supabase.from('usuarios').select(CAMPOS_USUARIO).eq('id', id).single()
+    usuario = data as Usuario
+  }
+
+  return NextResponse.json(usuario)
 }
 
-/** Elimina la cuenta de Auth (cascade a usuarios). No aplica a admin ni a uno mismo. */
+/** DELETE — elimina la cuenta (solo empleados sin cierres ni ventas). */
 export async function DELETE(
   _: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -74,73 +101,41 @@ export async function DELETE(
   if (!auth.ok) return auth.response
 
   const { id } = await params
-  const { supabase, user } = auth.ctx
+  if (!isUuid(id)) return jsonError('Usuario no encontrado', 404)
 
-  if (id === user.id) {
-    return NextResponse.json(
-      { error: 'No puedes eliminar tu propia cuenta' },
-      { status: 400 }
-    )
-  }
+  const { supabase, user } = auth.ctx
+  if (id === user.id) return jsonError('No puedes eliminar tu propia cuenta', 400)
 
   const { data: objetivo } = await supabase
     .from('usuarios')
-    .select('rol, nombre')
+    .select('rol')
     .eq('id', id)
-    .single()
-
-  if (!objetivo) {
-    return NextResponse.json({ error: 'Usuario no encontrado' }, { status: 404 })
-  }
-
-  if (objetivo.rol === 'admin') {
-    return NextResponse.json(
-      { error: 'No se puede eliminar la cuenta del admin' },
-      { status: 403 }
-    )
-  }
-
-  const { count: ventasCount, error: ventasErr } = await supabase
-    .from('ventas')
-    .select('id', { count: 'exact', head: true })
-    .eq('usuario_id', id)
-
-  if (ventasErr) {
-    return NextResponse.json({ error: ventasErr.message }, { status: 500 })
-  }
-
-  const { count: cierresCount } = await supabase
-    .from('cierres')
-    .select('id', { count: 'exact', head: true })
-    .eq('usuario_id', id)
-  // Si la tabla cierres no existe o falla, no bloqueamos por eso; ventas sí.
-
-  if ((ventasCount ?? 0) > 0 || (cierresCount ?? 0) > 0) {
-    return NextResponse.json(
-      {
-        error:
-          'No se puede eliminar: esta cuenta tiene ventas o cierres registrados. Desactívala para bloquear el acceso.',
-      },
-      { status: 409 }
-    )
-  }
-
-  if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
-    return NextResponse.json(
-      { error: 'Falta SUPABASE_SERVICE_ROLE_KEY para eliminar cuentas' },
-      { status: 500 }
-    )
-  }
+    .maybeSingle()
 
   const admin = createAdminClient()
-  const { error: authError } = await admin.auth.admin.deleteUser(id)
 
-  if (authError) {
-    return NextResponse.json(
-      { error: authError.message || 'No se pudo eliminar la cuenta' },
-      { status: 400 }
-    )
+  if (objetivo) {
+    if (objetivo.rol === 'admin') {
+      return jsonError('No se puede eliminar la cuenta del admin', 403)
+    }
+
+    const [ventas, cierres] = await Promise.all([
+      supabase.from('ventas').select('id', { count: 'exact', head: true }).eq('usuario_id', id),
+      supabase.from('cierres_dia').select('id', { count: 'exact', head: true }).eq('usuario_id', id),
+    ])
+    if (ventas.error || cierres.error) {
+      return jsonError((ventas.error ?? cierres.error)!.message, 500)
+    }
+    if ((ventas.count ?? 0) > 0 || (cierres.count ?? 0) > 0) {
+      return jsonError(
+        'No se puede eliminar: esta cuenta tiene cierres registrados. Desactívala para bloquear el acceso.',
+        409
+      )
+    }
   }
+
+  const { error } = await admin.auth.admin.deleteUser(id)
+  if (error) return jsonError(error.message || 'No se pudo eliminar la cuenta', 400)
 
   return NextResponse.json({ ok: true })
 }

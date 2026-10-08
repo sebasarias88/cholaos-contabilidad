@@ -8,8 +8,8 @@ This version has breaking changes — APIs, conventions, and file structure may 
 
 ## Stack
 
-- Next.js 16 App Router, TypeScript, Tailwind 4
-- Supabase (auth + DB), Framer Motion, react-hot-toast, Lucide, Recharts
+- Next.js 16.4 App Router (`src/proxy.ts`, antes middleware), TypeScript, Tailwind 4
+- Supabase (auth + DB + RLS), Framer Motion, react-hot-toast, Lucide, Recharts, ExcelJS + jsPDF (exportes)
 - Fuentes: Syne (`font-display`), DM Sans (`font-body` / `font-sans`)
 
 ## Rutas protegidas
@@ -83,26 +83,44 @@ Preferir `@/components/ui/*` (Button, Input, Card, Badge, Modal, StatCard, Skele
 | Variable | Uso |
 |----------|-----|
 | `SUPABASE_URL` | URL del proyecto — solo servidor |
-| `SUPABASE_ANON_KEY` | Anon key — middleware, SSR, API routes |
-| `SUPABASE_SERVICE_ROLE_KEY` | Crear/eliminar usuarios auth (solo admin API) |
+| `SUPABASE_ANON_KEY` | Anon key — proxy, SSR, API routes |
+| `SUPABASE_SERVICE_ROLE_KEY` | Solo `/api/usuarios` (crear, bloquear, eliminar cuentas de Auth) |
 
 Copia `.env.example` → `.env` en local. Auth del navegador va por `/api/auth` (POST login, PATCH contraseña, DELETE logout).
 
+## Seguridad (reglas)
+
+- **Toda ruta API** empieza con `requireAuthApi()` o `requireAdminApi()` (`@/lib/api-auth`). Nunca confiar solo en el proxy.
+- Las API usan el cliente con la sesión del usuario (RLS activo). `createAdminClient()` solo en `/api/usuarios`.
+- RLS (ver `supabase/migrations`): anon sin acceso; empleado solo lee catálogo activo y el cierre de **hoy**; ventas e historial solo admin.
+- El cierre se guarda con la función `guardar_cierre(p jsonb)` (una transacción). **Precios e inventario inicial los pone la BD**, nunca el cliente.
+- Validar body con whitelist (no hacer `.insert(body)`).
+
+## Fechas
+
+Siempre `hoyColombia()` / `fechaColombia()` de `@/lib/fechas` (America/Bogota). Nunca `format(new Date(), 'yyyy-MM-dd')`: en Vercel es UTC y después de las 7 p.m. sería "mañana".
+
+## Base de datos
+
+- Migraciones en `supabase/migrations/` (fuente de verdad del esquema nuevo).
+- Funciones: `guardar_cierre`, `base_cierre` (último cierre anterior: dinero y conteos finales), `hoy_colombia`, `es_admin`, `es_usuario_activo`, `puede_ver_cierre`.
+- `ventas_comida` y `ventas_variantes` guardan `precio_unitario` del día (precio histórico).
+
 ## APIs
 
-- Productos activos: `GET /api/productos`
-- Gestión productos (admin): `GET /api/productos?todos=true`
-- Ventas: `GET/POST /api/ventas`, detalle en joins
-- Reportes: `GET /api/reportes?desde=&hasta=` (ambos requeridos)
-- Usuarios (solo admin; cookie de sesión SSR; POST requiere `SUPABASE_SERVICE_ROLE_KEY`):
-  - `GET /api/usuarios` → `Usuario[]` (`{ id, nombre, rol, activo, created_at }`)
-  - `POST /api/usuarios` body `{ email, nombre, password }` → `{ mensaje, usuario }`
-  - `PUT /api/usuarios/[id]` body parcial `{ nombre?, activo? }` → `Usuario`
-  - `DELETE /api/usuarios/[id]` → soft delete (`activo: false`), `{ ok: true }`
+- Productos activos: `GET /api/productos` (sesión) · gestión: `?todos=true` (admin)
+- Cierre: `GET /api/cierres/prellenado`, `GET /api/cierres?fecha=` (empleado solo hoy), `GET /api/cierres?desde=&hasta=` (admin), `POST /api/cierres`
+- Ventas (solo lectura, admin): `GET /api/ventas?desde=&hasta=` — se generan solo al cerrar el día
+- Reportes (admin): `GET /api/reportes?desde=&hasta=`; exportación Excel/PDF en el cliente (`@/lib/export-reportes`)
+- Usuarios (admin):
+  - `GET /api/usuarios` → `Usuario[]` con `email`
+  - `POST /api/usuarios` `{ email, nombre, password }` → crea Auth + perfil (si falla el perfil, revierte)
+  - `PUT /api/usuarios/[id]` `{ nombre?, activo?, password? }` (desactivar bloquea la sesión en Auth)
+  - `DELETE /api/usuarios/[id]` → solo si no tiene cierres
 
 ## Empleados
 
-El admin crea cuentas en `/dashboard/configuracion` → pestaña Equipo. No hay registro público en `/login`.
+El admin crea cuentas en `/dashboard/configuracion` → pestaña Equipo (contraseña sugerida: inicio del correo + 4 números). No hay registro público: en Supabase Auth debe estar desactivado "Allow new users to sign up".
 
 ## Assets del negocio (`public/images/`)
 

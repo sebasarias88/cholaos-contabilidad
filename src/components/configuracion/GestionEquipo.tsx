@@ -14,8 +14,8 @@ import {
 } from '@/components/configuracion/ModalCredenciales'
 import { SkeletonTabla } from '@/components/ui/Skeleton'
 import { fadeUp } from '@/lib/animations'
-import { generarPassword } from '@/lib/utils'
-import { isValidEmail, isValidPassword } from '@/lib/validators'
+import { generarPasswordSimple } from '@/lib/utils'
+import { isValidEmail, isValidPassword, PASSWORD_MIN } from '@/lib/validators'
 import toast from 'react-hot-toast'
 import { toastError, toastLoading, toastSuccess } from '@/lib/toast'
 import type { Usuario } from '@/types'
@@ -110,6 +110,9 @@ function EquipoLista({
                     </span>
                   )}
                 </p>
+                {u.email && (
+                  <p className="mt-0.5 truncate text-xs text-text-secondary">{u.email}</p>
+                )}
                 <div className="mt-2 flex flex-wrap items-center gap-2">
                   <Badge variant={u.rol === 'admin' ? 'admin' : 'empleado'}>
                     {u.rol === 'admin' ? 'Admin' : 'Empleado'}
@@ -149,6 +152,9 @@ function EquipoLista({
                       (tú)
                     </span>
                   )}
+                  {u.email && (
+                    <p className="text-xs font-normal text-text-secondary">{u.email}</p>
+                  )}
                 </td>
                 <td className="col-compact">
                   <Badge variant={u.rol === 'admin' ? 'admin' : 'empleado'}>
@@ -187,7 +193,11 @@ export function GestionEquipo({ usuarioActualId }: GestionEquipoProps) {
   const [modalNuevo, setModalNuevo] = useState(false)
   const [email, setEmail] = useState('')
   const [nombre, setNombre] = useState('')
-  const [password, setPassword] = useState(() => generarPassword())
+  const [password, setPassword] = useState('')
+  const [passwordEditada, setPasswordEditada] = useState(false)
+  const [resetUsuario, setResetUsuario] = useState<Usuario | null>(null)
+  const [resetPassword, setResetPassword] = useState('')
+  const [reseteando, setReseteando] = useState(false)
   const [guardando, setGuardando] = useState(false)
   const [credenciales, setCredenciales] = useState<CredencialesEmpleado | null>(
     null
@@ -196,7 +206,6 @@ export function GestionEquipo({ usuarioActualId }: GestionEquipoProps) {
   const [eliminando, setEliminando] = useState(false)
 
   const cargar = useCallback(() => {
-    setLoading(true)
     fetch('/api/usuarios')
       .then((r) => {
         if (!r.ok) throw new Error()
@@ -255,8 +264,58 @@ export function GestionEquipo({ usuarioActualId }: GestionEquipoProps) {
   function abrirNuevo() {
     setEmail('')
     setNombre('')
-    setPassword(generarPassword())
+    setPassword('')
+    setPasswordEditada(false)
     setModalNuevo(true)
+  }
+
+  /** La contraseña sugerida sigue al correo hasta que el admin la edite */
+  function cambiarEmail(valor: string) {
+    setEmail(valor)
+    if (!passwordEditada) {
+      setPassword(valor.includes('@') || valor.length > 2 ? generarPasswordSimple(valor) : '')
+    }
+  }
+
+  function abrirReset(u: Usuario) {
+    setMenuAbierto(null)
+    setMenuPos(null)
+    setResetUsuario(u)
+    setResetPassword(generarPasswordSimple(u.email ?? u.nombre))
+  }
+
+  async function confirmarReset(e: React.FormEvent) {
+    e.preventDefault()
+    if (!resetUsuario) return
+    if (!isValidPassword(resetPassword)) {
+      toast.error(`La contraseña debe tener al menos ${PASSWORD_MIN} caracteres`)
+      return
+    }
+    setReseteando(true)
+    const toastId = toastLoading('Cambiando contraseña...')
+    try {
+      const res = await fetch(`/api/usuarios/${resetUsuario.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: resetPassword }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        toastError(data.error ?? 'No se pudo cambiar la contraseña', toastId)
+        return
+      }
+      toastSuccess('Contraseña actualizada', toastId)
+      setCredenciales({
+        email: resetUsuario.email ?? '',
+        password: resetPassword,
+        nombre: resetUsuario.nombre,
+      })
+      setResetUsuario(null)
+    } catch {
+      toastError('No se pudo cambiar la contraseña', toastId)
+    } finally {
+      setReseteando(false)
+    }
   }
 
   async function copiarPasswordModal() {
@@ -283,7 +342,7 @@ export function GestionEquipo({ usuarioActualId }: GestionEquipoProps) {
       return
     }
     if (!isValidPassword(password)) {
-      toast.error('La contraseña debe tener al menos 8 caracteres')
+      toast.error(`La contraseña debe tener al menos ${PASSWORD_MIN} caracteres`)
       return
     }
 
@@ -448,7 +507,7 @@ export function GestionEquipo({ usuarioActualId }: GestionEquipoProps) {
             label="Correo electrónico"
             type="email"
             value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            onChange={(e) => cambiarEmail(e.target.value)}
             required
             placeholder="empleado@cholaooscar.com"
             disabled={guardando}
@@ -460,8 +519,14 @@ export function GestionEquipo({ usuarioActualId }: GestionEquipoProps) {
             <div className="flex flex-col gap-2 sm:flex-row">
               <input
                 type="text"
-                readOnly
                 value={password}
+                onChange={(e) => {
+                  setPassword(e.target.value.trim())
+                  setPasswordEditada(true)
+                }}
+                placeholder="Se genera con el correo"
+                autoComplete="off"
+                disabled={guardando}
                 className="input min-w-0 flex-1 font-mono text-sm"
               />
               <div className="flex gap-2">
@@ -478,7 +543,10 @@ export function GestionEquipo({ usuarioActualId }: GestionEquipoProps) {
                 <Button
                   type="button"
                   variant="secondary"
-                  onClick={() => setPassword(generarPassword())}
+                  onClick={() => {
+                    setPassword(generarPasswordSimple(email || nombre))
+                    setPasswordEditada(false)
+                  }}
                   aria-label="Generar nueva contraseña"
                   title="Generar nueva"
                   className="flex-1 sm:flex-none"
@@ -487,7 +555,10 @@ export function GestionEquipo({ usuarioActualId }: GestionEquipoProps) {
                 </Button>
               </div>
             </div>
-            <p className="text-xs text-text-muted">Mínimo 8 caracteres</p>
+            <p className="text-xs text-text-muted">
+              Fácil de recordar: inicio del correo + 4 números. Puedes escribir otra (mínimo{' '}
+              {PASSWORD_MIN} caracteres).
+            </p>
           </div>
           <div className="flex flex-col-reverse gap-2 pt-2 sm:flex-row sm:justify-end">
             <Button
@@ -549,6 +620,14 @@ export function GestionEquipo({ usuarioActualId }: GestionEquipoProps) {
                 Activar
               </button>
             )}
+            <button
+              type="button"
+              role="menuitem"
+              className="w-full px-3 py-2 text-left text-sm text-text-primary hover:bg-bg-elevated"
+              onClick={() => abrirReset(empleadoMenu)}
+            >
+              Restablecer contraseña
+            </button>
             <div className="my-1 border-t border-bg-border" />
             <button
               type="button"
@@ -563,6 +642,58 @@ export function GestionEquipo({ usuarioActualId }: GestionEquipoProps) {
         )}
 
       <Modal
+        open={resetUsuario !== null}
+        onClose={() => !reseteando && setResetUsuario(null)}
+        title="Restablecer contraseña"
+      >
+        <form onSubmit={confirmarReset} className="space-y-4">
+          <p className="text-sm text-text-secondary">
+            Nueva contraseña para{' '}
+            <span className="font-medium text-text-primary">{resetUsuario?.nombre}</span>
+            {resetUsuario?.email ? ` (${resetUsuario.email})` : ''}.
+          </p>
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={resetPassword}
+              onChange={(e) => setResetPassword(e.target.value.trim())}
+              autoComplete="off"
+              disabled={reseteando}
+              className="input min-w-0 flex-1 font-mono text-sm"
+            />
+            <Button
+              type="button"
+              variant="secondary"
+              aria-label="Generar otra"
+              title="Generar otra"
+              disabled={reseteando}
+              onClick={() =>
+                setResetPassword(
+                  generarPasswordSimple(resetUsuario?.email ?? resetUsuario?.nombre ?? '')
+                )
+              }
+            >
+              <RefreshCw size={16} />
+            </Button>
+          </div>
+          <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => setResetUsuario(null)}
+              disabled={reseteando}
+              className="w-full sm:w-auto"
+            >
+              Cancelar
+            </Button>
+            <Button type="submit" loading={reseteando} disabled={reseteando} className="w-full sm:w-auto">
+              Guardar contraseña
+            </Button>
+          </div>
+        </form>
+      </Modal>
+
+      <Modal
         open={eliminarId !== null}
         onClose={() => !eliminando && setEliminarId(null)}
         title="Eliminar cuenta"
@@ -572,8 +703,8 @@ export function GestionEquipo({ usuarioActualId }: GestionEquipoProps) {
           <span className="font-medium text-text-primary">
             {empleadoEliminar?.nombre ?? 'este empleado'}
           </span>
-          ? No podrá volver a iniciar sesión. Si tiene ventas o cierres, no se
-          podrá borrar (usa Desactivar en ese caso).
+          ? No podrá volver a iniciar sesión. Si ya hizo cierres, no se podrá
+          borrar (usa Desactivar en ese caso).
         </p>
         <div className="flex flex-col-reverse gap-2 sm:flex-row">
           <Button

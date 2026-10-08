@@ -173,7 +173,7 @@ export function Select({
             id={listboxId}
             role="listbox"
             aria-label={ariaLabel}
-            data-lenis-prevent
+           
             className="scroll-touch fixed z-[250] max-h-56 overflow-y-auto overscroll-contain rounded-[var(--radius-md)] border border-bg-border bg-bg-surface py-1 shadow-xl"
           >
             {options.length === 0 ? (

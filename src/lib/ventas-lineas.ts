@@ -14,6 +14,7 @@ const CIERRE_VENTAS_SELECT = `
     cierre_id,
     variante_id,
     cantidad,
+    precio_unitario,
     variante:variantes_producto(
       id,
       producto_id,
@@ -27,6 +28,7 @@ const CIERRE_VENTAS_SELECT = `
     cierre_id,
     producto_id,
     cantidad,
+    precio_unitario,
     producto:productos(nombre, tipo, precio, unidad)
   )
 `
@@ -93,7 +95,7 @@ export async function adjuntarLineasCierre(
 
     for (const linea of cierre.ventas_comida ?? []) {
       if (!linea.cantidad) continue
-      const precio = Number(linea.producto?.precio) || 0
+      const precio = Number(linea.precio_unitario ?? linea.producto?.precio) || 0
       extra.push({
         id: `comida-${linea.id}`,
         venta_id: venta.id,
@@ -113,7 +115,7 @@ export async function adjuntarLineasCierre(
     for (const linea of cierre.ventas_variantes ?? []) {
       if (!linea.cantidad) continue
       const variante = linea.variante
-      const precio = Number(variante?.precio) || 0
+      const precio = Number(linea.precio_unitario ?? variante?.precio) || 0
       const nombreProd = variante?.producto?.nombre
       const nombreVar = variante?.nombre
       const nombre = nombreProd && nombreVar

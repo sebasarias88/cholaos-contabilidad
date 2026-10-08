@@ -64,7 +64,7 @@ export function MiCuenta({ usuario, email, onNombreActualizado }: MiCuentaProps)
       return
     }
     if (!isValidPassword(passwordNueva)) {
-      toast.error('La nueva contraseña debe tener al menos 8 caracteres')
+      toast.error('La nueva contraseña debe tener al menos 6 caracteres')
       return
     }
     if (passwordNueva !== passwordConfirm) {
@@ -236,7 +236,7 @@ export function MiCuenta({ usuario, email, onNombreActualizado }: MiCuentaProps)
               />
             </div>
             <p className="-mt-2 text-xs text-text-muted">
-              La nueva contraseña debe tener al menos 8 caracteres.
+              La nueva contraseña debe tener al menos 6 caracteres.
             </p>
 
             <div className="mt-auto pt-2">

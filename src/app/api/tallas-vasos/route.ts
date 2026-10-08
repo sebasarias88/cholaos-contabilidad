@@ -1,14 +1,18 @@
-import { requireAdminApi } from '@/lib/api-auth'
-import { createClient } from '@/lib/supabase/server'
+import { requireAdminApi, requireAuthApi } from '@/lib/api-auth'
 import { esTipoVaso } from '@/lib/utils'
 import { NextResponse } from 'next/server'
 import type { TipoVaso } from '@/types'
 
 /** Lista tallas de vaso (vaso físico). Admin ve todas; otros solo activas. */
 export async function GET(request: Request) {
-  const supabase = await createClient()
+  const auth = await requireAuthApi()
+  if (!auth.ok) return auth.response
+  const { supabase, esAdmin } = auth.ctx
   const { searchParams } = new URL(request.url)
   const todas = searchParams.get('todas') === '1'
+  if (todas && !esAdmin) {
+    return NextResponse.json({ error: 'No autorizado' }, { status: 403 })
+  }
 
   let query = supabase
     .from('tallas_vasos')
@@ -16,12 +20,7 @@ export async function GET(request: Request) {
     .order('onzas', { ascending: true })
     .order('tipo', { ascending: true })
 
-  if (todas) {
-    const auth = await requireAdminApi()
-    if (!auth.ok) return auth.response
-  } else {
-    query = query.eq('activo', true)
-  }
+  if (!todas) query = query.eq('activo', true)
 
   const { data, error } = await query
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })

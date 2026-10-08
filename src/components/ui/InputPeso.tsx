@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, type KeyboardEventHandler } from 'react'
+import { useState, type KeyboardEventHandler } from 'react'
 import { formatPesosInput, parsePesosInput } from '@/lib/utils'
 
 interface InputPesoProps {
@@ -27,10 +27,6 @@ export function InputPeso({
   const [display, setDisplay] = useState(() => formatPesosInput(value))
   const [focused, setFocused] = useState(false)
 
-  useEffect(() => {
-    if (!focused) setDisplay(formatPesosInput(value))
-  }, [value, focused])
-
   return (
     <input
       id={id}
@@ -40,9 +36,12 @@ export function InputPeso({
       disabled={disabled}
       title={title}
       placeholder={placeholder}
-      value={display}
+      value={focused ? display : formatPesosInput(value)}
       onKeyDown={onKeyDown}
-      onFocus={() => setFocused(true)}
+      onFocus={() => {
+        setDisplay(formatPesosInput(value))
+        setFocused(true)
+      }}
       onBlur={() => {
         setFocused(false)
         const n = parsePesosInput(display)

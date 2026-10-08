@@ -1,16 +1,19 @@
-import { requireAdminApi } from '@/lib/api-auth'
+import { requireAdminApi, requireAuthApi } from '@/lib/api-auth'
 import { ensureTallaProducto } from '@/lib/ensure-talla-producto'
-import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 import type { TipoProducto } from '@/types'
 
 const TIPOS: TipoProducto[] = ['vaso', 'comida', 'insumo']
 
 export async function GET(request: Request) {
-  const supabase = await createClient()
+  const auth = await requireAuthApi()
+  if (!auth.ok) return auth.response
+  const { supabase, esAdmin } = auth.ctx
+
   const { searchParams } = new URL(request.url)
   const tipo = searchParams.get('tipo')
-  const todos = searchParams.get('todos') === 'true'
+  // ?todos=true (incluye inactivos) solo para admin
+  const todos = esAdmin && searchParams.get('todos') === 'true'
 
   let query = supabase
     .from('productos')
@@ -32,7 +35,15 @@ export async function GET(request: Request) {
 
   const { data, error } = await query
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-  return NextResponse.json(data)
+
+  // Variantes inactivas solo las ve el admin en gestión
+  const productos = (data ?? []).map((p) => ({
+    ...p,
+    variantes: todos
+      ? p.variantes
+      : (p.variantes ?? []).filter((v: { activo: boolean }) => v.activo),
+  }))
+  return NextResponse.json(productos)
 }
 
 export async function POST(request: Request) {

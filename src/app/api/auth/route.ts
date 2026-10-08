@@ -103,7 +103,7 @@ export async function PATCH(request: Request) {
 
   if (!isValidPassword(passwordNueva)) {
     return NextResponse.json(
-      { error: 'La nueva contraseña debe tener al menos 8 caracteres' },
+      { error: 'La nueva contraseña debe tener al menos 6 caracteres' },
       { status: 400 }
     )
   }

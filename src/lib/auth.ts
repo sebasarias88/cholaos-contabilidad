@@ -1,44 +1,42 @@
-import { createClient } from '@/lib/supabase/server'
+import { cache } from 'react'
 import { redirect } from 'next/navigation'
-import type { Rol, Usuario } from '@/types'
+import { createClient } from '@/lib/supabase/server'
+import type { Usuario } from '@/types'
 
-export async function getSession() {
+/** Usuario de Auth de la petición actual (deduplicado por request) */
+export const getSession = cache(async () => {
   const supabase = await createClient()
-  const { data: { user }, error } = await supabase.auth.getUser()
+  const {
+    data: { user },
+    error,
+  } = await supabase.auth.getUser()
   if (error || !user) return null
   return user
-}
+})
 
-export async function getMiUsuario(): Promise<Usuario | null> {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+/** Perfil en public.usuarios (deduplicado por request: layout + page) */
+export const getMiUsuario = cache(async (): Promise<Usuario | null> => {
+  const user = await getSession()
   if (!user) return null
 
+  const supabase = await createClient()
   const { data } = await supabase
     .from('usuarios')
-    .select('*')
+    .select('id, nombre, rol, activo, created_at')
     .eq('id', user.id)
-    .single()
+    .maybeSingle()
 
-  return data
-}
+  return (data as Usuario | null) ?? null
+})
 
-export async function requireRol(rol: Rol) {
-  const usuario = await getMiUsuario()
-  if (!usuario || usuario.rol !== rol) {
-    throw new Error('No autorizado')
-  }
-  return usuario
-}
-
-/** Rutas del dashboard — requiere sesión activa */
+/** Rutas del dashboard — requiere sesión y cuenta activa */
 export async function requireAuth(): Promise<Usuario> {
   const usuario = await getMiUsuario()
   if (!usuario || !usuario.activo) redirect('/login')
   return usuario
 }
 
-/** Rutas solo admin (productos, reportes, configuración) */
+/** Rutas solo admin (productos, reportes, configuración, historiales) */
 export async function requireAdmin(): Promise<Usuario> {
   const usuario = await requireAuth()
   if (usuario.rol !== 'admin') redirect('/dashboard/cierre')

@@ -55,7 +55,6 @@ export function GestionMotivosNovedad() {
   const menuRef = useRef<HTMLDivElement>(null)
 
   const cargar = useCallback(() => {
-    setLoading(true)
     fetch('/api/motivos-novedad?todas=1')
       .then((r) => {
         if (!r.ok) throw new Error()
