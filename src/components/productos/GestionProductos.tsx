@@ -141,6 +141,12 @@ function validarForm(form: ProductoFormState): string | null {
   return null
 }
 
+async function verificar(res: Response) {
+  if (res.ok) return
+  const data = (await res.json().catch(() => ({}))) as { error?: string }
+  throw new Error(data.error ?? 'Error guardando variantes')
+}
+
 async function sincronizarVariantes(
   productoId: string,
   drafts: VarianteFormDraft[],
@@ -150,21 +156,21 @@ async function sincronizarVariantes(
   const prev = (existentes ?? []).filter((v) => v.activo)
 
   if (!tieneVariantes) {
-    await Promise.all(
-      prev.map((v) =>
-        fetch(`/api/variantes/${v.id}`, { method: 'DELETE' })
-      )
+    const resps = await Promise.all(
+      prev.map((v) => fetch(`/api/variantes/${v.id}`, { method: 'DELETE' }))
     )
+    for (const r of resps) await verificar(r)
     return
   }
 
   const keepIds = new Set(drafts.map((d) => d.id).filter(Boolean) as string[])
 
-  await Promise.all(
+  const borrados = await Promise.all(
     prev
       .filter((v) => !keepIds.has(v.id))
       .map((v) => fetch(`/api/variantes/${v.id}`, { method: 'DELETE' }))
   )
+  for (const r of borrados) await verificar(r)
 
   for (let i = 0; i < drafts.length; i++) {
     const d = drafts[i]
@@ -173,27 +179,20 @@ async function sincronizarVariantes(
       precio: Number(d.precio),
       orden: i + 1,
       activo: true,
-      producto_id: productoId,
     }
 
-    if (d.id) {
-      await fetch(`/api/variantes/${d.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          nombre: body.nombre,
-          precio: body.precio,
-          orden: body.orden,
-          activo: true,
-        }),
-      })
-    } else {
-      await fetch('/api/variantes', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-      })
-    }
+    const res = d.id
+      ? await fetch(`/api/variantes/${d.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        })
+      : await fetch('/api/variantes', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ...body, producto_id: productoId }),
+        })
+    await verificar(res)
   }
 }
 
@@ -348,7 +347,6 @@ export function GestionProductos() {
   const { menuId, menuPos, menuRef, toggle, close, isOpen } = useMenuAcciones()
 
   const cargarProductos = useCallback(() => {
-    setLoading(true)
     fetch('/api/productos?todos=true')
       .then((r) => r.json())
       .then((data: Producto[]) => setProductos(data))
@@ -442,9 +440,12 @@ export function GestionProductos() {
           editando?.variantes,
           form.tiene_variantes
         )
-      } catch {
+      } catch (err) {
         setGuardando(false)
-        toastError('Producto guardado, pero falló al sincronizar variantes', toastId)
+        toastError(
+          `Producto guardado, pero falló al guardar variantes: ${(err as Error).message}`,
+          toastId
+        )
         cargarProductos()
         return
       }

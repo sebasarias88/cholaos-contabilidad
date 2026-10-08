@@ -1,6 +1,5 @@
 import type { Metadata, Viewport } from 'next'
 import { DM_Sans, Syne } from 'next/font/google'
-import { LenisProvider } from '@/components/providers/LenisProvider'
 import { Toaster } from 'react-hot-toast'
 import './globals.css'
 
@@ -61,7 +60,6 @@ export default function RootLayout({
       className={`${syne.variable} ${dmSans.variable} h-full antialiased`}
     >
       <body className="min-h-full bg-bg-base font-sans text-text-primary">
-        <LenisProvider>
           {children}
           <Toaster
             position="bottom-right"
@@ -81,7 +79,6 @@ export default function RootLayout({
               },
             }}
           />
-        </LenisProvider>
       </body>
     </html>
   )

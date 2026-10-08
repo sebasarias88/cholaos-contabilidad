@@ -1,12 +1,12 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { format } from 'date-fns'
 import { motion } from 'framer-motion'
 import { CierreCard } from '@/components/cierre/CierreCard'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { fadeUp } from '@/lib/animations'
 import { getRangoFecha } from '@/lib/utils'
+import { hoyColombia } from '@/lib/fechas'
 import toast from 'react-hot-toast'
 import type { CierreDia } from '@/types'
 
@@ -24,7 +24,7 @@ export function HistorialCierres() {
   const [customDesde, setCustomDesde] = useState('')
   const [customHasta, setCustomHasta] = useState('')
   const [cierres, setCierres] = useState<CierreDia[]>([])
-  const [loading, setLoading] = useState(true)
+  const [rangoCargado, setRangoCargado] = useState<string | null>(null)
 
   const rango = useMemo(() => {
     if (preset === 'custom') {
@@ -35,15 +35,16 @@ export function HistorialCierres() {
     }
     return getRangoFecha(preset)
   }, [preset, customDesde, customHasta])
+  const claveRango = `${rango.desde}|${rango.hasta}`
+  const loading = rangoCargado !== claveRango
 
   const cargar = useCallback(() => {
-    setLoading(true)
     fetch(`/api/cierres?desde=${rango.desde}&hasta=${rango.hasta}`)
       .then((r) => r.json())
       .then((data: CierreDia[]) => setCierres(Array.isArray(data) ? data : []))
       .catch(() => toast.error('Error cargando cierres'))
-      .finally(() => setLoading(false))
-  }, [rango.desde, rango.hasta])
+      .finally(() => setRangoCargado(claveRango))
+  }, [rango.desde, rango.hasta, claveRango])
 
   useEffect(() => {
     if (preset === 'custom' && (!customDesde || !customHasta)) return
@@ -56,7 +57,7 @@ export function HistorialCierres() {
       setCustomDesde('')
       setCustomHasta('')
     } else {
-      const hoy = format(new Date(), 'yyyy-MM-dd')
+      const hoy = hoyColombia()
       setCustomDesde((d) => d || hoy)
       setCustomHasta((h) => h || hoy)
     }

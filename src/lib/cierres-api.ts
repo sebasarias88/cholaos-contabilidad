@@ -1,4 +1,10 @@
-import type { CierreDia, CierreDiaEmpleado } from '@/types'
+import type { PostgrestError } from '@supabase/supabase-js'
+import { NextResponse } from 'next/server'
+import type {
+  CierreDia,
+  CierreDiaEmpleado,
+  GuardarCierrePayload,
+} from '@/types'
 
 /** Select común para GET cierres y prellenado */
 export const CIERRE_SELECT = `
@@ -26,20 +32,14 @@ export const CIERRE_SELECT = `
   )
 `
 
-type CierreRow = CierreDia & {
-  total_ventas: number
-  efectivo_esperado?: number
-  diferencia?: number
-}
-
-/** Versión empleado: sin total_ventas ni campos sensibles de Postgres */
-export function sanitizarCierreParaEmpleado(cierre: CierreRow): CierreDiaEmpleado {
-  const efectivo_calculado =
+/** Versión empleado: sin total_ventas */
+export function sanitizarCierreParaEmpleado(cierre: CierreDia): CierreDiaEmpleado {
+  const efectivo =
     cierre.dinero_base_inicio +
     cierre.total_ventas -
     cierre.total_transferencias -
     cierre.total_gastos -
-    (cierre.total_domicilios ?? 0)
+    Number(cierre.total_domicilios ?? 0)
 
   return {
     id: cierre.id,
@@ -48,10 +48,10 @@ export function sanitizarCierreParaEmpleado(cierre: CierreRow): CierreDiaEmplead
     dinero_final: cierre.dinero_final,
     total_transferencias: cierre.total_transferencias,
     total_gastos: cierre.total_gastos,
-    total_domicilios: cierre.total_domicilios ?? 0,
-    efectivo_final_esperado: efectivo_calculado,
-    diferencia_caja: cierre.dinero_final - efectivo_calculado,
-    cuadre_ok: cierre.dinero_final === efectivo_calculado,
+    total_domicilios: Number(cierre.total_domicilios ?? 0),
+    efectivo_final_esperado: efectivo,
+    diferencia_caja: cierre.dinero_final - efectivo,
+    cuadre_ok: cierre.dinero_final === efectivo,
     estado: cierre.estado,
     observaciones: cierre.observaciones,
     gastos: cierre.gastos,
@@ -60,5 +60,84 @@ export function sanitizarCierreParaEmpleado(cierre: CierreRow): CierreDiaEmplead
     conteo_vasos: cierre.conteo_vasos,
     ventas_variantes: cierre.ventas_variantes,
     ventas_comida: cierre.ventas_comida,
+  }
+}
+
+/** Error de una función Postgres (raise exception) → respuesta HTTP */
+export function respuestaErrorRpc(error: PostgrestError) {
+  const status = error.code === '42501' ? 403 : 400
+  return NextResponse.json(
+    { error: error.message || 'No se pudo guardar el cierre' },
+    { status }
+  )
+}
+
+function num(valor: unknown): number | null {
+  if (valor === null || valor === undefined || valor === '') return null
+  const n = Number(valor)
+  return Number.isFinite(n) ? Math.trunc(n) : null
+}
+
+function arr(valor: unknown): Record<string, unknown>[] {
+  return Array.isArray(valor)
+    ? valor.filter((v): v is Record<string, unknown> => !!v && typeof v === 'object')
+    : []
+}
+
+function str(valor: unknown): string {
+  return typeof valor === 'string' ? valor.trim() : ''
+}
+
+/**
+ * Deja pasar solo los campos que entiende guardar_cierre.
+ * La validación de negocio (precios, inventario, totales) la hace la BD.
+ */
+export function normalizarPayloadCierre(
+  raw: Record<string, unknown>
+): GuardarCierrePayload {
+  return {
+    fecha: str(raw.fecha),
+    dinero_base_inicio: num(raw.dinero_base_inicio) ?? undefined,
+    dinero_final: num(raw.dinero_final),
+    observaciones: str(raw.observaciones) || undefined,
+    gastos: arr(raw.gastos).map((g) => ({
+      descripcion: str(g.descripcion),
+      monto: num(g.monto) ?? 0,
+    })),
+    transferencias: arr(raw.transferencias).map((t) => ({
+      medio_id: str(t.medio_id),
+      monto: num(t.monto) ?? 0,
+    })),
+    domicilios: arr(raw.domicilios).map((d) => ({
+      descripcion: str(d.descripcion) || undefined,
+      monto: num(d.monto) ?? 0,
+    })),
+    vasos: arr(raw.vasos).map((v) => ({
+      talla_id: str(v.talla_id),
+      cantidad_nuevos: num(v.cantidad_nuevos) ?? 0,
+      cantidad_final: num(v.cantidad_final),
+      novedades: arr(v.novedades).map((n) => ({
+        motivo_id: str(n.motivo_id),
+        motivo_custom: str(n.motivo_custom) || undefined,
+        cantidad: num(n.cantidad) ?? 0,
+      })),
+      desglose: arr(v.desglose).map((d) => ({
+        producto_id: str(d.producto_id),
+        cantidad: num(d.cantidad) ?? 0,
+      })),
+    })),
+    insumos: arr(raw.insumos).map((i) => ({
+      producto_id: str(i.producto_id),
+      cantidad_nuevos: num(i.cantidad_nuevos) ?? 0,
+      cantidad_final: num(i.cantidad_final),
+    })),
+    ventas_comida: arr(raw.ventas_comida).map((c) => ({
+      producto_id: str(c.producto_id),
+      cantidad: num(c.cantidad) ?? 0,
+    })),
+    ventas_variantes: arr(raw.ventas_variantes).map((c) => ({
+      variante_id: str(c.variante_id),
+      cantidad: num(c.cantidad) ?? 0,
+    })),
   }
 }

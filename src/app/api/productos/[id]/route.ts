@@ -1,7 +1,5 @@
-import { createClient } from '@/lib/supabase/server'
 import { requireAdminApi } from '@/lib/api-auth'
 import { ensureTallaProducto } from '@/lib/ensure-talla-producto'
-import { createAdminClient } from '@/lib/supabase/admin'
 import { NextResponse } from 'next/server'
 import type { ProductoUpdateInput, TipoProducto } from '@/types'
 
@@ -89,8 +87,11 @@ export async function PUT(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const auth = await requireAdminApi()
+  if (!auth.ok) return auth.response
+  const { supabase } = auth.ctx
+
   const { id } = await params
-  const supabase = await createClient()
   let body: ProductoUpdateInput
   try {
     body = await request.json()
@@ -138,8 +139,7 @@ export async function PUT(
       talla_descripcion?: string | null
       crear_talla?: boolean
     }
-    const admin = createAdminClient()
-    const linked = await ensureTallaProducto(admin, {
+    const linked = await ensureTallaProducto(supabase, {
       productoId: id,
       onzas: onzasFinal,
       tallaId: bodyExtra.crear_talla ? null : tallaIdFinal,

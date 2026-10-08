@@ -6,6 +6,8 @@ export interface Usuario {
   rol: Rol;
   activo: boolean;
   created_at: string;
+  /** Solo en GET /api/usuarios (admin) */
+  email?: string;
 }
 
 /** Body POST /api/usuarios */
@@ -25,6 +27,8 @@ export interface CrearEmpleadoResponse {
 export interface UsuarioUpdateInput {
   nombre?: string;
   activo?: boolean;
+  /** Restablecer contraseña de un empleado (solo admin) */
+  password?: string;
 }
 
 /** GET/PUT /api/configuracion */
@@ -154,22 +158,6 @@ export interface DetalleVenta {
   /** vaso = detalle_ventas; comida/variante se arman desde el cierre del mismo día */
   origen?: OrigenLineaVenta;
   producto?: ProductoResumen;
-}
-
-/** Body PUT /api/ventas/[id] — solo cabecera */
-export interface VentaUpdateInput {
-  observaciones?: string | null;
-  total?: number;
-}
-
-/** Body POST /api/ventas */
-export interface NuevaVentaPayload {
-  observaciones?: string;
-  items: {
-    producto_id: string;
-    cantidad: number;
-    precio_unitario: number;
-  }[];
 }
 
 // Para los reportes
@@ -314,6 +302,8 @@ export interface VentaVarianteCierre {
   cierre_id: string;
   variante_id: string;
   cantidad: number;
+  /** Precio al momento del cierre (null en registros antiguos) */
+  precio_unitario?: number | null;
   variante?: VarianteProducto & {
     producto?: Pick<Producto, 'nombre' | 'unidad'>;
   };
@@ -324,6 +314,8 @@ export interface VentaComidaCierre {
   cierre_id: string;
   producto_id: string;
   cantidad: number;
+  /** Precio al momento del cierre (null en registros antiguos) */
+  precio_unitario?: number | null;
   producto?: Pick<Producto, 'nombre' | 'precio' | 'unidad'>;
 }
 
@@ -419,33 +411,8 @@ export type ConteoVasoValor = {
 };
 
 // ============================================================
-// CONTEO — generalizado para todos los tipos
+// CONTEO — fila guardada (vaso / insumo)
 // ============================================================
-export interface ConteoProductoInput {
-  // Para vasos
-  talla_id?: string;
-  // Para comida e insumos
-  producto_id?: string;
-  // Común a todos
-  tipo: TipoProducto;
-  cantidad_inicio: number;
-  cantidad_nuevos: number;
-  cantidad_final: number;
-  observacion?: string;
-  novedades?: NovedadVasoInput[]; // solo para vasos
-  /** Precio unitario (legacy / un solo producto); preferir desglose */
-  precio_unitario?: number;
-  /**
-   * Desglose de ventas por producto cuando varios productos
-   * comparten el mismo vaso físico. Suma debe = vendidos.
-   */
-  desglose?: {
-    producto_id: string;
-    cantidad: number;
-    precio_unitario: number;
-  }[];
-}
-
 export interface ConteoProducto {
   id: string;
   cierre_id: string;
@@ -455,82 +422,79 @@ export interface ConteoProducto {
   cantidad_inicio: number;
   cantidad_nuevos: number;
   cantidad_final: number;
-  cantidad_gastada: number; // generado: inicio + nuevos - final
-  cantidad_novedades: number; // solo vasos
-  cantidad_vendida: number; // gastada - novedades
+  cantidad_gastada: number;
+  cantidad_novedades: number;
+  cantidad_vendida: number;
   observacion?: string;
-  talla?: TallaVaso; // join para vasos
-  producto?: Producto; // join para comida/insumos
-  novedades?: NovedadVaso[]; // solo vasos
+  talla?: TallaVaso;
+  producto?: Producto;
+  novedades?: NovedadVaso[];
 }
 
 // ============================================================
-// PAYLOAD PARA GUARDAR CIERRE COMPLETO
-// ============================================================
-export interface ItemVendidoInput {
-  producto_id: string;
-  cantidad: number;
-  precio_unitario: number;
-}
-
-// ============================================================
-// VENTA DE VARIANTE (en el cierre)
+// VENTAS EN CIERRE (estado editable en UI)
 // ============================================================
 export interface VentaVarianteInput {
   variante_id: string;
   cantidad: number;
-  /** Para calcular total al guardar el cierre */
-  precio_unitario?: number;
 }
 
-// ============================================================
-// VENTA DE COMIDA SIMPLE (en el cierre)
-// ============================================================
 export interface VentaComidaInput {
   producto_id: string;
   cantidad: number;
-  /** Para calcular total al guardar el cierre */
-  precio_unitario?: number;
+}
+
+// ============================================================
+// PAYLOAD POST /api/cierres → función guardar_cierre
+// Precios e inventario inicial los pone la BD, no el cliente.
+// ============================================================
+export interface ConteoVasoPayload {
+  talla_id: string;
+  cantidad_nuevos: number;
+  /** null = no contado (la BD lo rechaza) */
+  cantidad_final: number | null;
+  novedades: NovedadVasoInput[];
+  desglose: DesgloseVasoProducto[];
+}
+
+export interface ConteoInsumoPayload {
+  producto_id: string;
+  cantidad_nuevos: number;
+  cantidad_final: number | null;
 }
 
 export interface GuardarCierrePayload {
   fecha: string; // 'YYYY-MM-DD'
-  dinero_base_inicio: number;
-  dinero_final: number;
+  /** Solo admin puede fijarlo; si no, se toma del último cierre */
+  dinero_base_inicio?: number;
+  dinero_final: number | null;
   observaciones?: string;
   gastos: NuevoGasto[];
-  transferencias: NuevaTransferencia[];
+  transferencias: { medio_id: string; monto: number }[];
   domicilios: NuevoDomicilio[];
-  /** Vasos e insumos (conteo de inventario) */
-  conteo_productos: ConteoProductoInput[];
-  /** Pizzas / productos con variantes */
-  ventas_variantes: VentaVarianteInput[];
-  /** Gaseosas, adiciones y comida sin variantes */
+  vasos: ConteoVasoPayload[];
+  insumos: ConteoInsumoPayload[];
   ventas_comida: VentaComidaInput[];
+  ventas_variantes: VentaVarianteInput[];
 }
 
-/** POST /api/cierres */
+/** POST /api/cierres (empleado no recibe total_ventas) */
 export interface GuardarCierreResponse {
   ok: true;
   cierre_id: string;
+  fecha: string;
   estado: 'cerrado';
   total_ventas?: number;
-  total_gastos?: number;
-  total_transferencias?: number;
-  total_domicilios?: number;
+  total_gastos: number;
+  total_transferencias: number;
+  total_domicilios: number;
+  dinero_base_inicio: number;
+  dinero_final: number;
+  efectivo_esperado: number;
+  diferencia: number;
 }
 
 // --- GET /api/cierres/prellenado ---
-
-/** @deprecated Preferir ConteoProductoPrellenado unificado */
-export interface ConteoVasoPrellenado {
-  talla_id: string;
-  talla: TallaVaso;
-  cantidad_inicio: number;
-  cantidad_nuevos: number | null;
-  cantidad_final: number | null;
-  novedades: NovedadVasoInput[];
-}
 
 /** Fila unificada de prellenado (vaso / comida / insumo) */
 export interface ConteoProductoPrellenado {
@@ -548,6 +512,9 @@ export interface ConteoProductoPrellenado {
 
 export interface PrellenadoNuevo {
   tipo: "nuevo";
+  fecha: string;
+  /** Fecha del último cierre usado como base (null si no hay) */
+  fecha_anterior: string | null;
   dinero_base_inicio: number;
   conteo_productos: ConteoProductoPrellenado[];
 }

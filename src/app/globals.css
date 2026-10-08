@@ -190,19 +190,6 @@
   }
 }
 
-html.lenis,
-html.lenis body {
-  height: auto;
-}
-
-.lenis.lenis-smooth {
-  scroll-behavior: auto !important;
-}
-
-.lenis.lenis-smooth [data-lenis-prevent] {
-  overscroll-behavior: contain;
-}
-
 /* Scroll táctil en modales / sheets (Lenis no captura el gesto) */
 .scroll-touch {
   overflow-y: scroll;

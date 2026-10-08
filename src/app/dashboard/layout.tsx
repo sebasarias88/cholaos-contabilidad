@@ -1,4 +1,4 @@
-import { getMiUsuario } from '@/lib/auth'
+import { requireAuth } from '@/lib/auth'
 import { DashboardShell } from '@/components/layout/DashboardShell'
 
 export default async function DashboardLayout({
@@ -6,7 +6,7 @@ export default async function DashboardLayout({
 }: {
   children: React.ReactNode
 }) {
-  const usuario = await getMiUsuario()
+  const usuario = await requireAuth()
 
   return <DashboardShell usuario={usuario}>{children}</DashboardShell>
 }

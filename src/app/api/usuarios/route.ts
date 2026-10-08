@@ -1,71 +1,103 @@
 import { NextResponse } from 'next/server'
-import { requireAdminApi } from '@/lib/api-auth'
+import { jsonError, leerJson, requireAdminApi } from '@/lib/api-auth'
 import { createAdminClient } from '@/lib/supabase/admin'
-import type { CrearEmpleadoInput, CrearEmpleadoResponse, Usuario } from '@/types'
+import { isValidEmail, isValidPassword, PASSWORD_MIN } from '@/lib/validators'
+import type { CrearEmpleadoResponse, Usuario } from '@/types'
+
+const CAMPOS_USUARIO = 'id, nombre, rol, activo, created_at'
+
+/** Mapa id → email desde Auth (solo admin) */
+async function emailsPorId(): Promise<Map<string, string>> {
+  const admin = createAdminClient()
+  const mapa = new Map<string, string>()
+  for (let page = 1; page <= 10; page++) {
+    const { data, error } = await admin.auth.admin.listUsers({ page, perPage: 200 })
+    if (error || !data) break
+    for (const u of data.users) if (u.email) mapa.set(u.id, u.email)
+    if (data.users.length < 200) break
+  }
+  return mapa
+}
 
 export async function GET() {
   const auth = await requireAdminApi()
   if (!auth.ok) return auth.response
 
-  const { supabase } = auth.ctx
-
-  const { data, error } = await supabase
+  const { data, error } = await auth.ctx.supabase
     .from('usuarios')
-    .select('id, nombre, rol, activo, created_at')
+    .select(CAMPOS_USUARIO)
     .order('created_at', { ascending: false })
 
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
-  }
+  if (error) return jsonError(error.message, 500)
 
-  return NextResponse.json(data as Usuario[])
+  const emails = await emailsPorId()
+  const usuarios: Usuario[] = (data ?? []).map((u) => ({
+    ...(u as Usuario),
+    email: emails.get(u.id),
+  }))
+  return NextResponse.json(usuarios)
+}
+
+function traducirErrorAuth(mensaje: string): string {
+  const m = mensaje.toLowerCase()
+  if (m.includes('already') && (m.includes('registered') || m.includes('exists'))) {
+    return 'Ya existe una cuenta con ese correo'
+  }
+  if (m.includes('password')) {
+    return `La contraseña debe tener al menos ${PASSWORD_MIN} caracteres`
+  }
+  if (m.includes('email')) return 'El correo no es válido'
+  return mensaje
 }
 
 export async function POST(request: Request) {
   const auth = await requireAdminApi()
   if (!auth.ok) return auth.response
 
-  const { email, nombre, password } = (await request.json()) as CrearEmpleadoInput
+  const body = await leerJson(request)
+  if (!body) return jsonError('Body inválido', 400)
 
-  if (!email || !nombre || !password) {
-    return NextResponse.json(
-      { error: 'Email, nombre y contraseña son requeridos' },
-      { status: 400 }
-    )
+  const email = String(body.email ?? '').trim().toLowerCase()
+  const nombre = String(body.nombre ?? '').trim().slice(0, 80)
+  const password = String(body.password ?? '')
+
+  if (!nombre) return jsonError('El nombre es requerido', 400)
+  if (!isValidEmail(email)) return jsonError('Ingresa un correo válido', 400)
+  if (!isValidPassword(password)) {
+    return jsonError(`La contraseña debe tener al menos ${PASSWORD_MIN} caracteres`, 400)
   }
 
   const admin = createAdminClient()
   const { data: authData, error: authError } = await admin.auth.admin.createUser({
-    email: String(email).trim().toLowerCase(),
-    password: String(password),
+    email,
+    password,
     email_confirm: true,
-    user_metadata: { nombre: String(nombre).trim(), rol: 'empleado' },
+    user_metadata: { nombre },
   })
 
-  if (authError) {
-    return NextResponse.json({ error: authError.message }, { status: 400 })
+  if (authError || !authData.user) {
+    return jsonError(traducirErrorAuth(authError?.message ?? 'No se pudo crear la cuenta'), 400)
   }
 
-  const { supabase } = auth.ctx
-  const { data: perfil } = await supabase
+  // El perfil se crea explícitamente (no dependemos solo del trigger)
+  const { data: perfil, error: perfilError } = await admin
     .from('usuarios')
-    .select('id, nombre, rol, activo, created_at')
-    .eq('id', authData.user.id)
+    .upsert(
+      { id: authData.user.id, nombre, rol: 'empleado', activo: true },
+      { onConflict: 'id' }
+    )
+    .select(CAMPOS_USUARIO)
     .single()
 
-  const usuario: Usuario =
-    perfil ?? {
-      id: authData.user.id,
-      nombre: String(nombre).trim(),
-      rol: 'empleado',
-      activo: true,
-      created_at: new Date().toISOString(),
-    }
-
-  const body: CrearEmpleadoResponse = {
-    mensaje: 'Empleado creado correctamente',
-    usuario,
+  if (perfilError || !perfil) {
+    // Revertir para no dejar cuentas huérfanas
+    await admin.auth.admin.deleteUser(authData.user.id)
+    return jsonError('No se pudo crear el perfil del empleado. Intenta de nuevo.', 500)
   }
 
-  return NextResponse.json(body, { status: 201 })
+  const respuesta: CrearEmpleadoResponse = {
+    mensaje: 'Empleado creado correctamente',
+    usuario: { ...(perfil as Usuario), email },
+  }
+  return NextResponse.json(respuesta, { status: 201 })
 }

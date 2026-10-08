@@ -1,12 +1,12 @@
 'use client'
 
 import { Fragment, useCallback, useEffect, useMemo, useState } from 'react'
-import { format } from 'date-fns'
 import { AnimatePresence, motion } from 'framer-motion'
 import { ChevronDown, Search } from 'lucide-react'
 import { SkeletonTabla } from '@/components/ui/Skeleton'
 import { fadeUp } from '@/lib/animations'
 import { formatFecha, formatPesos, getRangoFecha } from '@/lib/utils'
+import { hoyColombia } from '@/lib/fechas'
 import toast from 'react-hot-toast'
 import type { DetalleVenta, Rol, Venta } from '@/types'
 
@@ -189,7 +189,7 @@ export function HistorialVentas({ usuarioId, rol }: HistorialVentasProps) {
   const [customDesde, setCustomDesde] = useState('')
   const [customHasta, setCustomHasta] = useState('')
   const [ventas, setVentas] = useState<Venta[]>([])
-  const [loading, setLoading] = useState(true)
+  const [rangoCargado, setRangoCargado] = useState<string | null>(null)
   const [busqueda, setBusqueda] = useState('')
   const [expandedId, setExpandedId] = useState<string | null>(null)
 
@@ -202,16 +202,19 @@ export function HistorialVentas({ usuarioId, rol }: HistorialVentasProps) {
     }
     return getRangoFecha(preset)
   }, [preset, customDesde, customHasta])
+  const claveRango = `${rango.desde}|${rango.hasta}`
+  const loading = rangoCargado !== claveRango
 
   const cargarVentas = useCallback(() => {
-    setLoading(true)
-    setExpandedId(null)
     fetch(`/api/ventas?desde=${rango.desde}&hasta=${rango.hasta}`)
       .then((r) => r.json())
-      .then((data: Venta[]) => setVentas(data))
+      .then((data: Venta[]) => {
+        setExpandedId(null)
+        setVentas(Array.isArray(data) ? data : [])
+      })
       .catch(() => toast.error('Error cargando ventas'))
-      .finally(() => setLoading(false))
-  }, [rango.desde, rango.hasta])
+      .finally(() => setRangoCargado(claveRango))
+  }, [rango.desde, rango.hasta, claveRango])
 
   useEffect(() => {
     if (preset === 'custom' && (!customDesde || !customHasta)) return
@@ -247,7 +250,7 @@ export function HistorialVentas({ usuarioId, rol }: HistorialVentasProps) {
       setCustomDesde('')
       setCustomHasta('')
     } else {
-      const hoy = format(new Date(), 'yyyy-MM-dd')
+      const hoy = hoyColombia()
       setCustomDesde((d) => d || hoy)
       setCustomHasta((h) => h || hoy)
     }

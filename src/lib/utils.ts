@@ -1,6 +1,7 @@
 import { format, parseISO, startOfWeek, endOfWeek,
          startOfMonth, endOfMonth, subDays } from 'date-fns'
 import { es } from 'date-fns/locale'
+import { fechaComoDate, hoyColombia } from '@/lib/fechas'
 import type { TallaVaso, TipoVaso } from '@/types'
 
 const TIPOS_VASO_VALIDOS: TipoVaso[] = ['normal', 'ancho', 'angosto']
@@ -53,7 +54,7 @@ export function formatFecha(fecha: string): string {
 }
 
 export function formatFechaHoy() {
-  return format(new Date(), "EEEE, d 'de' MMMM", { locale: es })
+  return format(fechaComoDate(hoyColombia()), "EEEE, d 'de' MMMM", { locale: es })
 }
 
 export function getIniciales(nombre: string) {
@@ -65,17 +66,27 @@ export function getIniciales(nombre: string) {
     .join('')
 }
 
-export function generarPassword(longitud = 12): string {
-  const chars =
-    'abcdefghijkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789!@#$'
-  const arr = new Uint8Array(longitud)
+/**
+ * Contraseña fácil de recordar: prefijo del correo + 4 números.
+ * Ej: "carlos.perez@gmail.com" → "carlosperez4821"
+ */
+export function generarPasswordSimple(email: string): string {
+  const prefijo =
+    email
+      .split('@')[0]
+      ?.normalize('NFD')
+      .replace(/[^a-zA-Z0-9]/g, '')
+      .toLowerCase()
+      .slice(0, 12) || 'cholao'
+  const arr = new Uint32Array(1)
   crypto.getRandomValues(arr)
-  return Array.from(arr, (b) => chars[b % chars.length]).join('')
+  const numeros = String(1000 + (arr[0] % 9000))
+  return `${prefijo}${numeros}`
 }
 
 /** Lunes de la semana actual → hoy (para reportes del dashboard) */
 export function getSemanaHastaHoy() {
-  const hoy = new Date()
+  const hoy = fechaComoDate(hoyColombia())
   return {
     desde: format(startOfWeek(hoy, { locale: es }), 'yyyy-MM-dd'),
     hasta: format(hoy, 'yyyy-MM-dd'),
@@ -84,7 +95,7 @@ export function getSemanaHastaHoy() {
 
 /** Últimos 7 días incluyendo hoy */
 export function getUltimos7Dias() {
-  const hoy = new Date()
+  const hoy = fechaComoDate(hoyColombia())
   return {
     desde: format(subDays(hoy, 6), 'yyyy-MM-dd'),
     hasta: format(hoy, 'yyyy-MM-dd'),
@@ -92,7 +103,7 @@ export function getUltimos7Dias() {
 }
 
 export function getRangoFecha(rango: 'hoy' | 'semana' | 'quincena' | 'mes') {
-  const hoy = new Date()
+  const hoy = fechaComoDate(hoyColombia())
   switch (rango) {
     case 'hoy':
       return { desde: format(hoy, 'yyyy-MM-dd'), hasta: format(hoy, 'yyyy-MM-dd') }

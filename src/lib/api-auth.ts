@@ -1,18 +1,24 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
-import type { SupabaseClient } from '@supabase/supabase-js'
-import type { User } from '@supabase/supabase-js'
+import type { SupabaseClient, User } from '@supabase/supabase-js'
+import type { Rol } from '@/types'
 
-type AuthApiContext = {
+export type AuthApiContext = {
   supabase: SupabaseClient
   user: User
+  rol: Rol
+  esAdmin: boolean
 }
 
 type AuthApiResult =
   | { ok: true; ctx: AuthApiContext }
   | { ok: false; response: NextResponse }
 
-/** Sesión activa (admin o empleado) */
+export function jsonError(error: string, status: number) {
+  return NextResponse.json({ error }, { status })
+}
+
+/** Sesión activa (admin o empleado activo) */
 export async function requireAuthApi(): Promise<AuthApiResult> {
   const supabase = await createClient()
   const {
@@ -20,57 +26,41 @@ export async function requireAuthApi(): Promise<AuthApiResult> {
   } = await supabase.auth.getUser()
 
   if (!user) {
-    return {
-      ok: false,
-      response: NextResponse.json({ error: 'No autenticado' }, { status: 401 }),
-    }
+    return { ok: false, response: jsonError('No autenticado', 401) }
   }
 
-  const { data: miUsuario } = await supabase
+  const { data: perfil } = await supabase
     .from('usuarios')
     .select('rol, activo')
     .eq('id', user.id)
-    .single()
+    .maybeSingle()
 
-  if (!miUsuario?.activo) {
-    return {
-      ok: false,
-      response: NextResponse.json({ error: 'No autorizado' }, { status: 403 }),
-    }
+  if (!perfil?.activo) {
+    return { ok: false, response: jsonError('No autorizado', 403) }
   }
 
-  return { ok: true, ctx: { supabase, user } }
+  const rol = perfil.rol as Rol
+  return { ok: true, ctx: { supabase, user, rol, esAdmin: rol === 'admin' } }
 }
 
-type AdminApiContext = AuthApiContext
-
-type AdminApiResult = AuthApiResult
-
-export async function requireAdminApi(): Promise<AdminApiResult> {
-  const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  if (!user) {
-    return {
-      ok: false,
-      response: NextResponse.json({ error: 'No autenticado' }, { status: 401 }),
-    }
+/** Solo admin activo */
+export async function requireAdminApi(): Promise<AuthApiResult> {
+  const auth = await requireAuthApi()
+  if (!auth.ok) return auth
+  if (!auth.ctx.esAdmin) {
+    return { ok: false, response: jsonError('No autorizado', 403) }
   }
+  return auth
+}
 
-  const { data: miUsuario } = await supabase
-    .from('usuarios')
-    .select('rol')
-    .eq('id', user.id)
-    .single()
-
-  if (miUsuario?.rol !== 'admin') {
-    return {
-      ok: false,
-      response: NextResponse.json({ error: 'No autorizado' }, { status: 403 }),
-    }
+/** Lee JSON del body sin lanzar */
+export async function leerJson<T = Record<string, unknown>>(
+  request: Request
+): Promise<T | null> {
+  try {
+    const data = await request.json()
+    return data && typeof data === 'object' ? (data as T) : null
+  } catch {
+    return null
   }
-
-  return { ok: true, ctx: { supabase, user } }
 }

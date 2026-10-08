@@ -17,6 +17,7 @@ import {
   getSemanaHastaHoy,
   getUltimos7Dias,
 } from '@/lib/utils'
+import { fechaComoDate, hoyColombia } from '@/lib/fechas'
 import type { ResumenDia, Rol, Venta } from '@/types'
 
 interface DashboardResumenProps {
@@ -24,11 +25,16 @@ interface DashboardResumenProps {
 }
 
 function totalVasos(venta: Venta) {
-  return venta.detalle?.reduce((acc, d) => acc + d.cantidad, 0) ?? 0
+  return (
+    venta.detalle?.reduce(
+      (acc, d) => acc + ((d.origen ?? 'vaso') === 'vaso' ? d.cantidad : 0),
+      0
+    ) ?? 0
+  )
 }
 
 function fillUltimos7Dias(resumen: ResumenDia[]): ResumenDia[] {
-  const hoy = new Date()
+  const hoy = fechaComoDate(hoyColombia())
   return Array.from({ length: 7 }, (_, i) => {
     const fecha = format(subDays(hoy, 6 - i), 'yyyy-MM-dd')
     return (
@@ -57,7 +63,6 @@ export function DashboardResumen({ rol }: DashboardResumenProps) {
     const { desde: semanaDesde, hasta: semanaHasta } = getSemanaHastaHoy()
     const { desde: chartDesde, hasta: chartHasta } = getUltimos7Dias()
 
-    setLoading(true)
     Promise.all([
       fetch(`/api/ventas?desde=${hoyDesde}&hasta=${hoyHasta}`).then((r) =>
         r.ok ? r.json() : Promise.reject()

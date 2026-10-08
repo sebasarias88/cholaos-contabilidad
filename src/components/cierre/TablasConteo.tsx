@@ -484,7 +484,6 @@ export function TablaProductos({
       <ul className="flex flex-col gap-3 md:hidden">
         {rows.map((row) => {
           const res = resultadoProducto(row)
-          const precio = row.producto.precio ?? 0
           const unidad = row.producto.unidad ?? '—'
 
           return (

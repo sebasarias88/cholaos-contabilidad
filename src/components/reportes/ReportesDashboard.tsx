@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { addDays, differenceInCalendarDays, format, parseISO } from 'date-fns'
-import { Download } from 'lucide-react'
+import { FileSpreadsheet, FileText } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
@@ -10,10 +10,11 @@ import { GraficoIngresosLinea } from '@/components/reportes/GraficoIngresosLinea
 import { GraficoVasosBarras } from '@/components/reportes/GraficoVasosBarras'
 import { Skeleton, SkeletonStat } from '@/components/ui/Skeleton'
 import { fadeUp, staggerContainer } from '@/lib/animations'
-import { downloadReportesCsv } from '@/lib/export-reportes'
+import { exportarReporte as generarArchivo, type FormatoExport } from '@/lib/export-reportes'
 import { formatPesos, getRangoFecha } from '@/lib/utils'
-import { toastError, toastSuccess } from '@/lib/toast'
-import type { ResumenDia, Venta } from '@/types'
+import { hoyColombia } from '@/lib/fechas'
+import { toastError, toastLoading, toastSuccess } from '@/lib/toast'
+import type { CierreDia, ResumenDia, Venta } from '@/types'
 
 type PeriodoPreset = 'hoy' | 'semana' | 'quincena' | 'mes' | 'custom'
 
@@ -185,7 +186,8 @@ export function ReportesDashboard() {
   const [resumen, setResumen] = useState<ResumenDia[]>([])
   const [topProductos, setTopProductos] = useState<ProductoVendido[]>([])
   const [nombreNegocio, setNombreNegocio] = useState('Cholao Oscar')
-  const [loading, setLoading] = useState(true)
+  const [rangoCargado, setRangoCargado] = useState<string | null>(null)
+  const [exportando, setExportando] = useState<FormatoExport | null>(null)
 
   const rango = useMemo(() => {
     if (preset === 'custom') {
@@ -196,9 +198,10 @@ export function ReportesDashboard() {
     }
     return getRangoFecha(preset)
   }, [preset, customDesde, customHasta])
+  const claveRango = `${rango.desde}|${rango.hasta}`
+  const loading = rangoCargado !== claveRango
 
   const cargar = useCallback(() => {
-    setLoading(true)
     Promise.all([
       fetch(`/api/reportes?desde=${rango.desde}&hasta=${rango.hasta}`).then(
         (r) => (r.ok ? r.json() : Promise.reject())
@@ -212,8 +215,8 @@ export function ReportesDashboard() {
         setTopProductos(agruparProductos(ventas))
       })
       .catch(() => toastError('Error cargando reportes'))
-      .finally(() => setLoading(false))
-  }, [rango.desde, rango.hasta])
+      .finally(() => setRangoCargado(claveRango))
+  }, [rango.desde, rango.hasta, claveRango])
 
   useEffect(() => {
     if (preset === 'custom' && (!customDesde || !customHasta)) return
@@ -241,28 +244,33 @@ export function ReportesDashboard() {
       setCustomDesde('')
       setCustomHasta('')
     } else {
-      const hoy = format(new Date(), 'yyyy-MM-dd')
+      const hoy = hoyColombia()
       setCustomDesde((d) => d || hoy)
       setCustomHasta((h) => h || hoy)
     }
   }
 
-  function exportarReporte() {
-    if (loading) return
-    if (resumen.every((d) => d.ingresos === 0 && d.total_vasos === 0) && topProductos.length === 0) {
+  async function exportar(formato: FormatoExport) {
+    if (loading || exportando) return
+    if (
+      resumen.every((d) => d.ingresos === 0 && d.total_vasos === 0) &&
+      topProductos.length === 0
+    ) {
       toastError('No hay datos para exportar en este período')
       return
     }
+    setExportando(formato)
+    const toastId = toastLoading(formato === 'excel' ? 'Generando Excel...' : 'Generando PDF...')
     try {
-      const nombre = downloadReportesCsv({
+      const res = await fetch(`/api/cierres?desde=${rango.desde}&hasta=${rango.hasta}`)
+      if (!res.ok) throw new Error()
+      const cierres = (await res.json()) as CierreDia[]
+      const nombre = await generarArchivo(formato, {
         nombreNegocio,
         desde: rango.desde,
         hasta: rango.hasta,
-        totalIngresos,
-        totalVasos,
-        promedioDiario,
-        diasPeriodo,
         resumen,
+        cierres: Array.isArray(cierres) ? cierres : [],
         productos: topProductos.map((p) => ({
           nombre: p.nombre,
           tipo: p.tipo,
@@ -271,9 +279,11 @@ export function ReportesDashboard() {
           ingresos: p.ingresos,
         })),
       })
-      toastSuccess(`Descargado: ${nombre}`)
+      toastSuccess(`Descargado: ${nombre}`, toastId)
     } catch {
-      toastError('No se pudo exportar el reporte')
+      toastError('No se pudo generar el archivo', toastId)
+    } finally {
+      setExportando(null)
     }
   }
 
@@ -316,16 +326,30 @@ export function ReportesDashboard() {
             </button>
           </div>
         </div>
-        <Button
-          type="button"
-          variant="secondary"
-          className="w-full shrink-0 sm:w-auto"
-          disabled={loading}
-          onClick={exportarReporte}
-        >
-          <Download size={18} className="mr-2" aria-hidden />
-          Exportar
-        </Button>
+        <div className="flex w-full shrink-0 gap-2 sm:w-auto">
+          <Button
+            type="button"
+            variant="secondary"
+            className="flex-1 sm:flex-none"
+            disabled={loading || exportando !== null}
+            loading={exportando === 'excel'}
+            onClick={() => exportar('excel')}
+          >
+            <FileSpreadsheet size={18} className="mr-2" aria-hidden />
+            Excel
+          </Button>
+          <Button
+            type="button"
+            variant="secondary"
+            className="flex-1 sm:flex-none"
+            disabled={loading || exportando !== null}
+            loading={exportando === 'pdf'}
+            onClick={() => exportar('pdf')}
+          >
+            <FileText size={18} className="mr-2" aria-hidden />
+            PDF
+          </Button>
+        </div>
       </div>
 
       {preset === 'custom' && (

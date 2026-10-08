@@ -49,7 +49,6 @@ export function GestionMediosTransferencia() {
   const menuRef = useRef<HTMLDivElement>(null)
 
   const cargar = useCallback(() => {
-    setLoading(true)
     fetch('/api/medios-transferencia?todas=1')
       .then((r) => {
         if (!r.ok) throw new Error()

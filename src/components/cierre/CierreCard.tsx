@@ -270,7 +270,7 @@ function TabProductos({
                 {nombreProd}
               </p>
               {variantes.map((v) => {
-                const precio = v.variante?.precio ?? 0
+                const precio = v.precio_unitario ?? v.variante?.precio ?? 0
                 const subtotal = v.cantidad * precio
                 return (
                   <div
@@ -292,7 +292,7 @@ function TabProductos({
           ))}
 
           {ventasComida.map((v) => {
-            const precio = v.producto?.precio ?? 0
+            const precio = v.precio_unitario ?? v.producto?.precio ?? 0
             const subtotal = v.cantidad * precio
             return (
               <div

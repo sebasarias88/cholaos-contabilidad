@@ -78,7 +78,7 @@ export function NovedadesDrawer({
               </button>
             </div>
             <div
-              data-lenis-prevent
+             
               className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-4"
             >
               <NovedadesVaso

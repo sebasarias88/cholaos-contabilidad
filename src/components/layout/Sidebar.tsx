@@ -34,7 +34,7 @@ function SidebarPanel({
 }) {
   return (
     <aside
-      data-lenis-prevent
+     
       className="flex h-full w-full flex-col border-r border-bg-border bg-bg-surface"
     >
       <div className="flex items-center gap-3 border-b border-bg-border px-5 py-5">

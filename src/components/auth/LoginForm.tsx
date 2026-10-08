@@ -97,7 +97,7 @@ export function LoginForm() {
 
   return (
     <motion.div
-      data-lenis-prevent
+     
       className="relative h-dvh max-h-dvh overflow-hidden bg-bg-base md:h-auto md:min-h-screen md:max-h-none md:grid md:grid-cols-2 md:overflow-visible"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}

@@ -257,7 +257,7 @@ export function CierreCajaShell({
               </div>
 
               <div
-                data-lenis-prevent
+               
                 className="min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain px-5 py-4"
               >
                 <SeccionAcordeon

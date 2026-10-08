@@ -1,5 +1,4 @@
-import { requireAdminApi } from '@/lib/api-auth'
-import { createClient } from '@/lib/supabase/server'
+import { requireAdminApi, requireAuthApi } from '@/lib/api-auth'
 import { NextResponse } from 'next/server'
 import type { CrearMotivoNovedadPayload } from '@/types'
 
@@ -7,12 +6,9 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)
   const todas = searchParams.get('todas') === '1'
 
-  if (todas) {
-    const auth = await requireAdminApi()
-    if (!auth.ok) return auth.response
-  }
-
-  const supabase = await createClient()
+  const auth = todas ? await requireAdminApi() : await requireAuthApi()
+  if (!auth.ok) return auth.response
+  const { supabase } = auth.ctx
   let query = supabase.from('motivos_novedad').select('*').order('orden')
   if (!todas) query = query.eq('activo', true)
 
