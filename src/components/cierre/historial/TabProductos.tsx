@@ -50,7 +50,7 @@ export function TabProductos({
                 key={p.producto_id}
                 className="flex items-center justify-between gap-3 py-2.5 text-sm"
               >
-                <span className="text-text-primary min-w-0 capitalize">
+                <span className="text-text-primary min-w-0">
                   {p.nombre} {p.onzas}oz
                   <span className="text-text-muted ml-2">×{p.cantidad}</span>
                 </span>

@@ -204,17 +204,6 @@
     @apply whitespace-nowrap;
   }
 
-  /* Pastillas de filtro */
-  .filter-pill {
-    @apply inline-flex min-h-10 items-center rounded-full px-4 text-sm font-bold transition-[background-color,color,box-shadow] duration-200;
-  }
-  .filter-pill-active {
-    @apply bg-cocoa text-cocoa-text shadow-soft;
-  }
-  .filter-pill-inactive {
-    @apply border-bg-border bg-bg-surface text-text-secondary hover:border-brand/30 hover:text-text-primary border;
-  }
-
   /* Badges */
   .badge-brand,
   .badge-green,

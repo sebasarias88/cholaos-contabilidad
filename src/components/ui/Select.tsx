@@ -148,10 +148,9 @@ export function Select({
           .join(' ')}
       >
         <span
-          className={[
-            'min-w-0 truncate capitalize',
-            selected ? 'text-text-primary' : 'text-text-muted',
-          ].join(' ')}
+          className={['min-w-0 truncate', selected ? 'text-text-primary' : 'text-text-muted'].join(
+            ' '
+          )}
         >
           {selected?.label ?? placeholder}
         </span>
@@ -188,7 +187,7 @@ export function Select({
                     aria-selected={activa}
                     onClick={() => selectOption(option.value)}
                     className={[
-                      'flex w-full items-center justify-between gap-2 px-3 py-2.5 text-left text-sm capitalize transition-colors',
+                      'flex w-full items-center justify-between gap-2 px-3 py-2.5 text-left text-sm transition-colors',
                       activa
                         ? 'bg-brand-soft text-brand'
                         : 'text-text-primary hover:bg-bg-elevated',

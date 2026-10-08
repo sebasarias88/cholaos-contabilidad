@@ -5,7 +5,7 @@ import { motion } from 'framer-motion'
 import { CheckAnimado } from '@/components/ui/CheckAnimado'
 
 /** Enter salta a la siguiente casilla del conteo (rápido en computador) */
-export function saltarConEnter(e: React.KeyboardEvent<HTMLInputElement>) {
+function saltarConEnter(e: React.KeyboardEvent<HTMLInputElement>) {
   if (e.key !== 'Enter') return
   e.preventDefault()
   const campos = Array.from(

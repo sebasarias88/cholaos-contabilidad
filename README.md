@@ -40,6 +40,6 @@ Abre [http://localhost:3000](http://localhost:3000).
 
 ## Base de datos
 
-Las migraciones están en `supabase/migrations/` y se ejecutan en orden en el SQL Editor de Supabase.
+El esquema, las políticas RLS y las funciones viven directamente en el proyecto de Supabase. Los cambios a la base de datos se hacen desde el SQL Editor.
 
 Convenciones del código: ver [`AGENTS.md`](AGENTS.md).

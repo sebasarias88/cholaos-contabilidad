@@ -5,8 +5,8 @@ export const LIMITE_BD_BYTES = 500 * 1024 * 1024
 export const TEXTO_CONFIRMACION = 'BORRAR'
 
 /** Umbrales para avisar al admin */
-export const UMBRAL_AVISO = 0.7
-export const UMBRAL_CRITICO = 0.9
+const UMBRAL_AVISO = 0.7
+const UMBRAL_CRITICO = 0.9
 
 export type UsoTabla = { tabla: string; filas: number; bytes: number }
 export type PuntoUso = { fecha: string; bytes: number }
