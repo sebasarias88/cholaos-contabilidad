@@ -21,10 +21,7 @@ export async function GET(request: Request) {
     return jsonError('Fecha inválida', 400)
   }
 
-  let query = supabase
-    .from('ventas')
-    .select(VENTA_SELECT)
-    .order('fecha', { ascending: false })
+  let query = supabase.from('ventas').select(VENTA_SELECT).order('fecha', { ascending: false })
 
   if (desde) query = query.gte('fecha', desde)
   if (hasta) query = query.lte('fecha', hasta)

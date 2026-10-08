@@ -23,15 +23,13 @@ export function SeccionHeader({
         <span className="text-lg" aria-hidden>
           {emoji}
         </span>
-        <h3 className="font-display text-base font-semibold text-text-primary">
-          {titulo}
-        </h3>
-        <span className="shrink-0 rounded-full bg-bg-elevated px-2 py-0.5 text-xs font-medium text-text-secondary tabular-nums">
+        <h3 className="font-display text-text-primary text-base font-semibold">{titulo}</h3>
+        <span className="bg-bg-elevated text-text-secondary shrink-0 rounded-full px-2 py-0.5 text-xs font-medium tabular-nums">
           {cantidad}
         </span>
       </div>
       {esAdmin && totalVendido !== undefined && totalVendido > 0 && (
-        <span className="shrink-0 text-sm font-semibold text-text-primary tabular-nums">
+        <span className="text-text-primary shrink-0 text-sm font-semibold tabular-nums">
           {formatPesos(totalVendido)}
         </span>
       )}

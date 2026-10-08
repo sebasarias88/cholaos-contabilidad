@@ -1,8 +1,4 @@
-import type {
-  DesgloseVasoProducto,
-  NovedadVasoInput,
-  Producto,
-} from '@/types'
+import type { DesgloseVasoProducto, NovedadVasoInput, Producto } from '@/types'
 
 export type ConteoParaVenta = {
   talla_id?: string
@@ -21,9 +17,7 @@ export function vasosGastados(row: ConteoParaVenta): number {
   return Math.max(0, row.cantidad_inicio + nuevos - row.cantidad_final)
 }
 
-export function totalNovedades(row: {
-  novedades?: NovedadVasoInput[]
-}): number {
+export function totalNovedades(row: { novedades?: NovedadVasoInput[] }): number {
   return (row.novedades ?? []).reduce((s, n) => s + n.cantidad, 0)
 }
 
@@ -64,9 +58,7 @@ export function calcularItemsVendidos(
     const vendidos = vendidosReales(conteo)
     if (vendidos === 0) continue
 
-    const productosTalla = productos.filter(
-      (p) => p.activo && p.talla_id === conteo.talla_id
-    )
+    const productosTalla = productos.filter((p) => p.activo && p.talla_id === conteo.talla_id)
 
     const desglose = (conteo.desglose ?? []).filter((d) => d.cantidad > 0)
 
@@ -95,16 +87,6 @@ export function calcularItemsVendidos(
   return items
 }
 
-export function totalVentasDesdeConteoVasos(
-  conteoVasos: ConteoParaVenta[],
-  productos: Producto[]
-): number {
-  return calcularItemsVendidos(conteoVasos, productos).reduce(
-    (s, i) => s + i.cantidad * i.precio_unitario,
-    0
-  )
-}
-
 /** Errores de desglose que bloquean el cierre */
 export function erroresDesgloseVasos(
   conteoVasos: ConteoParaVenta[],
@@ -116,16 +98,12 @@ export function erroresDesgloseVasos(
   for (const row of conteoVasos) {
     if (!row.talla_id) continue
     const vendidos = vendidosReales(row)
-    const productosTalla = productos.filter(
-      (p) => p.activo && p.talla_id === row.talla_id
-    )
+    const productosTalla = productos.filter((p) => p.activo && p.talla_id === row.talla_id)
     const label = etiquetaTalla(row.talla_id)
 
     if (vendidos === 0) {
       if (sumaDesglose(row.desglose) > 0) {
-        errores.push(
-          `${label}: no hay vasos vendidos, pero el desglose tiene cantidades`
-        )
+        errores.push(`${label}: no hay vasos vendidos, pero el desglose tiene cantidades`)
       }
       continue
     }
@@ -150,6 +128,3 @@ export function erroresDesgloseVasos(
 
   return errores
 }
-
-/** @deprecated Usar calcularItemsVendidos */
-export const itemsVendidosDesdeConteoVasos = calcularItemsVendidos

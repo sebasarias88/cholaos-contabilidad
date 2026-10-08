@@ -33,26 +33,23 @@ function SidebarPanel({
   onClose?: () => void
 }) {
   return (
-    <aside
-     
-      className="flex h-full w-full flex-col border-r border-bg-border bg-bg-surface"
-    >
-      <div className="flex items-center gap-3 border-b border-bg-border px-5 py-5">
-        <div className="flex h-10 w-10 items-center justify-center rounded-[var(--radius-md)] bg-accent-cyan-dim shadow-glow-cyan">
+    <aside className="border-bg-border bg-bg-surface flex h-full w-full flex-col border-r">
+      <div className="border-bg-border flex items-center gap-3 border-b px-5 py-5">
+        <div className="bg-accent-cyan-dim shadow-glow-cyan flex h-10 w-10 items-center justify-center rounded-[var(--radius-md)]">
           <Snowflake size={22} className="text-accent-cyan" aria-hidden />
         </div>
         <div className="min-w-0 flex-1">
-          <span className="font-display text-lg font-bold tracking-tight text-text-primary">
+          <span className="font-display text-text-primary text-lg font-bold tracking-tight">
             Cholaos
           </span>
-          <p className="text-[11px] text-text-muted">Contabilidad</p>
+          <p className="text-text-muted text-[11px]">Contabilidad</p>
         </div>
         {showClose && onClose && (
           <button
             type="button"
             aria-label="Cerrar menú"
             onClick={onClose}
-            className="focus-ring-cyan rounded-[var(--radius-sm)] p-1.5 text-text-secondary hover:bg-bg-elevated"
+            className="focus-ring-cyan text-text-secondary hover:bg-bg-elevated rounded-[var(--radius-sm)] p-1.5"
           >
             <X size={20} />
           </button>
@@ -61,36 +58,29 @@ function SidebarPanel({
 
       <nav className="flex flex-1 flex-col gap-1 overflow-y-auto p-3">
         {links.map((link) => (
-          <SidebarNavItem
-            key={link.href}
-            link={link}
-            pathname={pathname}
-            onNavigate={onNavigate}
-          />
+          <SidebarNavItem key={link.href} link={link} pathname={pathname} onNavigate={onNavigate} />
         ))}
       </nav>
 
-      <div className="border-t border-bg-border p-4">
+      <div className="border-bg-border border-t p-4">
         <div className="mb-3 flex items-center gap-3">
           <div
-            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-bg-elevated text-sm font-semibold text-accent-cyan"
+            className="bg-bg-elevated text-accent-cyan flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sm font-semibold"
             aria-hidden
           >
             {usuario ? getIniciales(usuario.nombre) : '?'}
           </div>
           <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-medium text-text-primary">
+            <p className="text-text-primary truncate text-sm font-medium">
               {usuario?.nombre ?? 'Usuario'}
             </p>
-            <p className="text-xs capitalize text-text-secondary">
-              {usuario?.rol ?? '—'}
-            </p>
+            <p className="text-text-secondary text-xs capitalize">{usuario?.rol ?? '—'}</p>
           </div>
         </div>
         <button
           type="button"
           onClick={onLogout}
-          className="focus-ring-cyan flex w-full items-center justify-center gap-2 rounded-[var(--radius-md)] border border-bg-border px-3 py-2 text-sm text-text-secondary transition-surface hover:bg-bg-elevated hover:text-text-primary"
+          className="focus-ring-cyan border-bg-border text-text-secondary transition-surface hover:bg-bg-elevated hover:text-text-primary flex w-full items-center justify-center gap-2 rounded-[var(--radius-md)] border px-3 py-2 text-sm"
         >
           <LogOut size={16} aria-hidden />
           Cerrar sesión
@@ -133,7 +123,7 @@ export function Sidebar({ usuario, open, onClose }: SidebarProps) {
             <motion.button
               type="button"
               aria-label="Cerrar menú"
-              className="fixed inset-0 z-40 bg-bg-base/80 backdrop-blur-sm md:hidden"
+              className="bg-bg-base/80 fixed inset-0 z-40 backdrop-blur-sm md:hidden"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}

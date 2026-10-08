@@ -118,9 +118,10 @@ export async function adjuntarLineasCierre(
       const precio = Number(linea.precio_unitario ?? variante?.precio) || 0
       const nombreProd = variante?.producto?.nombre
       const nombreVar = variante?.nombre
-      const nombre = nombreProd && nombreVar
-        ? `${nombreProd} · ${nombreVar}`
-        : nombreVar ?? nombreProd ?? 'Variante'
+      const nombre =
+        nombreProd && nombreVar
+          ? `${nombreProd} · ${nombreVar}`
+          : (nombreVar ?? nombreProd ?? 'Variante')
       extra.push({
         id: `variante-${linea.id}`,
         venta_id: venta.id,

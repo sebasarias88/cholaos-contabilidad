@@ -16,9 +16,7 @@ function normalizarUpdate(body: ProductoUpdateInput) {
 
   if (body.descripcion !== undefined) {
     patch.descripcion =
-      typeof body.descripcion === 'string'
-        ? body.descripcion.trim() || null
-        : null
+      typeof body.descripcion === 'string' ? body.descripcion.trim() || null : null
   }
 
   if (body.activo !== undefined) {
@@ -33,14 +31,12 @@ function normalizarUpdate(body: ProductoUpdateInput) {
   }
 
   if (body.unidad !== undefined) {
-    patch.unidad =
-      typeof body.unidad === 'string' ? body.unidad.trim() || null : null
+    patch.unidad = typeof body.unidad === 'string' ? body.unidad.trim() || null : null
   }
 
   if (body.onzas !== undefined) {
-    patch.onzas = body.onzas === null || Number.isNaN(Number(body.onzas))
-      ? null
-      : Number(body.onzas)
+    patch.onzas =
+      body.onzas === null || Number.isNaN(Number(body.onzas)) ? null : Number(body.onzas)
   }
 
   if (body.precio !== undefined) {
@@ -63,10 +59,7 @@ function normalizarUpdate(body: ProductoUpdateInput) {
   }
 
   if (body.talla_id !== undefined) {
-    patch.talla_id =
-      typeof body.talla_id === 'string' && body.talla_id
-        ? body.talla_id
-        : null
+    patch.talla_id = typeof body.talla_id === 'string' && body.talla_id ? body.talla_id : null
   }
 
   // Si se cambia a insumo vía payload completo, forzar precio null
@@ -83,10 +76,7 @@ function normalizarUpdate(body: ProductoUpdateInput) {
   return { patch }
 }
 
-export async function PUT(
-  request: Request,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function PUT(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const auth = await requireAdminApi()
   if (!auth.ok) return auth.response
   const { supabase } = auth.ctx
@@ -131,9 +121,7 @@ export async function PUT(
   if (tipoFinal === 'vaso') {
     const onzasFinal = Number(parsed.patch.onzas ?? data.onzas)
     const tallaIdFinal =
-      body.talla_id !== undefined
-        ? body.talla_id
-        : (data.talla_id as string | null)
+      body.talla_id !== undefined ? body.talla_id : (data.talla_id as string | null)
     const bodyExtra = body as ProductoUpdateInput & {
       tipo_vaso?: string
       talla_descripcion?: string | null
@@ -163,10 +151,7 @@ export async function PUT(
   return NextResponse.json(data)
 }
 
-export async function DELETE(
-  _: Request,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function DELETE(_: Request, { params }: { params: Promise<{ id: string }> }) {
   const auth = await requireAdminApi()
   if (!auth.ok) return auth.response
 
@@ -225,8 +210,7 @@ export async function DELETE(
     if (msg.includes('foreign key') || msg.includes('violates')) {
       return NextResponse.json(
         {
-          error:
-            'No se puede eliminar: el producto está en uso. Desactívalo para ocultarlo.',
+          error: 'No se puede eliminar: el producto está en uso. Desactívalo para ocultarlo.',
         },
         { status: 409 }
       )

@@ -20,8 +20,7 @@ export const metadata: Metadata = {
     default: 'Cholao Oscar — Sistema de Gestión',
     template: '%s — Cholao Oscar',
   },
-  description:
-    'Sistema interno de gestión y contabilidad para Cholao Oscar Armenia, Quindío.',
+  description: 'Sistema interno de gestión y contabilidad para Cholao Oscar Armenia, Quindío.',
   robots: {
     index: false,
     follow: false,
@@ -55,30 +54,27 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html
-      lang="es"
-      className={`${syne.variable} ${dmSans.variable} h-full antialiased`}
-    >
-      <body className="min-h-full bg-bg-base font-sans text-text-primary">
-          {children}
-          <Toaster
-            position="bottom-right"
-            toastOptions={{
-              style: {
-                background: '#0F1520',
-                color: '#E8EDF5',
-                border: '1px solid #1E2D45',
-                borderRadius: '10px',
-                fontSize: '14px',
-              },
-              success: {
-                iconTheme: { primary: '#00E5A0', secondary: '#0F1520' },
-              },
-              error: {
-                iconTheme: { primary: '#FF4566', secondary: '#0F1520' },
-              },
-            }}
-          />
+    <html lang="es" className={`${syne.variable} ${dmSans.variable} h-full antialiased`}>
+      <body className="bg-bg-base text-text-primary min-h-full font-sans">
+        {children}
+        <Toaster
+          position="bottom-right"
+          toastOptions={{
+            style: {
+              background: '#0F1520',
+              color: '#E8EDF5',
+              border: '1px solid #1E2D45',
+              borderRadius: '10px',
+              fontSize: '14px',
+            },
+            success: {
+              iconTheme: { primary: '#00E5A0', secondary: '#0F1520' },
+            },
+            error: {
+              iconTheme: { primary: '#FF4566', secondary: '#0F1520' },
+            },
+          }}
+        />
       </body>
     </html>
   )

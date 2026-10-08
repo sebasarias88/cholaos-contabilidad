@@ -32,7 +32,7 @@ export function ProductoSwitch({
       <motion.span
         layout
         transition={{ type: 'spring', stiffness: 500, damping: 32 }}
-        className="absolute top-0.5 left-0.5 block h-5 w-5 rounded-full bg-text-primary shadow-md"
+        className="bg-text-primary absolute top-0.5 left-0.5 block h-5 w-5 rounded-full shadow-md"
         animate={{ x: active ? 20 : 0 }}
       />
     </button>

@@ -1,330 +1,30 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { MoreHorizontal, Plus, Search } from 'lucide-react'
+import { Plus, Search } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { Button } from '@/components/ui/Button'
 import { Modal } from '@/components/ui/Modal'
 import { MenuAccionesPortal } from '@/components/ui/MenuAccionesPortal'
 import { SkeletonTabla } from '@/components/ui/Skeleton'
 import { useMenuAcciones } from '@/hooks/useMenuAcciones'
-import {
-  ProductoSlideOver,
-  type ProductoFormState,
-  type VarianteFormDraft,
-} from '@/components/productos/ProductoSlideOver'
-import { ProductoSwitch } from '@/components/productos/ProductoSwitch'
+import { ProductoSlideOver } from '@/components/productos/ProductoSlideOver'
+import type { ProductoFormState } from '@/lib/productos/formulario'
 import { fadeUp } from '@/lib/animations'
-import {
-  BADGE_TIPO,
-  medidaProducto,
-  tipoProducto,
-} from '@/lib/productos-ui'
-import { formatPesos } from '@/lib/utils'
+import { medidaProducto, tipoProducto } from '@/lib/productos-ui'
 import toast from 'react-hot-toast'
 import { toastError, toastLoading, toastSuccess } from '@/lib/toast'
-import type { Producto, TallaVaso, TipoProducto, VarianteProducto } from '@/types'
+import type { Producto, TallaVaso, TipoProducto } from '@/types'
+import { ProductosLista } from '@/components/productos/ProductosLista'
+import {
+  construirPayloadProducto,
+  formDesdeProducto,
+  formVacio,
+  validarFormProducto,
+} from '@/lib/productos/formulario'
+import { sincronizarVariantes } from '@/lib/productos/variantes-api'
 
 type FiltroTipo = 'todos' | TipoProducto
-
-const formVacio = (): ProductoFormState => ({
-  nombre: '',
-  tipo: 'vaso',
-  onzas: '',
-  unidad: '',
-  precio: '',
-  descripcion: '',
-  tiene_variantes: false,
-  variantes: [],
-  talla_id: '',
-  tipo_vaso: 'normal',
-  talla_descripcion: '',
-})
-
-function formDesdeProducto(p: Producto): ProductoFormState {
-  const tipo = tipoProducto(p)
-  const variantesActivas = (p.variantes ?? []).filter((v) => v.activo)
-  return {
-    nombre: p.nombre,
-    tipo,
-    onzas: p.onzas != null ? String(p.onzas) : '',
-    unidad: p.unidad ?? '',
-    precio: p.precio != null ? String(p.precio) : '',
-    descripcion: p.descripcion ?? '',
-    tiene_variantes: Boolean(p.tiene_variantes),
-    variantes: variantesActivas.map((v) => ({
-      id: v.id,
-      nombre: v.nombre,
-      precio: String(v.precio),
-    })),
-    talla_id: p.talla_id ?? '',
-    tipo_vaso: p.talla?.tipo ?? 'normal',
-    talla_descripcion: p.talla?.descripcion ?? '',
-  }
-}
-
-function buildPayload(form: ProductoFormState) {
-  const nombre = form.nombre.trim()
-  const descripcion = form.descripcion.trim() || undefined
-  const base = { nombre, tipo: form.tipo, descripcion }
-
-  if (form.tipo === 'vaso') {
-    const creandoNueva = !form.talla_id
-    return {
-      ...base,
-      onzas: Number(form.onzas),
-      precio: Number(form.precio),
-      unidad: null,
-      tiene_variantes: false,
-      talla_id: creandoNueva ? null : form.talla_id,
-      crear_talla: creandoNueva,
-      tipo_vaso: form.tipo_vaso,
-      talla_descripcion: form.talla_descripcion.trim() || null,
-    }
-  }
-
-  if (form.tipo === 'comida') {
-    const tiene = form.tiene_variantes
-    return {
-      ...base,
-      unidad: form.unidad.trim(),
-      precio: tiene ? null : Number(form.precio),
-      onzas: null,
-      tiene_variantes: tiene,
-      talla_id: null,
-    }
-  }
-
-  return {
-    ...base,
-    unidad: form.unidad.trim(),
-    precio: null,
-    onzas: null,
-    tiene_variantes: false,
-    talla_id: null,
-  }
-}
-
-function validarForm(form: ProductoFormState): string | null {
-  if (!form.nombre.trim()) return 'El nombre es requerido'
-  if (form.tipo === 'vaso') {
-    if (!form.talla_id) {
-      if (!form.onzas || Number(form.onzas) <= 0) return 'Indica las onzas del vaso'
-    } else if (!form.onzas || Number(form.onzas) <= 0) {
-      return 'El vaso seleccionado no tiene onzas válidas'
-    }
-    if (!form.precio || Number(form.precio) < 0 || Number.isNaN(Number(form.precio))) {
-      return 'Indica un precio válido'
-    }
-  }
-  if (form.tipo === 'comida') {
-    if (!form.unidad.trim()) return 'Indica la unidad'
-    if (form.tiene_variantes) {
-      if (form.variantes.length === 0) return 'Agrega al menos una variante'
-      for (const v of form.variantes) {
-        if (!v.nombre.trim()) return 'Cada variante necesita un nombre'
-        if (!v.precio || Number(v.precio) < 0 || Number.isNaN(Number(v.precio))) {
-          return 'Cada variante necesita un precio válido'
-        }
-      }
-    } else if (
-      !form.precio ||
-      Number(form.precio) < 0 ||
-      Number.isNaN(Number(form.precio))
-    ) {
-      return 'Indica un precio válido'
-    }
-  }
-  if (form.tipo === 'insumo' && !form.unidad.trim()) {
-    return 'Indica la unidad'
-  }
-  return null
-}
-
-async function verificar(res: Response) {
-  if (res.ok) return
-  const data = (await res.json().catch(() => ({}))) as { error?: string }
-  throw new Error(data.error ?? 'Error guardando variantes')
-}
-
-async function sincronizarVariantes(
-  productoId: string,
-  drafts: VarianteFormDraft[],
-  existentes: VarianteProducto[] | undefined,
-  tieneVariantes: boolean
-) {
-  const prev = (existentes ?? []).filter((v) => v.activo)
-
-  if (!tieneVariantes) {
-    const resps = await Promise.all(
-      prev.map((v) => fetch(`/api/variantes/${v.id}`, { method: 'DELETE' }))
-    )
-    for (const r of resps) await verificar(r)
-    return
-  }
-
-  const keepIds = new Set(drafts.map((d) => d.id).filter(Boolean) as string[])
-
-  const borrados = await Promise.all(
-    prev
-      .filter((v) => !keepIds.has(v.id))
-      .map((v) => fetch(`/api/variantes/${v.id}`, { method: 'DELETE' }))
-  )
-  for (const r of borrados) await verificar(r)
-
-  for (let i = 0; i < drafts.length; i++) {
-    const d = drafts[i]
-    const body = {
-      nombre: d.nombre.trim(),
-      precio: Number(d.precio),
-      orden: i + 1,
-      activo: true,
-    }
-
-    const res = d.id
-      ? await fetch(`/api/variantes/${d.id}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(body),
-        })
-      : await fetch('/api/variantes', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ ...body, producto_id: productoId }),
-        })
-    await verificar(res)
-  }
-}
-
-function BotonMenuProducto({
-  abierto,
-  onClick,
-}: {
-  abierto: boolean
-  onClick: (e: React.MouseEvent<HTMLButtonElement>) => void
-}) {
-  return (
-    <button
-      type="button"
-      data-menu-accion
-      aria-label="Acciones del producto"
-      aria-expanded={abierto}
-      onClick={onClick}
-      className="focus-ring-cyan inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-[var(--radius-md)] text-text-secondary hover:bg-bg-elevated hover:text-text-primary"
-    >
-      <MoreHorizontal size={20} />
-    </button>
-  )
-}
-
-function BadgeTipo({ tipo }: { tipo: TipoProducto }) {
-  const badge = BADGE_TIPO[tipo]
-  return (
-    <span
-      className={[
-        'inline-flex shrink-0 items-center rounded-full px-2 py-0.5 text-xs font-medium',
-        badge.className,
-      ].join(' ')}
-    >
-      {badge.label}
-    </span>
-  )
-}
-
-function ProductoEstado({
-  producto,
-  onToggle,
-}: {
-  producto: Producto
-  onToggle: () => void
-}) {
-  return (
-    <ProductoSwitch
-      active={producto.activo}
-      onChange={onToggle}
-      aria-label={producto.activo ? 'Desactivar producto' : 'Activar producto'}
-    />
-  )
-}
-
-function ProductoPrecio({
-  producto,
-  editingPrecioId,
-  precioDraft,
-  onStartEdit,
-  onDraftChange,
-  onSave,
-  onCancel,
-  inputClassName = 'select-field w-28 tabular-nums',
-}: {
-  producto: Producto
-  editingPrecioId: string | null
-  precioDraft: string
-  onStartEdit: () => void
-  onDraftChange: (value: string) => void
-  onSave: () => void
-  onCancel: () => void
-  inputClassName?: string
-}) {
-  const tipo = tipoProducto(producto)
-
-  if (tipo === 'insumo') {
-    return <span className="text-text-muted tabular-nums">—</span>
-  }
-
-  if (producto.tiene_variantes) {
-    const activas = (producto.variantes ?? []).filter((v) => v.activo)
-    if (activas.length === 0) {
-      return <span className="text-xs text-text-muted">Sin variantes</span>
-    }
-    const precios = activas.map((v) => v.precio)
-    const min = Math.min(...precios)
-    const max = Math.max(...precios)
-    return (
-      <span
-        className="inline-block text-sm font-medium text-accent-cyan tabular-nums whitespace-nowrap"
-        title={activas.map((v) => `${v.nombre}: ${formatPesos(v.precio)}`).join(' · ')}
-      >
-        {min === max
-          ? formatPesos(min)
-          : `${formatPesos(min)} – ${formatPesos(max)}`}
-      </span>
-    )
-  }
-
-  if (editingPrecioId === producto.id) {
-    return (
-      <input
-        type="number"
-        min={0}
-        step={1}
-        autoFocus
-        value={precioDraft}
-        onChange={(e) => onDraftChange(e.target.value)}
-        onBlur={onSave}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter') {
-            e.preventDefault()
-            onSave()
-          }
-          if (e.key === 'Escape') onCancel()
-        }}
-        className={inputClassName}
-      />
-    )
-  }
-
-  return (
-    <button
-      type="button"
-      onClick={onStartEdit}
-      className="font-medium text-accent-cyan underline-offset-2 hover:underline tabular-nums"
-      title="Click para editar precio"
-    >
-      {formatPesos(producto.precio ?? 0)}
-    </button>
-  )
-}
 
 export function GestionProductos() {
   const [productos, setProductos] = useState<Producto[]>([])
@@ -401,7 +101,7 @@ export function GestionProductos() {
 
   async function handleSubmitForm(e: React.FormEvent) {
     e.preventDefault()
-    const error = validarForm(form)
+    const error = validarFormProducto(form)
     if (error) {
       toastError(error)
       return
@@ -409,7 +109,7 @@ export function GestionProductos() {
 
     setGuardando(true)
     const toastId = toastLoading('Guardando producto...')
-    const payload = buildPayload(form)
+    const payload = construirPayloadProducto(form)
 
     const res = editando
       ? await fetch(`/api/productos/${editando.id}`, {
@@ -452,10 +152,7 @@ export function GestionProductos() {
     }
 
     setGuardando(false)
-    toastSuccess(
-      editando ? 'Producto actualizado' : 'Producto creado',
-      toastId
-    )
+    toastSuccess(editando ? 'Producto actualizado' : 'Producto creado', toastId)
     cerrarPanel()
     cargarProductos()
     cargarTallas()
@@ -569,7 +266,7 @@ export function GestionProductos() {
         <div className="relative w-full min-w-0 sm:max-w-md sm:flex-1">
           <Search
             size={18}
-            className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-text-muted"
+            className="text-text-muted pointer-events-none absolute top-1/2 left-3 -translate-y-1/2"
             aria-hidden
           />
           <input
@@ -580,11 +277,7 @@ export function GestionProductos() {
             className="select-field select-field--with-icon w-full min-w-0"
           />
         </div>
-        <Button
-          type="button"
-          onClick={abrirNuevo}
-          className="w-full shrink-0 sm:w-auto"
-        >
+        <Button type="button" onClick={abrirNuevo} className="w-full shrink-0 sm:w-auto">
           <Plus size={18} className="mr-2" aria-hidden />
           Nuevo producto
         </Button>
@@ -612,143 +305,33 @@ export function GestionProductos() {
       {loading ? (
         <SkeletonTabla filas={6} />
       ) : filtrados.length === 0 ? (
-        <p className="text-sm text-text-muted">No hay productos que mostrar.</p>
+        <p className="text-text-muted text-sm">No hay productos que mostrar.</p>
       ) : (
         <>
-          {/* Vista móvil: tarjetas */}
-          <ul className="flex flex-col gap-3 md:hidden">
-            {filtrados.map((p) => {
-              const tipo = tipoProducto(p)
-              return (
-                <li
-                  key={p.id}
-                  className="overflow-hidden rounded-[var(--radius-lg)] border border-bg-border bg-bg-surface"
-                >
-                  <div className="p-4">
-                    <div className="flex items-start gap-2">
-                      <div className="min-w-0 flex-1">
-                        <p className="font-medium leading-snug text-text-primary">
-                          {p.nombre}
-                        </p>
-                        <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
-                          <BadgeTipo tipo={tipo} />
-                          <span className="text-xs text-text-secondary tabular-nums">
-                            {medidaProducto(p)}
-                          </span>
-                        </div>
-                      </div>
-                      <BotonMenuProducto
-                        abierto={isOpen(p.id)}
-                        onClick={(e) => toggle(p.id, e)}
-                      />
-                    </div>
-
-                    <div className="mt-4 space-y-3 border-t border-bg-border pt-4">
-                      <div className="flex items-center justify-between gap-3">
-                        <span className="text-sm text-text-muted">Precio</span>
-                        <ProductoPrecio
-                          producto={p}
-                          editingPrecioId={editingPrecioId}
-                          precioDraft={precioDraft}
-                          onStartEdit={() => iniciarEdicionPrecio(p)}
-                          onDraftChange={setPrecioDraft}
-                          onSave={() => guardarPrecioInline(p.id)}
-                          onCancel={() => setEditingPrecioId(null)}
-                          inputClassName="select-field w-full max-w-[10rem] tabular-nums sm:max-w-none sm:w-28"
-                        />
-                      </div>
-                      <div className="flex items-center justify-between gap-3">
-                        <span className="text-sm text-text-muted">Estado</span>
-                        <ProductoEstado
-                          producto={p}
-                          onToggle={() => toggleActivo(p)}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                </li>
-              )
-            })}
-          </ul>
-
-          {/* Vista escritorio: tabla */}
-          <div className="table-surface hidden min-w-0 max-w-full md:block">
-            <table className="data-table">
-              <colgroup>
-                <col style={{ minWidth: '10rem' }} />
-                <col style={{ minWidth: '7.5rem' }} />
-                <col style={{ minWidth: '6.5rem' }} />
-                <col style={{ minWidth: '9rem' }} />
-                <col style={{ minWidth: '5.5rem' }} />
-                <col style={{ minWidth: '4.5rem' }} />
-              </colgroup>
-              <thead>
-                <tr>
-                  <th className="col-name">Nombre</th>
-                  <th className="col-compact">Tipo</th>
-                  <th className="col-compact">Onzas / Unidad</th>
-                  <th className="col-compact">Precio</th>
-                  <th className="col-compact">Estado</th>
-                  <th className="col-compact text-right">Acciones</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filtrados.map((p) => {
-                  const tipo = tipoProducto(p)
-                  return (
-                    <tr key={p.id}>
-                      <td className="col-name font-medium text-text-primary">
-                        {p.nombre}
-                      </td>
-                      <td className="col-compact">
-                        <BadgeTipo tipo={tipo} />
-                      </td>
-                      <td className="col-compact text-text-secondary tabular-nums">
-                        {medidaProducto(p)}
-                      </td>
-                      <td className="col-compact">
-                        <ProductoPrecio
-                          producto={p}
-                          editingPrecioId={editingPrecioId}
-                          precioDraft={precioDraft}
-                          onStartEdit={() => iniciarEdicionPrecio(p)}
-                          onDraftChange={setPrecioDraft}
-                          onSave={() => guardarPrecioInline(p.id)}
-                          onCancel={() => setEditingPrecioId(null)}
-                        />
-                      </td>
-                      <td className="col-compact">
-                        <ProductoEstado
-                          producto={p}
-                          onToggle={() => toggleActivo(p)}
-                        />
-                      </td>
-                      <td className="col-compact text-right">
-                        <BotonMenuProducto
-                          abierto={isOpen(p.id)}
-                          onClick={(e) => toggle(p.id, e)}
-                        />
-                      </td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
-          </div>
+          <ProductosLista
+            productos={filtrados}
+            precio={{
+              editandoId: editingPrecioId,
+              borrador: precioDraft,
+              iniciar: iniciarEdicionPrecio,
+              cambiar: setPrecioDraft,
+              guardar: guardarPrecioInline,
+              cancelar: () => setEditingPrecioId(null),
+            }}
+            menuAbierto={isOpen}
+            onToggleMenu={toggle}
+            onToggleActivo={toggleActivo}
+          />
         </>
       )}
 
-      <MenuAccionesPortal
-        open={!!productoMenu}
-        position={menuPos}
-        menuRef={menuRef}
-      >
+      <MenuAccionesPortal open={!!productoMenu} position={menuPos} menuRef={menuRef}>
         {productoMenu && (
           <>
             <button
               type="button"
               role="menuitem"
-              className="w-full px-3 py-2 text-left text-sm text-text-primary hover:bg-bg-elevated"
+              className="text-text-primary hover:bg-bg-elevated w-full px-3 py-2 text-left text-sm"
               onClick={() => editarDesdeMenu(productoMenu)}
             >
               Editar
@@ -757,7 +340,7 @@ export function GestionProductos() {
               <button
                 type="button"
                 role="menuitem"
-                className="w-full px-3 py-2 text-left text-sm text-text-primary hover:bg-bg-elevated"
+                className="text-text-primary hover:bg-bg-elevated w-full px-3 py-2 text-left text-sm"
                 onClick={() => desactivarDesdeMenu(productoMenu)}
               >
                 Desactivar
@@ -766,17 +349,17 @@ export function GestionProductos() {
               <button
                 type="button"
                 role="menuitem"
-                className="w-full px-3 py-2 text-left text-sm text-accent-green hover:bg-bg-elevated"
+                className="text-accent-green hover:bg-bg-elevated w-full px-3 py-2 text-left text-sm"
                 onClick={() => activarDesdeMenu(productoMenu)}
               >
                 Activar
               </button>
             )}
-            <div className="my-1 border-t border-bg-border" />
+            <div className="border-bg-border my-1 border-t" />
             <button
               type="button"
               role="menuitem"
-              className="w-full px-3 py-2 text-left text-sm text-accent-red hover:bg-bg-elevated"
+              className="text-accent-red hover:bg-bg-elevated w-full px-3 py-2 text-left text-sm"
               onClick={() => pedirEliminar(productoMenu)}
             >
               Eliminar
@@ -801,16 +384,14 @@ export function GestionProductos() {
         onClose={() => !eliminando && setEliminarId(null)}
         title="Eliminar producto"
       >
-        <p className="mb-6 text-sm text-text-secondary">
+        <p className="text-text-secondary mb-6 text-sm">
           ¿Eliminar permanentemente{' '}
-          <span className="font-medium text-text-primary">
+          <span className="text-text-primary font-medium">
             {productoEliminar?.nombre}
-            {productoEliminar
-              ? ` (${medidaProducto(productoEliminar)})`
-              : ''}
+            {productoEliminar ? ` (${medidaProducto(productoEliminar)})` : ''}
           </span>
-          ? Esta acción no se puede deshacer. Si el producto ya tiene ventas, no
-          se podrá borrar (usa Desactivar en ese caso).
+          ? Esta acción no se puede deshacer. Si el producto ya tiene ventas, no se podrá borrar
+          (usa Desactivar en ese caso).
         </p>
         <div className="flex gap-3">
           <Button

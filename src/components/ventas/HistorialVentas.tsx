@@ -1,28 +1,15 @@
 'use client'
 
-import { Fragment, useCallback, useEffect, useMemo, useState } from 'react'
+import { Fragment, useMemo, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { ChevronDown, Search } from 'lucide-react'
+import { FiltroRango } from '@/components/ui/FiltroRango'
 import { SkeletonTabla } from '@/components/ui/Skeleton'
+import { useApiGet } from '@/hooks/useApiGet'
+import { useRangoFechas } from '@/hooks/useRangoFechas'
 import { fadeUp } from '@/lib/animations'
-import { formatFecha, formatPesos, getRangoFecha } from '@/lib/utils'
-import { hoyColombia } from '@/lib/fechas'
-import toast from 'react-hot-toast'
+import { formatFecha, formatPesos } from '@/lib/utils'
 import type { DetalleVenta, Rol, Venta } from '@/types'
-
-type RangoPreset = 'hoy' | 'semana' | 'quincena' | 'mes' | 'custom'
-
-const RANGOS: { id: RangoPreset; label: string }[] = [
-  { id: 'hoy', label: 'Hoy' },
-  { id: 'semana', label: 'Esta semana' },
-  { id: 'quincena', label: 'Quincena' },
-  { id: 'mes', label: 'Este mes' },
-]
-
-interface HistorialVentasProps {
-  usuarioId: string
-  rol: Rol
-}
 
 function resumenCantidades(venta: Venta) {
   let vasos = 0
@@ -57,11 +44,7 @@ function medidaLinea(d: DetalleVenta) {
 
 function RolBadge({ rol }: { rol: Rol }) {
   return (
-    <span
-      className={
-        rol === 'admin' ? 'badge-cyan shrink-0' : 'badge-green shrink-0'
-      }
-    >
+    <span className={rol === 'admin' ? 'badge-cyan shrink-0' : 'badge-green shrink-0'}>
       {rol === 'admin' ? 'Admin' : 'Empleado'}
     </span>
   )
@@ -69,33 +52,27 @@ function RolBadge({ rol }: { rol: Rol }) {
 
 function VentaDetallePanel({ venta }: { venta: Venta }) {
   if (!venta.detalle?.length) {
-    return (
-      <p className="text-sm text-text-muted">Sin detalle de productos.</p>
-    )
+    return <p className="text-text-muted text-sm">Sin detalle de productos.</p>
   }
 
   return (
-    <ul className="divide-y divide-bg-border/60">
+    <ul className="divide-bg-border/60 divide-y">
       {venta.detalle.map((d) => (
         <li key={d.id} className="py-3 first:pt-0 last:pb-0">
-          <p className="font-medium text-text-primary">
-            {d.producto?.nombre ?? '—'}
-          </p>
-          <p className="mt-0.5 text-xs text-text-muted">
+          <p className="text-text-primary font-medium">{d.producto?.nombre ?? '—'}</p>
+          <p className="text-text-muted mt-0.5 text-xs">
             {etiquetaTipo(d)}
             {medidaLinea(d) !== '—' ? ` · ${medidaLinea(d)}` : ''}
           </p>
           <dl className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1.5 text-sm">
             <dt className="text-text-muted">Cantidad</dt>
-            <dd className="text-right text-text-primary tabular-nums">
-              {d.cantidad}
-            </dd>
+            <dd className="text-text-primary text-right tabular-nums">{d.cantidad}</dd>
             <dt className="text-text-muted">Precio unit.</dt>
-            <dd className="text-right text-text-secondary tabular-nums">
+            <dd className="text-text-secondary text-right tabular-nums">
               {formatPesos(d.precio_unitario)}
             </dd>
             <dt className="text-text-muted">Subtotal</dt>
-            <dd className="text-right font-medium text-accent-cyan tabular-nums">
+            <dd className="text-accent-cyan text-right font-medium tabular-nums">
               {formatPesos(d.subtotal)}
             </dd>
           </dl>
@@ -120,10 +97,8 @@ function BotonExpandir({
       aria-label={abierta ? 'Ocultar detalle' : 'Ver detalle'}
       aria-expanded={abierta}
       className={[
-        'focus-ring-cyan inline-flex shrink-0 items-center justify-center rounded-[var(--radius-md)] text-text-secondary hover:bg-bg-elevated hover:text-text-primary',
-        compacto
-          ? 'p-1.5'
-          : 'min-h-11 min-w-11',
+        'focus-ring-cyan text-text-secondary hover:bg-bg-elevated hover:text-text-primary inline-flex shrink-0 items-center justify-center rounded-[var(--radius-md)]',
+        compacto ? 'p-1.5' : 'min-h-11 min-w-11',
       ].join(' ')}
       onClick={onToggle}
     >
@@ -138,123 +113,70 @@ function BotonExpandir({
 /** Detalle en tabla (escritorio) */
 function VentaDetalleTabla({ venta }: { venta: Venta }) {
   if (!venta.detalle?.length) {
-    return (
-      <p className="text-sm text-text-muted">Sin detalle de productos.</p>
-    )
+    return <p className="text-text-muted text-sm">Sin detalle de productos.</p>
   }
 
   return (
-    <div className="table-scroll-wrap min-w-0 max-w-full overflow-x-auto">
+    <div className="table-scroll-wrap max-w-full min-w-0 overflow-x-auto">
       <table className="data-table">
-      <thead>
-        <tr>
-          <th className="col-name">Producto</th>
-          <th className="col-compact min-w-[5.5rem]">Tipo</th>
-          <th className="col-compact min-w-[4.5rem]">Cantidad</th>
-          <th className="col-compact min-w-[6rem]">Precio unit.</th>
-          <th className="col-compact min-w-[6rem] text-right">Subtotal</th>
-        </tr>
-      </thead>
-      <tbody>
-        {venta.detalle.map((d) => (
-          <tr key={d.id}>
-            <td className="col-name text-text-primary">
-              {d.producto?.nombre ?? '—'}
-              {medidaLinea(d) !== '—' && (
-                <span className="mt-0.5 block text-xs text-text-muted">
-                  {medidaLinea(d)}
-                </span>
-              )}
-            </td>
-            <td className="col-compact text-text-secondary">
-              {etiquetaTipo(d)}
-            </td>
-            <td className="col-compact tabular-nums">{d.cantidad}</td>
-            <td className="col-compact text-text-secondary tabular-nums">
-              {formatPesos(d.precio_unitario)}
-            </td>
-            <td className="col-compact text-right font-medium text-accent-cyan tabular-nums">
-              {formatPesos(d.subtotal)}
-            </td>
+        <thead>
+          <tr>
+            <th className="col-name">Producto</th>
+            <th className="col-compact min-w-[5.5rem]">Tipo</th>
+            <th className="col-compact min-w-[4.5rem]">Cantidad</th>
+            <th className="col-compact min-w-[6rem]">Precio unit.</th>
+            <th className="col-compact min-w-[6rem] text-right">Subtotal</th>
           </tr>
-        ))}
-      </tbody>
+        </thead>
+        <tbody>
+          {venta.detalle.map((d) => (
+            <tr key={d.id}>
+              <td className="col-name text-text-primary">
+                {d.producto?.nombre ?? '—'}
+                {medidaLinea(d) !== '—' && (
+                  <span className="text-text-muted mt-0.5 block text-xs">{medidaLinea(d)}</span>
+                )}
+              </td>
+              <td className="col-compact text-text-secondary">{etiquetaTipo(d)}</td>
+              <td className="col-compact tabular-nums">{d.cantidad}</td>
+              <td className="col-compact text-text-secondary tabular-nums">
+                {formatPesos(d.precio_unitario)}
+              </td>
+              <td className="col-compact text-accent-cyan text-right font-medium tabular-nums">
+                {formatPesos(d.subtotal)}
+              </td>
+            </tr>
+          ))}
+        </tbody>
       </table>
     </div>
   )
 }
 
-export function HistorialVentas({ usuarioId, rol }: HistorialVentasProps) {
-  const [preset, setPreset] = useState<RangoPreset>('hoy')
-  const [customDesde, setCustomDesde] = useState('')
-  const [customHasta, setCustomHasta] = useState('')
-  const [ventas, setVentas] = useState<Venta[]>([])
-  const [rangoCargado, setRangoCargado] = useState<string | null>(null)
+export function HistorialVentas() {
+  const filtro = useRangoFechas('hoy')
+  const { rango, completo } = filtro
+  const { data, loading } = useApiGet<Venta[]>(
+    completo ? `/api/ventas?desde=${rango.desde}&hasta=${rango.hasta}` : null
+  )
+  const ventas = useMemo(() => data ?? [], [data])
   const [busqueda, setBusqueda] = useState('')
   const [expandedId, setExpandedId] = useState<string | null>(null)
 
-  const rango = useMemo(() => {
-    if (preset === 'custom') {
-      if (customDesde && customHasta) {
-        return { desde: customDesde, hasta: customHasta }
-      }
-      return getRangoFecha('hoy')
-    }
-    return getRangoFecha(preset)
-  }, [preset, customDesde, customHasta])
-  const claveRango = `${rango.desde}|${rango.hasta}`
-  const loading = rangoCargado !== claveRango
-
-  const cargarVentas = useCallback(() => {
-    fetch(`/api/ventas?desde=${rango.desde}&hasta=${rango.hasta}`)
-      .then((r) => r.json())
-      .then((data: Venta[]) => {
-        setExpandedId(null)
-        setVentas(Array.isArray(data) ? data : [])
-      })
-      .catch(() => toast.error('Error cargando ventas'))
-      .finally(() => setRangoCargado(claveRango))
-  }, [rango.desde, rango.hasta, claveRango])
-
-  useEffect(() => {
-    if (preset === 'custom' && (!customDesde || !customHasta)) return
-    cargarVentas()
-  }, [cargarVentas, preset, customDesde, customHasta])
-
   const ventasFiltradas = useMemo(() => {
-    let list = ventas
-    if (rol === 'empleado') {
-      list = list.filter((v) => v.usuario_id === usuarioId)
-    }
     const q = busqueda.trim().toLowerCase()
-    if (!q) return list
-    return list.filter((v) => {
+    if (!q) return ventas
+    return ventas.filter((v) => {
       const nombre = (v.usuario?.nombre ?? '').toLowerCase()
       const fechaFmt = formatFecha(v.fecha).toLowerCase()
       return (
         nombre.includes(q) ||
         fechaFmt.includes(q) ||
         v.fecha.includes(q) ||
-        (v.detalle ?? []).some((d) =>
-          (d.producto?.nombre ?? '').toLowerCase().includes(q)
-        )
+        (v.detalle ?? []).some((d) => (d.producto?.nombre ?? '').toLowerCase().includes(q))
       )
     })
-  }, [ventas, rol, usuarioId, busqueda])
-
-  const mostrarEmpleado = rol === 'admin'
-
-  function seleccionarPreset(id: RangoPreset) {
-    setPreset(id)
-    if (id !== 'custom') {
-      setCustomDesde('')
-      setCustomHasta('')
-    } else {
-      const hoy = hoyColombia()
-      setCustomDesde((d) => d || hoy)
-      setCustomHasta((h) => h || hoy)
-    }
-  }
+  }, [ventas, busqueda])
 
   function toggleExpand(id: string) {
     setExpandedId((prev) => (prev === id ? null : id))
@@ -268,74 +190,12 @@ export function HistorialVentas({ usuarioId, rol }: HistorialVentasProps) {
       animate="visible"
     >
       <div className="flex min-w-0 flex-col gap-4">
-        <div className="-mx-1 overflow-x-auto px-1 pb-0.5">
-          <div className="flex w-max min-w-full flex-nowrap gap-2 sm:w-auto sm:flex-wrap">
-            {RANGOS.map((r) => (
-              <button
-                key={r.id}
-                type="button"
-                onClick={() => seleccionarPreset(r.id)}
-                className={
-                  preset === r.id
-                    ? 'filter-pill filter-pill-active shrink-0'
-                    : 'filter-pill filter-pill-inactive shrink-0'
-                }
-              >
-                {r.label}
-              </button>
-            ))}
-            <button
-              type="button"
-              onClick={() => seleccionarPreset('custom')}
-              className={
-                preset === 'custom'
-                  ? 'filter-pill filter-pill-active shrink-0'
-                  : 'filter-pill filter-pill-inactive shrink-0'
-              }
-            >
-              Personalizado
-            </button>
-          </div>
-        </div>
-
-        {preset === 'custom' && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            className="grid gap-3 rounded-[var(--radius-lg)] border border-bg-border bg-bg-surface p-4 sm:grid-cols-2 sm:items-end"
-          >
-            <div className="flex min-w-0 flex-col gap-1.5">
-              <label htmlFor="desde" className="text-sm text-text-secondary">
-                Desde
-              </label>
-              <input
-                id="desde"
-                type="date"
-                value={customDesde}
-                onChange={(e) => setCustomDesde(e.target.value)}
-                className="select-field w-full min-w-0"
-              />
-            </div>
-            <div className="flex min-w-0 flex-col gap-1.5">
-              <label htmlFor="hasta" className="text-sm text-text-secondary">
-                Hasta
-              </label>
-              <input
-                id="hasta"
-                type="date"
-                value={customHasta}
-                min={customDesde}
-                onChange={(e) => setCustomHasta(e.target.value)}
-                className="select-field w-full min-w-0"
-              />
-            </div>
-          </motion.div>
-        )}
+        <FiltroRango filtro={filtro} idPrefix="ventas" />
 
         <div className="relative w-full min-w-0 sm:max-w-md">
           <Search
             size={18}
-            className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-text-muted"
+            className="text-text-muted pointer-events-none absolute top-1/2 left-3 -translate-y-1/2"
             aria-hidden
           />
           <input
@@ -346,20 +206,12 @@ export function HistorialVentas({ usuarioId, rol }: HistorialVentasProps) {
             className="select-field select-field--with-icon w-full min-w-0"
           />
         </div>
-
-        {rol === 'empleado' && (
-          <p className="text-sm text-text-secondary">
-            Mostrando solo tus ventas.
-          </p>
-        )}
       </div>
 
-      {loading ? (
+      {loading && !data ? (
         <SkeletonTabla filas={8} />
       ) : ventasFiltradas.length === 0 ? (
-        <p className="text-sm text-text-muted">
-          No hay ventas en este período.
-        </p>
+        <p className="text-text-muted text-sm">No hay ventas en este período.</p>
       ) : (
         <>
           {/* Vista móvil: tarjetas */}
@@ -369,7 +221,7 @@ export function HistorialVentas({ usuarioId, rol }: HistorialVentasProps) {
               return (
                 <li
                   key={venta.id}
-                  className="overflow-hidden rounded-[var(--radius-lg)] border border-bg-border bg-bg-surface"
+                  className="border-bg-border bg-bg-surface overflow-hidden rounded-[var(--radius-lg)] border"
                 >
                   <div className="flex items-start gap-2 p-4">
                     <button
@@ -378,25 +230,19 @@ export function HistorialVentas({ usuarioId, rol }: HistorialVentasProps) {
                       onClick={() => toggleExpand(venta.id)}
                     >
                       <div className="flex items-start justify-between gap-3">
-                        <p className="text-sm font-medium leading-snug text-text-primary">
+                        <p className="text-text-primary text-sm leading-snug font-medium">
                           {formatFecha(venta.fecha)}
                         </p>
-                        <p className="shrink-0 text-base font-semibold text-accent-cyan tabular-nums">
+                        <p className="text-accent-cyan shrink-0 text-base font-semibold tabular-nums">
                           {formatPesos(venta.total)}
                         </p>
                       </div>
                       <div className="mt-2 flex flex-wrap items-center gap-2">
-                        {mostrarEmpleado && (
-                          <span className="max-w-full truncate text-sm text-text-secondary">
-                            {venta.usuario?.nombre ?? '—'}
-                          </span>
-                        )}
-                        {mostrarEmpleado && venta.usuario?.rol && (
-                          <RolBadge rol={venta.usuario.rol} />
-                        )}
-                        <span className="badge-cyan tabular-nums">
-                          {etiquetaCantidades(venta)}
+                        <span className="text-text-secondary max-w-full truncate text-sm">
+                          {venta.usuario?.nombre ?? '—'}
                         </span>
+                        {venta.usuario?.rol && <RolBadge rol={venta.usuario.rol} />}
+                        <span className="badge-cyan tabular-nums">{etiquetaCantidades(venta)}</span>
                       </div>
                     </button>
                     <BotonExpandir
@@ -414,15 +260,13 @@ export function HistorialVentas({ usuarioId, rol }: HistorialVentasProps) {
                         animate={{ height: 'auto', opacity: 1 }}
                         exit={{ height: 0, opacity: 0 }}
                         transition={{ duration: 0.25, ease: 'easeOut' }}
-                        className="overflow-hidden border-t border-bg-border bg-bg-elevated/30"
+                        className="border-bg-border bg-bg-elevated/30 overflow-hidden border-t"
                       >
                         <div className="px-4 py-4">
                           <VentaDetallePanel venta={venta} />
                           {venta.observaciones && (
-                            <p className="mt-3 border-t border-bg-border/50 pt-3 text-sm text-text-secondary">
-                              <span className="font-medium text-text-primary">
-                                Nota:
-                              </span>{' '}
+                            <p className="border-bg-border/50 text-text-secondary mt-3 border-t pt-3 text-sm">
+                              <span className="text-text-primary font-medium">Nota:</span>{' '}
                               {venta.observaciones}
                             </p>
                           )}
@@ -436,14 +280,12 @@ export function HistorialVentas({ usuarioId, rol }: HistorialVentasProps) {
           </ul>
 
           {/* Vista escritorio: tabla */}
-          <div className="table-surface table-surface--expandable hidden min-w-0 max-w-full md:block">
+          <div className="table-surface table-surface--expandable hidden max-w-full min-w-0 md:block">
             <table className="data-table">
               <thead>
                 <tr>
                   <th className="col-compact min-w-[7rem]">Fecha</th>
-                  {mostrarEmpleado && (
-                    <th className="col-name min-w-[8rem]">Empleado</th>
-                  )}
+                  <th className="col-name min-w-[8rem]">Empleado</th>
                   <th className="col-compact min-w-[8rem]">Detalle</th>
                   <th className="col-compact min-w-[6.5rem]">Total</th>
                   <th className="col-compact min-w-[5rem] text-right">Acciones</th>
@@ -452,34 +294,30 @@ export function HistorialVentas({ usuarioId, rol }: HistorialVentasProps) {
               <tbody>
                 {ventasFiltradas.map((venta) => {
                   const abierta = expandedId === venta.id
-                  const colSpan = mostrarEmpleado ? 5 : 4
+                  const colSpan = 5
                   return (
                     <Fragment key={venta.id}>
                       <tr
-                        className="cursor-pointer border-t border-bg-border transition-surface hover:bg-bg-elevated/50"
+                        className="border-bg-border transition-surface hover:bg-bg-elevated/50 cursor-pointer border-t"
                         onClick={() => toggleExpand(venta.id)}
                       >
                         <td className="col-compact text-text-primary">
                           {formatFecha(venta.fecha)}
                         </td>
-                        {mostrarEmpleado && (
-                          <td className="col-name">
-                            <span className="inline-flex flex-wrap items-center gap-1">
-                              <span className="text-text-secondary">
-                                {venta.usuario?.nombre ?? '—'}
-                              </span>
-                              {venta.usuario?.rol && (
-                                <RolBadge rol={venta.usuario.rol} />
-                              )}
+                        <td className="col-name">
+                          <span className="inline-flex flex-wrap items-center gap-1">
+                            <span className="text-text-secondary">
+                              {venta.usuario?.nombre ?? '—'}
                             </span>
-                          </td>
-                        )}
+                            {venta.usuario?.rol && <RolBadge rol={venta.usuario.rol} />}
+                          </span>
+                        </td>
                         <td className="col-compact">
                           <span className="badge-cyan tabular-nums">
                             {etiquetaCantidades(venta)}
                           </span>
                         </td>
-                        <td className="col-compact font-medium text-accent-cyan tabular-nums">
+                        <td className="col-compact text-accent-cyan font-medium tabular-nums">
                           {formatPesos(venta.total)}
                         </td>
                         <td className="col-compact text-right">
@@ -495,17 +333,12 @@ export function HistorialVentas({ usuarioId, rol }: HistorialVentasProps) {
                       </tr>
                       {abierta && (
                         <tr className="bg-bg-elevated/30">
-                          <td
-                            colSpan={colSpan}
-                            className="border-t border-bg-border p-0"
-                          >
+                          <td colSpan={colSpan} className="border-bg-border border-t p-0">
                             <div className="px-4 py-4">
                               <VentaDetalleTabla venta={venta} />
                               {venta.observaciones && (
-                                <p className="mt-3 text-sm text-text-secondary">
-                                  <span className="font-medium text-text-primary">
-                                    Nota:
-                                  </span>{' '}
+                                <p className="text-text-secondary mt-3 text-sm">
+                                  <span className="text-text-primary font-medium">Nota:</span>{' '}
                                   {venta.observaciones}
                                 </p>
                               )}

@@ -1,10 +1,7 @@
 'use client'
 
 import { Fragment } from 'react'
-import {
-  CeldaCantidadDesktop,
-  CeldaCantidadMobile,
-} from '@/components/cierre/ConteoTabla'
+import { CeldaCantidadDesktop, CeldaCantidadMobile } from '@/components/cierre/ConteoTabla'
 import { SeccionHeader } from '@/components/cierre/SeccionHeader'
 import { formatPesos } from '@/lib/utils'
 import type { Producto, VentaComidaInput, VentaVarianteInput } from '@/types'
@@ -59,15 +56,8 @@ export function SeccionComida({
   if (productos.length === 0) {
     return (
       <section>
-        <SeccionHeader
-          emoji="🍕"
-          titulo="Comida"
-          cantidad={0}
-          esAdmin={esAdmin}
-        />
-        <p className="text-sm text-text-muted">
-          No hay productos de comida activos.
-        </p>
+        <SeccionHeader emoji="🍕" titulo="Comida" cantidad={0} esAdmin={esAdmin} />
+        <p className="text-text-muted text-sm">No hay productos de comida activos.</p>
       </section>
     )
   }
@@ -87,16 +77,13 @@ export function SeccionComida({
         {conVariantes.map((producto) => (
           <li
             key={producto.id}
-            className="rounded-[var(--radius-md)] border border-bg-border bg-bg-surface p-3"
+            className="border-bg-border bg-bg-surface rounded-[var(--radius-md)] border p-3"
           >
-            <p className="mb-2 text-sm font-semibold text-text-primary">
-              {producto.nombre}
-            </p>
-            <ul className="divide-y divide-bg-border">
+            <p className="text-text-primary mb-2 text-sm font-semibold">{producto.nombre}</p>
+            <ul className="divide-bg-border divide-y">
               {variantesOrdenadas(producto).map((variante) => {
                 const cantidad =
-                  ventasVariantes.find((v) => v.variante_id === variante.id)
-                    ?.cantidad ?? 0
+                  ventasVariantes.find((v) => v.variante_id === variante.id)?.cantidad ?? 0
                 const subtotal = cantidad * variante.precio
                 return (
                   <li
@@ -104,13 +91,11 @@ export function SeccionComida({
                     className="grid grid-cols-[minmax(0,1fr)_4rem] items-center gap-x-3 py-2.5 first:pt-0 last:pb-0"
                   >
                     <div className="min-w-0">
-                      <p className="truncate text-sm text-text-primary">
-                        {variante.nombre}
-                      </p>
-                      <p className="truncate text-xs text-text-secondary tabular-nums">
+                      <p className="text-text-primary truncate text-sm">{variante.nombre}</p>
+                      <p className="text-text-secondary truncate text-xs tabular-nums">
                         {formatPesos(variante.precio)}
                         {esAdmin && subtotal > 0 && (
-                          <span className="ml-1.5 font-medium text-accent-green">
+                          <span className="text-accent-green ml-1.5 font-medium">
                             · {formatPesos(subtotal)}
                           </span>
                         )}
@@ -122,10 +107,7 @@ export function SeccionComida({
                       disabled={disabled}
                       aria-label={`Cantidad ${producto.nombre} ${variante.nombre}`}
                       onChange={(e) =>
-                        onVarianteChange(
-                          variante.id,
-                          Math.max(0, Number(e.target.value) || 0)
-                        )
+                        onVarianteChange(variante.id, Math.max(0, Number(e.target.value) || 0))
                       }
                     />
                   </li>
@@ -136,28 +118,24 @@ export function SeccionComida({
         ))}
 
         {sinVariantes.map((producto) => {
-          const cantidad =
-            ventasComida.find((v) => v.producto_id === producto.id)?.cantidad ??
-            0
+          const cantidad = ventasComida.find((v) => v.producto_id === producto.id)?.cantidad ?? 0
           const subtotal = cantidad * (producto.precio ?? 0)
           return (
             <li
               key={producto.id}
-              className="grid grid-cols-[minmax(0,1fr)_4rem] items-center gap-x-3 rounded-[var(--radius-md)] border border-bg-border bg-bg-surface p-3"
+              className="border-bg-border bg-bg-surface grid grid-cols-[minmax(0,1fr)_4rem] items-center gap-x-3 rounded-[var(--radius-md)] border p-3"
             >
               <div className="min-w-0">
-                <p className="truncate text-sm font-semibold text-text-primary">
+                <p className="text-text-primary truncate text-sm font-semibold">
                   {producto.nombre}
                 </p>
                 {producto.descripcion && (
-                  <p className="mt-0.5 truncate text-xs text-text-muted">
-                    {producto.descripcion}
-                  </p>
+                  <p className="text-text-muted mt-0.5 truncate text-xs">{producto.descripcion}</p>
                 )}
-                <p className="mt-0.5 truncate text-xs text-text-secondary tabular-nums">
+                <p className="text-text-secondary mt-0.5 truncate text-xs tabular-nums">
                   {producto.precio != null ? formatPesos(producto.precio) : '—'}
                   {esAdmin && subtotal > 0 && (
-                    <span className="ml-1.5 font-medium text-accent-green">
+                    <span className="text-accent-green ml-1.5 font-medium">
                       · {formatPesos(subtotal)}
                     </span>
                   )}
@@ -169,10 +147,7 @@ export function SeccionComida({
                 disabled={disabled}
                 aria-label={`Cantidad ${producto.nombre}`}
                 onChange={(e) =>
-                  onComidaChange(
-                    producto.id,
-                    Math.max(0, Number(e.target.value) || 0)
-                  )
+                  onComidaChange(producto.id, Math.max(0, Number(e.target.value) || 0))
                 }
               />
             </li>
@@ -181,16 +156,14 @@ export function SeccionComida({
       </ul>
 
       {/* Desktop: tabla */}
-      <div className="table-scroll-wrap hidden min-w-0 max-w-full overflow-x-auto rounded-[var(--radius-md)] border border-bg-border md:block">
+      <div className="table-scroll-wrap border-bg-border hidden max-w-full min-w-0 overflow-x-auto rounded-[var(--radius-md)] border md:block">
         <table className="data-table">
           <thead>
             <tr>
               <th className="col-name">Producto / Variante</th>
               <th className="col-compact min-w-[5rem] text-center">Precio</th>
               <th className="col-compact min-w-[4rem] text-center">Cantidad</th>
-              {esAdmin && (
-                <th className="col-compact min-w-[5.5rem] text-right">Total</th>
-              )}
+              {esAdmin && <th className="col-compact min-w-[5.5rem] text-right">Total</th>}
             </tr>
           </thead>
           <tbody>
@@ -198,25 +171,24 @@ export function SeccionComida({
               const variantes = variantesOrdenadas(producto)
               return (
                 <Fragment key={producto.id}>
-                  <tr className="border-t border-bg-border bg-bg-elevated/40">
+                  <tr className="border-bg-border bg-bg-elevated/40 border-t">
                     <td
                       colSpan={colCount}
-                      className="col-name text-xs font-semibold text-text-secondary"
+                      className="col-name text-text-secondary text-xs font-semibold"
                     >
                       {producto.nombre}
                     </td>
                   </tr>
                   {variantes.map((variante) => {
                     const cantidad =
-                      ventasVariantes.find((v) => v.variante_id === variante.id)
-                        ?.cantidad ?? 0
+                      ventasVariantes.find((v) => v.variante_id === variante.id)?.cantidad ?? 0
                     const subtotal = cantidad * variante.precio
                     return (
                       <tr key={variante.id}>
-                        <td className="col-name pl-8 text-sm text-text-primary">
+                        <td className="col-name text-text-primary pl-8 text-sm">
                           {variante.nombre}
                         </td>
-                        <td className="col-compact text-center text-xs text-text-secondary tabular-nums">
+                        <td className="col-compact text-text-secondary text-center text-xs tabular-nums">
                           {formatPesos(variante.precio)}
                         </td>
                         <td className="col-compact text-center">
@@ -235,9 +207,7 @@ export function SeccionComida({
                         {esAdmin && (
                           <td className="col-compact text-right text-xs font-semibold tabular-nums">
                             {subtotal > 0 ? (
-                              <span className="text-accent-green">
-                                {formatPesos(subtotal)}
-                              </span>
+                              <span className="text-accent-green">{formatPesos(subtotal)}</span>
                             ) : (
                               <span className="text-text-muted">—</span>
                             )}
@@ -252,25 +222,18 @@ export function SeccionComida({
 
             {sinVariantes.map((producto) => {
               const cantidad =
-                ventasComida.find((v) => v.producto_id === producto.id)
-                  ?.cantidad ?? 0
+                ventasComida.find((v) => v.producto_id === producto.id)?.cantidad ?? 0
               const subtotal = cantidad * (producto.precio ?? 0)
               return (
                 <tr key={producto.id}>
                   <td className="col-name">
-                    <p className="text-sm font-semibold text-text-primary">
-                      {producto.nombre}
-                    </p>
+                    <p className="text-text-primary text-sm font-semibold">{producto.nombre}</p>
                     {producto.descripcion && (
-                      <p className="text-xs text-text-muted">
-                        {producto.descripcion}
-                      </p>
+                      <p className="text-text-muted text-xs">{producto.descripcion}</p>
                     )}
                   </td>
-                  <td className="col-compact text-center text-xs text-text-secondary tabular-nums">
-                    {producto.precio != null
-                      ? formatPesos(producto.precio)
-                      : '—'}
+                  <td className="col-compact text-text-secondary text-center text-xs tabular-nums">
+                    {producto.precio != null ? formatPesos(producto.precio) : '—'}
                   </td>
                   <td className="col-compact text-center">
                     <CeldaCantidadDesktop
@@ -278,19 +241,14 @@ export function SeccionComida({
                       placeholder="0"
                       disabled={disabled}
                       onChange={(e) =>
-                        onComidaChange(
-                          producto.id,
-                          Math.max(0, Number(e.target.value) || 0)
-                        )
+                        onComidaChange(producto.id, Math.max(0, Number(e.target.value) || 0))
                       }
                     />
                   </td>
                   {esAdmin && (
                     <td className="col-compact text-right text-xs font-semibold tabular-nums">
                       {subtotal > 0 ? (
-                        <span className="text-accent-green">
-                          {formatPesos(subtotal)}
-                        </span>
+                        <span className="text-accent-green">{formatPesos(subtotal)}</span>
                       ) : (
                         <span className="text-text-muted">—</span>
                       )}

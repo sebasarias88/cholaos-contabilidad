@@ -4,10 +4,7 @@ import { NextResponse } from 'next/server'
 import { normalizarVariante } from '@/lib/variantes'
 
 /** PUT /api/variantes/[id] — actualizar (admin) */
-export async function PUT(
-  request: Request,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function PUT(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const auth = await requireAdminApi()
   if (!auth.ok) return auth.response
 
@@ -34,10 +31,7 @@ export async function PUT(
 }
 
 /** DELETE /api/variantes/[id] — soft delete (admin) */
-export async function DELETE(
-  _: Request,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function DELETE(_: Request, { params }: { params: Promise<{ id: string }> }) {
   const auth = await requireAdminApi()
   if (!auth.ok) return auth.response
 

@@ -42,8 +42,7 @@ export async function POST(request: Request) {
 
   const onzas = Number(body.onzas)
   const tipo = body.tipo as TipoVaso | undefined
-  const descripcion =
-    typeof body.descripcion === 'string' ? body.descripcion.trim() : ''
+  const descripcion = typeof body.descripcion === 'string' ? body.descripcion.trim() : ''
 
   if (!Number.isFinite(onzas) || onzas <= 0) {
     return NextResponse.json({ error: 'Onzas inválidas' }, { status: 400 })
@@ -55,9 +54,7 @@ export async function POST(request: Request) {
     )
   }
 
-  const label =
-    descripcion ||
-    (tipo === 'normal' ? `${onzas} oz` : `${onzas} oz ${tipo}`)
+  const label = descripcion || (tipo === 'normal' ? `${onzas} oz` : `${onzas} oz ${tipo}`)
 
   const { data, error } = await supabase
     .from('tallas_vasos')

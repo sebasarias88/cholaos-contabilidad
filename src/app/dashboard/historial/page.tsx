@@ -5,11 +5,11 @@ import { requireAdmin } from '@/lib/auth'
 export const metadata: Metadata = { title: 'Historial de Ventas' }
 
 export default async function HistorialVentasPage() {
-  const usuario = await requireAdmin()
+  await requireAdmin()
 
   return (
     <div className="min-w-0 p-4 sm:p-6">
-      <HistorialVentas usuarioId={usuario.id} rol={usuario.rol} />
+      <HistorialVentas />
     </div>
   )
 }

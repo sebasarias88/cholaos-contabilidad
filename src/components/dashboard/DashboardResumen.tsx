@@ -11,12 +11,7 @@ import { Skeleton, SkeletonStat } from '@/components/ui/Skeleton'
 import { GraficoVentas } from '@/components/reportes/GraficoVentas'
 import { fadeUp, staggerContainer } from '@/lib/animations'
 import toast from 'react-hot-toast'
-import {
-  formatPesos,
-  getRangoFecha,
-  getSemanaHastaHoy,
-  getUltimos7Dias,
-} from '@/lib/utils'
+import { formatPesos, getRangoFecha, getSemanaHastaHoy, getUltimos7Dias } from '@/lib/utils'
 import { fechaComoDate, hoyColombia } from '@/lib/fechas'
 import type { ResumenDia, Rol, Venta } from '@/types'
 
@@ -67,11 +62,11 @@ export function DashboardResumen({ rol }: DashboardResumenProps) {
       fetch(`/api/ventas?desde=${hoyDesde}&hasta=${hoyHasta}`).then((r) =>
         r.ok ? r.json() : Promise.reject()
       ),
-      fetch(`/api/reportes?desde=${semanaDesde}&hasta=${semanaHasta}`).then(
-        (r) => (r.ok ? r.json() : Promise.reject())
+      fetch(`/api/reportes?desde=${semanaDesde}&hasta=${semanaHasta}`).then((r) =>
+        r.ok ? r.json() : Promise.reject()
       ),
-      fetch(`/api/reportes?desde=${chartDesde}&hasta=${chartHasta}`).then(
-        (r) => (r.ok ? r.json() : Promise.reject())
+      fetch(`/api/reportes?desde=${chartDesde}&hasta=${chartHasta}`).then((r) =>
+        r.ok ? r.json() : Promise.reject()
       ),
     ])
       .then(([ventas, semana, chartRaw]: [Venta[], ResumenDia[], ResumenDia[]]) => {
@@ -92,10 +87,7 @@ export function DashboardResumen({ rol }: DashboardResumenProps) {
   )
 
   const ultimasVentas = [...ventasHoy]
-    .sort(
-      (a, b) =>
-        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-    )
+    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
     .slice(0, 5)
 
   const stats = [
@@ -112,9 +104,7 @@ export function DashboardResumen({ rol }: DashboardResumenProps) {
     },
     {
       title: '📈 Mejor día de la semana',
-      value: mejorDia
-        ? formatPesos(mejorDia.ingresos)
-        : formatPesos(0),
+      value: mejorDia ? formatPesos(mejorDia.ingresos) : formatPesos(0),
       description: mejorDia ? formatDiaCorto(mejorDia.fecha) : 'Sin ventas',
       className: 'text-text-primary',
     },
@@ -158,7 +148,7 @@ export function DashboardResumen({ rol }: DashboardResumenProps) {
                 </p>
                 <p
                   className={[
-                    'mt-1 min-h-5 text-xs capitalize text-text-secondary sm:text-sm',
+                    'text-text-secondary mt-1 min-h-5 text-xs capitalize sm:text-sm',
                     !stat.description && 'invisible',
                   ]
                     .filter(Boolean)
@@ -194,9 +184,7 @@ export function DashboardResumen({ rol }: DashboardResumenProps) {
               ))}
             </div>
           ) : ultimasVentas.length === 0 ? (
-            <p className="text-sm text-text-muted">
-              No hay ventas registradas hoy.
-            </p>
+            <p className="text-text-muted text-sm">No hay ventas registradas hoy.</p>
           ) : (
             <>
               {/* Mobile: cards */}
@@ -204,26 +192,26 @@ export function DashboardResumen({ rol }: DashboardResumenProps) {
                 {ultimasVentas.map((venta) => (
                   <li
                     key={venta.id}
-                    className="rounded-[var(--radius-md)] border border-bg-border bg-bg-elevated/30 p-3.5"
+                    className="border-bg-border bg-bg-elevated/30 rounded-[var(--radius-md)] border p-3.5"
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
-                        <p className="font-medium text-text-primary">
+                        <p className="text-text-primary font-medium">
                           {venta.usuario?.nombre ?? 'Vendedor'}
                         </p>
-                        <p className="mt-0.5 text-xs text-text-secondary">
+                        <p className="text-text-secondary mt-0.5 text-xs">
                           {format(parseISO(venta.created_at), 'HH:mm', {
                             locale: es,
                           })}
                         </p>
                       </div>
-                      <p className="shrink-0 text-base font-semibold text-accent-cyan tabular-nums">
+                      <p className="text-accent-cyan shrink-0 text-base font-semibold tabular-nums">
                         {formatPesos(venta.total)}
                       </p>
                     </div>
-                    <div className="mt-3 flex items-center justify-between border-t border-bg-border pt-2.5">
-                      <span className="text-xs text-text-secondary">Vasos</span>
-                      <span className="text-sm font-semibold text-text-primary tabular-nums">
+                    <div className="border-bg-border mt-3 flex items-center justify-between border-t pt-2.5">
+                      <span className="text-text-secondary text-xs">Vasos</span>
+                      <span className="text-text-primary text-sm font-semibold tabular-nums">
                         {totalVasos(venta)}
                       </span>
                     </div>
@@ -232,24 +220,24 @@ export function DashboardResumen({ rol }: DashboardResumenProps) {
               </ul>
 
               {/* Desktop: lista compacta */}
-              <ul className="hidden divide-y divide-bg-border md:block">
+              <ul className="divide-bg-border hidden divide-y md:block">
                 {ultimasVentas.map((venta) => (
                   <li
                     key={venta.id}
                     className="flex items-center justify-between gap-4 py-3 first:pt-0 last:pb-0"
                   >
                     <div className="min-w-0 flex-1">
-                      <p className="font-medium text-text-primary">
+                      <p className="text-text-primary font-medium">
                         {venta.usuario?.nombre ?? 'Vendedor'}
                       </p>
-                      <p className="text-sm text-text-secondary">
+                      <p className="text-text-secondary text-sm">
                         {format(parseISO(venta.created_at), 'HH:mm', {
                           locale: es,
                         })}{' '}
                         · {totalVasos(venta)} vasos
                       </p>
                     </div>
-                    <p className="shrink-0 font-medium text-accent-cyan tabular-nums">
+                    <p className="text-accent-cyan shrink-0 font-medium tabular-nums">
                       {formatPesos(venta.total)}
                     </p>
                   </li>
@@ -263,7 +251,7 @@ export function DashboardResumen({ rol }: DashboardResumenProps) {
       {rol === 'empleado' && (
         <Link
           href="/dashboard/ventas"
-          className="focus-ring-cyan fixed bottom-6 right-6 z-40 inline-flex items-center gap-2 rounded-full bg-accent-cyan px-5 py-3 text-sm font-medium text-bg-base shadow-glow-cyan transition-surface hover:brightness-110 md:hidden"
+          className="focus-ring-cyan bg-accent-cyan text-bg-base shadow-glow-cyan transition-surface fixed right-6 bottom-6 z-40 inline-flex items-center gap-2 rounded-full px-5 py-3 text-sm font-medium hover:brightness-110 md:hidden"
         >
           <ShoppingCart size={20} aria-hidden />
           Registrar Venta

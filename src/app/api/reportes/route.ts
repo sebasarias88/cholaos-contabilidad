@@ -42,7 +42,5 @@ export async function GET(request: Request) {
     })
   }
 
-  return NextResponse.json(
-    [...agrupado.values()].sort((a, b) => a.fecha.localeCompare(b.fecha))
-  )
+  return NextResponse.json([...agrupado.values()].sort((a, b) => a.fecha.localeCompare(b.fecha)))
 }

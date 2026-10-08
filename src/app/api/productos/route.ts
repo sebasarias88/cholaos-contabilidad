@@ -64,10 +64,8 @@ export async function POST(request: Request) {
   const onzas = body.onzas
   const unidad = typeof body.unidad === 'string' ? body.unidad : null
   const precio = body.precio
-  const descripcion =
-    typeof body.descripcion === 'string' ? body.descripcion : null
-  const talla_id =
-    typeof body.talla_id === 'string' && body.talla_id ? body.talla_id : null
+  const descripcion = typeof body.descripcion === 'string' ? body.descripcion : null
+  const talla_id = typeof body.talla_id === 'string' && body.talla_id ? body.talla_id : null
   const tiene_variantes = Boolean(body.tiene_variantes)
 
   if (!nombre.trim()) {
@@ -77,10 +75,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Tipo inválido' }, { status: 400 })
   }
   if (tipo === 'vaso' && !onzas) {
-    return NextResponse.json(
-      { error: 'Las onzas son requeridas para vasos' },
-      { status: 400 }
-    )
+    return NextResponse.json({ error: 'Las onzas son requeridas para vasos' }, { status: 400 })
   }
   if (
     tipo !== 'insumo' &&
@@ -103,10 +98,7 @@ export async function POST(request: Request) {
       tipo,
       onzas: tipo === 'vaso' ? Number(onzas) : null,
       unidad: tipo !== 'vaso' ? unidad!.trim() : null,
-      precio:
-        tipo === 'insumo' || tiene_variantes
-          ? null
-          : Number(precio),
+      precio: tipo === 'insumo' || tiene_variantes ? null : Number(precio),
       descripcion: descripcion?.trim() || null,
       talla_id: null,
       tiene_variantes: tipo === 'comida' ? tiene_variantes : false,
@@ -117,12 +109,9 @@ export async function POST(request: Request) {
   if (error) return NextResponse.json({ error: error.message }, { status: 400 })
 
   if (tipo === 'vaso' && data) {
-    const tipoVaso =
-      typeof body.tipo_vaso === 'string' ? body.tipo_vaso : undefined
+    const tipoVaso = typeof body.tipo_vaso === 'string' ? body.tipo_vaso : undefined
     const descripcionTalla =
-      typeof body.talla_descripcion === 'string'
-        ? body.talla_descripcion
-        : null
+      typeof body.talla_descripcion === 'string' ? body.talla_descripcion : null
 
     const linked = await ensureTallaProducto(supabase, {
       productoId: data.id,

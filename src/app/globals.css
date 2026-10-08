@@ -96,51 +96,51 @@
 
 @layer components {
   .card {
-    @apply rounded-[var(--radius-lg)] border border-bg-border bg-bg-surface;
+    @apply border-bg-border bg-bg-surface rounded-[var(--radius-lg)] border;
   }
 
   .card-hover {
-    @apply rounded-[var(--radius-lg)] border border-bg-border bg-bg-surface transition-colors duration-150 hover:border-accent-cyan/30;
+    @apply border-bg-border bg-bg-surface hover:border-accent-cyan/30 rounded-[var(--radius-lg)] border transition-colors duration-150;
   }
 
   .input {
-    @apply rounded-[var(--radius-md)] border border-bg-border bg-bg-elevated px-3 py-2 text-sm text-text-primary transition-colors duration-150 placeholder:text-text-muted focus:border-accent-cyan focus:outline-none focus:ring-2 focus:ring-accent-cyan/20;
+    @apply border-bg-border bg-bg-elevated text-text-primary placeholder:text-text-muted focus:border-accent-cyan focus:ring-accent-cyan/20 rounded-[var(--radius-md)] border px-3 py-2 text-sm transition-colors duration-150 focus:ring-2 focus:outline-none;
   }
 
   .btn-primary {
-    @apply cursor-pointer rounded-[var(--radius-md)] bg-accent-cyan px-4 py-2 text-sm font-medium text-bg-base transition-opacity duration-150 hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40;
+    @apply bg-accent-cyan text-bg-base cursor-pointer rounded-[var(--radius-md)] px-4 py-2 text-sm font-medium transition-opacity duration-150 hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40;
   }
 
   .btn-secondary {
-    @apply cursor-pointer rounded-[var(--radius-md)] border border-bg-border px-4 py-2 text-sm text-text-primary transition-colors duration-150 hover:border-accent-cyan/30 hover:bg-bg-elevated disabled:cursor-not-allowed;
+    @apply border-bg-border text-text-primary hover:border-accent-cyan/30 hover:bg-bg-elevated cursor-pointer rounded-[var(--radius-md)] border px-4 py-2 text-sm transition-colors duration-150 disabled:cursor-not-allowed;
   }
 
   .btn-danger {
-    @apply cursor-pointer rounded-[var(--radius-md)] bg-accent-red-dim px-4 py-2 text-sm text-accent-red transition-opacity duration-150 hover:opacity-80 disabled:cursor-not-allowed;
+    @apply bg-accent-red-dim text-accent-red cursor-pointer rounded-[var(--radius-md)] px-4 py-2 text-sm transition-opacity duration-150 hover:opacity-80 disabled:cursor-not-allowed;
   }
 
   /* Botón secundario con borde punteado (Agregar, etc.) */
   .btn-add-dashed {
-    @apply inline-flex shrink-0 items-center gap-1 rounded-[var(--radius-md)] border border-dashed border-accent-cyan/45 bg-accent-cyan/5 px-2.5 py-1.5 text-xs font-medium text-accent-cyan transition-colors hover:border-accent-cyan/70 hover:bg-accent-cyan/10;
+    @apply border-accent-cyan/45 bg-accent-cyan/5 text-accent-cyan hover:border-accent-cyan/70 hover:bg-accent-cyan/10 inline-flex shrink-0 items-center gap-1 rounded-[var(--radius-md)] border border-dashed px-2.5 py-1.5 text-xs font-medium transition-colors;
   }
 
   .btn-add-dashed-amber {
-    @apply inline-flex shrink-0 items-center gap-1 rounded-[var(--radius-md)] border border-dashed border-accent-amber/45 bg-accent-amber/5 px-2.5 py-1.5 text-xs font-medium text-accent-amber transition-colors hover:border-accent-amber/70 hover:bg-accent-amber/10;
+    @apply border-accent-amber/45 bg-accent-amber/5 text-accent-amber hover:border-accent-amber/70 hover:bg-accent-amber/10 inline-flex shrink-0 items-center gap-1 rounded-[var(--radius-md)] border border-dashed px-2.5 py-1.5 text-xs font-medium transition-colors;
   }
 
   /* Estado vacío con borde punteado */
   .empty-dashed {
-    @apply rounded-[var(--radius-md)] border border-dashed border-bg-border px-3 py-2.5 text-center text-xs text-text-secondary;
+    @apply border-bg-border text-text-secondary rounded-[var(--radius-md)] border border-dashed px-3 py-2.5 text-center text-xs;
   }
 
   /* Tarjeta / fila con borde visible */
   .surface-bordered {
-    @apply rounded-[var(--radius-md)] border border-bg-border bg-bg-elevated/40;
+    @apply border-bg-border bg-bg-elevated/40 rounded-[var(--radius-md)] border;
   }
 
   /* ── Tablas ── */
   .table-surface {
-    @apply max-w-full overflow-x-auto overflow-y-hidden rounded-[var(--radius-lg)] border border-bg-border bg-bg-surface;
+    @apply border-bg-border bg-bg-surface max-w-full overflow-x-auto overflow-y-hidden rounded-[var(--radius-lg)] border;
     -webkit-overflow-scrolling: touch;
   }
 
@@ -149,7 +149,7 @@
   }
 
   .table-scroll-wrap {
-    @apply min-w-0 max-w-full overflow-x-auto;
+    @apply max-w-full min-w-0 overflow-x-auto;
   }
 
   .data-table,
@@ -171,17 +171,17 @@
 
   .data-table th,
   .table-surface th {
-    @apply text-xs font-medium uppercase tracking-wide whitespace-nowrap text-text-secondary;
+    @apply text-text-secondary text-xs font-medium tracking-wide whitespace-nowrap uppercase;
   }
 
   .data-table tbody tr,
   .table-surface tbody tr {
-    @apply border-t border-bg-border transition-colors duration-150 hover:bg-bg-elevated;
+    @apply border-bg-border hover:bg-bg-elevated border-t transition-colors duration-150;
   }
 
   /* Columna de nombre (puede envolver) */
   .col-name {
-    @apply min-w-[10rem] max-w-[16rem] whitespace-normal;
+    @apply max-w-[16rem] min-w-[10rem] whitespace-normal;
   }
 
   /* Columna compacta (números, badges, acciones) */
@@ -237,12 +237,17 @@ body {
 /* Focus ring cyan */
 .focus-ring-cyan:focus-visible {
   outline: none;
-  box-shadow: 0 0 0 2px var(--bg-base), 0 0 0 4px var(--accent-cyan);
+  box-shadow:
+    0 0 0 2px var(--bg-base),
+    0 0 0 4px var(--accent-cyan);
 }
 
 /* Transición estándar hover */
 .transition-surface {
-  transition: background-color 150ms ease, border-color 150ms ease, color 150ms ease;
+  transition:
+    background-color 150ms ease,
+    border-color 150ms ease,
+    color 150ms ease;
 }
 
 /* Badge utilidades */
@@ -293,13 +298,17 @@ body {
   padding: 0.5rem 0.75rem;
   font-size: 0.875rem;
   color: var(--text-primary);
-  transition: background-color 150ms ease, border-color 150ms ease;
+  transition:
+    background-color 150ms ease,
+    border-color 150ms ease;
 }
 
 .select-field:focus {
   outline: none;
   border-color: var(--accent-cyan);
-  box-shadow: 0 0 0 2px var(--bg-base), 0 0 0 4px var(--accent-cyan);
+  box-shadow:
+    0 0 0 2px var(--bg-base),
+    0 0 0 4px var(--accent-cyan);
 }
 
 /* Icono de búsqueda a la izquierda (padding shorthand de .select-field anula pl-* de Tailwind) */
@@ -315,7 +324,10 @@ body {
   font-size: 0.875rem;
   font-weight: 500;
   text-transform: capitalize;
-  transition: background-color 150ms ease, color 150ms ease, box-shadow 150ms ease;
+  transition:
+    background-color 150ms ease,
+    color 150ms ease,
+    box-shadow 150ms ease;
 }
 
 .filter-pill-active {

@@ -140,7 +140,7 @@ export function Select({
         onClick={() => (open ? closeMenu() : openMenu())}
         className={[
           'select-field flex min-w-0 flex-1 items-center justify-between gap-2 text-left',
-          open ? 'border-accent-cyan ring-2 ring-accent-cyan/20' : '',
+          open ? 'border-accent-cyan ring-accent-cyan/20 ring-2' : '',
           disabled ? 'cursor-not-allowed opacity-50' : '',
           className,
         ]
@@ -159,7 +159,7 @@ export function Select({
           size={16}
           aria-hidden
           className={[
-            'shrink-0 text-text-secondary transition-transform duration-200',
+            'text-text-secondary shrink-0 transition-transform duration-200',
             open ? 'rotate-180' : '',
           ].join(' ')}
         />
@@ -173,13 +173,10 @@ export function Select({
             id={listboxId}
             role="listbox"
             aria-label={ariaLabel}
-           
-            className="scroll-touch fixed z-[250] max-h-56 overflow-y-auto overscroll-contain rounded-[var(--radius-md)] border border-bg-border bg-bg-surface py-1 shadow-xl"
+            className="scroll-touch border-bg-border bg-bg-surface fixed z-[250] max-h-56 overflow-y-auto overscroll-contain rounded-[var(--radius-md)] border py-1 shadow-xl"
           >
             {options.length === 0 ? (
-              <p className="px-3 py-2 text-sm text-text-muted">
-                Sin opciones
-              </p>
+              <p className="text-text-muted px-3 py-2 text-sm">Sin opciones</p>
             ) : (
               options.map((option) => {
                 const activa = option.value === value
@@ -198,9 +195,7 @@ export function Select({
                     ].join(' ')}
                   >
                     <span className="min-w-0 truncate">{option.label}</span>
-                    {activa && (
-                      <Check size={14} className="shrink-0" aria-hidden />
-                    )}
+                    {activa && <Check size={14} className="shrink-0" aria-hidden />}
                   </button>
                 )
               })

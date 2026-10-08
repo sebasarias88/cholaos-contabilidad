@@ -65,8 +65,7 @@ export async function ensureTallaProducto(
   }
 
   const descripcion =
-    input.descripcionTalla?.trim() ||
-    (tipo === 'normal' ? `${onzas} oz` : `${onzas} oz ${tipo}`)
+    input.descripcionTalla?.trim() || (tipo === 'normal' ? `${onzas} oz` : `${onzas} oz ${tipo}`)
 
   const { data: talla, error: insertError } = await supabase
     .from('tallas_vasos')

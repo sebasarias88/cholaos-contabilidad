@@ -1,5 +1,12 @@
-import { format, parseISO, startOfWeek, endOfWeek,
-         startOfMonth, endOfMonth, subDays } from 'date-fns'
+import {
+  format,
+  parseISO,
+  startOfWeek,
+  endOfWeek,
+  startOfMonth,
+  endOfMonth,
+  subDays,
+} from 'date-fns'
 import { es } from 'date-fns/locale'
 import { fechaComoDate, hoyColombia } from '@/lib/fechas'
 import type { TallaVaso, TipoVaso } from '@/types'
@@ -78,10 +85,12 @@ export function generarPasswordSimple(email: string): string {
       .replace(/[^a-zA-Z0-9]/g, '')
       .toLowerCase()
       .slice(0, 12) || 'cholao'
+  // Mínimo 6 caracteres (Supabase): prefijos muy cortos se completan
+  const base = prefijo.length >= 2 ? prefijo : `${prefijo}cholao`
   const arr = new Uint32Array(1)
   crypto.getRandomValues(arr)
   const numeros = String(1000 + (arr[0] % 9000))
-  return `${prefijo}${numeros}`
+  return `${base}${numeros}`
 }
 
 /** Lunes de la semana actual → hoy (para reportes del dashboard) */

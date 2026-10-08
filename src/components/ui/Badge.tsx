@@ -13,12 +13,7 @@ const variants: Record<BadgeVariant, string> = {
   inactivo: 'bg-accent-red-dim text-accent-red',
 }
 
-export function Badge({
-  variant = 'empleado',
-  className,
-  children,
-  ...props
-}: BadgeProps) {
+export function Badge({ variant = 'empleado', className, children, ...props }: BadgeProps) {
   return (
     <span
       className={[

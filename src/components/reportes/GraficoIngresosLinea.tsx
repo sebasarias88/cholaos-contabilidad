@@ -24,19 +24,12 @@ function tickFecha(fecha: string) {
 
 export function GraficoIngresosLinea({ data }: GraficoIngresosLineaProps) {
   if (data.length === 0) {
-    return (
-      <p className="text-sm text-text-muted">
-        Sin datos para el período seleccionado.
-      </p>
-    )
+    return <p className="text-text-muted text-sm">Sin datos para el período seleccionado.</p>
   }
 
   return (
     <ResponsiveContainer width="100%" height="100%">
-      <AreaChart
-        data={data}
-        margin={{ top: 8, right: 4, left: 0, bottom: 0 }}
-      >
+      <AreaChart data={data} margin={{ top: 8, right: 4, left: 0, bottom: 0 }}>
         <defs>
           <linearGradient id="ingresosGradient" x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%" stopColor="#00D4FF" stopOpacity={0.35} />
@@ -59,9 +52,7 @@ export function GraficoIngresosLinea({ data }: GraficoIngresosLineaProps) {
           axisLine={false}
           tickLine={false}
           tickFormatter={(v) =>
-            typeof v === 'number' && v >= 1000
-              ? `${Math.round(v / 1000)}k`
-              : String(v)
+            typeof v === 'number' && v >= 1000 ? `${Math.round(v / 1000)}k` : String(v)
           }
         />
         <Tooltip
@@ -72,9 +63,7 @@ export function GraficoIngresosLinea({ data }: GraficoIngresosLineaProps) {
             color: '#E8EDF5',
           }}
           labelFormatter={(f) => tickFecha(String(f))}
-          formatter={(value) =>
-            formatPesos(typeof value === 'number' ? value : Number(value))
-          }
+          formatter={(value) => formatPesos(typeof value === 'number' ? value : Number(value))}
         />
         <Area
           type="monotone"

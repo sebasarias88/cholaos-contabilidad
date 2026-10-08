@@ -11,14 +11,10 @@ interface CardProps extends HTMLAttributes<HTMLDivElement> {
   fillHeight?: boolean
 }
 
-export function CardHeader({
-  className,
-  children,
-  ...props
-}: HTMLAttributes<HTMLDivElement>) {
+function CardHeader({ className, children, ...props }: HTMLAttributes<HTMLDivElement>) {
   return (
     <div
-      className={['border-b border-bg-border px-4 py-3 sm:px-6 sm:py-4', className]
+      className={['border-bg-border border-b px-4 py-3 sm:px-6 sm:py-4', className]
         .filter(Boolean)
         .join(' ')}
       {...props}
@@ -28,34 +24,18 @@ export function CardHeader({
   )
 }
 
-export function CardBody({
-  className,
-  children,
-  ...props
-}: HTMLAttributes<HTMLDivElement>) {
+function CardBody({ className, children, ...props }: HTMLAttributes<HTMLDivElement>) {
   return (
-    <div
-      className={['px-4 py-3 sm:px-6 sm:py-4', className]
-        .filter(Boolean)
-        .join(' ')}
-      {...props}
-    >
+    <div className={['px-4 py-3 sm:px-6 sm:py-4', className].filter(Boolean).join(' ')} {...props}>
       {children}
     </div>
   )
 }
 
-export function CardFooter({
-  className,
-  children,
-  ...props
-}: HTMLAttributes<HTMLDivElement>) {
+function CardFooter({ className, children, ...props }: HTMLAttributes<HTMLDivElement>) {
   return (
     <div
-      className={[
-        'border-t border-bg-border px-4 py-3 sm:px-6 sm:py-4',
-        className,
-      ]
+      className={['border-bg-border border-t px-4 py-3 sm:px-6 sm:py-4', className]
         .filter(Boolean)
         .join(' ')}
       {...props}
@@ -82,13 +62,11 @@ export function Card({
     (title || description ? (
       <>
         {title && (
-          <h2 className="font-display text-base font-semibold text-text-primary sm:text-lg">
+          <h2 className="font-display text-text-primary text-base font-semibold sm:text-lg">
             {title}
           </h2>
         )}
-        {description && (
-          <p className="mt-1 text-sm text-text-secondary">{description}</p>
-        )}
+        {description && <p className="text-text-secondary mt-1 text-sm">{description}</p>}
       </>
     ) : null)
 
@@ -97,7 +75,7 @@ export function Card({
   return (
     <div
       className={[
-        'overflow-hidden rounded-[var(--radius-lg)] border border-bg-border bg-bg-surface transition-surface',
+        'border-bg-border bg-bg-surface transition-surface overflow-hidden rounded-[var(--radius-lg)] border',
         hover && 'hover:border-accent-cyan/30',
         glow && 'shadow-glow-cyan',
         fillHeight && 'flex h-full flex-col',
@@ -116,13 +94,7 @@ export function Card({
       {useCompoundSlots ? (
         children
       ) : resolvedHeader ? (
-        <CardBody
-          className={
-            fillHeight
-              ? 'flex flex-1 flex-col pt-4'
-              : 'pt-4'
-          }
-        >
+        <CardBody className={fillHeight ? 'flex flex-1 flex-col pt-4' : 'pt-4'}>
           {children}
         </CardBody>
       ) : (

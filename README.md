@@ -34,5 +34,12 @@ Abre [http://localhost:3000](http://localhost:3000).
 - `npm run build` — build de producción
 - `npm run start` — servir build
 - `npm run lint` — ESLint
+- `npm test` — pruebas automáticas (Vitest)
+- `npm run typecheck` — TypeScript
+- `npm run format` — Prettier
+
+## Base de datos
+
+Las migraciones están en `supabase/migrations/` y se ejecutan en orden en el SQL Editor de Supabase.
 
 Convenciones del código: ver [`AGENTS.md`](AGENTS.md).

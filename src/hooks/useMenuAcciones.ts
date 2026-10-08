@@ -4,9 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 
 export function useMenuAcciones() {
   const [menuId, setMenuId] = useState<string | null>(null)
-  const [menuPos, setMenuPos] = useState<{ top: number; left: number } | null>(
-    null
-  )
+  const [menuPos, setMenuPos] = useState<{ top: number; left: number } | null>(null)
   const menuRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {

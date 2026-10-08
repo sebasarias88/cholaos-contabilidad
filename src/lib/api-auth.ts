@@ -10,9 +10,7 @@ export type AuthApiContext = {
   esAdmin: boolean
 }
 
-type AuthApiResult =
-  | { ok: true; ctx: AuthApiContext }
-  | { ok: false; response: NextResponse }
+type AuthApiResult = { ok: true; ctx: AuthApiContext } | { ok: false; response: NextResponse }
 
 export function jsonError(error: string, status: number) {
   return NextResponse.json({ error }, { status })
@@ -54,9 +52,7 @@ export async function requireAdminApi(): Promise<AuthApiResult> {
 }
 
 /** Lee JSON del body sin lanzar */
-export async function leerJson<T = Record<string, unknown>>(
-  request: Request
-): Promise<T | null> {
+export async function leerJson<T = Record<string, unknown>>(request: Request): Promise<T | null> {
   try {
     const data = await request.json()
     return data && typeof data === 'object' ? (data as T) : null

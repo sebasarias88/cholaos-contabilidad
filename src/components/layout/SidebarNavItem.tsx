@@ -19,7 +19,7 @@ export function SidebarNavItem({ link, pathname, onNavigate }: SidebarNavItemPro
     <motion.div whileHover="hover" initial="rest" className="relative">
       {!active && (
         <motion.div
-          className="pointer-events-none absolute inset-0 rounded-[var(--radius-md)] bg-bg-elevated"
+          className="bg-bg-elevated pointer-events-none absolute inset-0 rounded-[var(--radius-md)]"
           variants={{
             rest: { opacity: 0, x: -12 },
             hover: { opacity: 1, x: 0 },
@@ -33,8 +33,8 @@ export function SidebarNavItem({ link, pathname, onNavigate }: SidebarNavItemPro
         className={[
           'relative z-10 flex items-center gap-3 rounded-[var(--radius-md)] px-3 py-2.5 text-sm font-medium transition-colors duration-150',
           active
-            ? 'border-l-2 border-accent-cyan bg-accent-cyan-dim pl-[10px] text-accent-cyan'
-            : 'border-l-2 border-transparent text-text-secondary hover:text-text-primary',
+            ? 'border-accent-cyan bg-accent-cyan-dim text-accent-cyan border-l-2 pl-[10px]'
+            : 'text-text-secondary hover:text-text-primary border-l-2 border-transparent',
         ].join(' ')}
       >
         <Icon size={20} aria-hidden />

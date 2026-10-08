@@ -29,20 +29,14 @@ export async function POST(request: Request) {
   const password = body.password
 
   if (!email || !password) {
-    return NextResponse.json(
-      { error: 'Completa correo y contraseña' },
-      { status: 400 }
-    )
+    return NextResponse.json({ error: 'Completa correo y contraseña' }, { status: 400 })
   }
 
   const supabase = await createClient()
   const { error } = await supabase.auth.signInWithPassword({ email, password })
 
   if (error) {
-    return NextResponse.json(
-      { error: 'Credenciales incorrectas' },
-      { status: 401 }
-    )
+    return NextResponse.json({ error: 'Credenciales incorrectas' }, { status: 401 })
   }
 
   const {
@@ -50,10 +44,7 @@ export async function POST(request: Request) {
   } = await supabase.auth.getUser()
 
   if (!user) {
-    return NextResponse.json(
-      { error: 'Credenciales incorrectas' },
-      { status: 401 }
-    )
+    return NextResponse.json({ error: 'Credenciales incorrectas' }, { status: 401 })
   }
 
   const { data: perfil, error: perfilError } = await supabase
@@ -95,10 +86,7 @@ export async function PATCH(request: Request) {
   const passwordNueva = body.passwordNueva ?? ''
 
   if (!passwordActual || !passwordNueva) {
-    return NextResponse.json(
-      { error: 'Completa todos los campos de contraseña' },
-      { status: 400 }
-    )
+    return NextResponse.json({ error: 'Completa todos los campos de contraseña' }, { status: 400 })
   }
 
   if (!isValidPassword(passwordNueva)) {
@@ -118,10 +106,7 @@ export async function PATCH(request: Request) {
   })
 
   if (loginError) {
-    return NextResponse.json(
-      { error: 'La contraseña actual es incorrecta' },
-      { status: 401 }
-    )
+    return NextResponse.json({ error: 'La contraseña actual es incorrecta' }, { status: 401 })
   }
 
   const { error } = await supabase.auth.updateUser({ password: passwordNueva })

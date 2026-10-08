@@ -55,32 +55,27 @@ export function NovedadesDrawer({
             role="dialog"
             aria-modal
             aria-label={`Novedades — ${titulo}`}
-            className="relative z-10 flex max-h-[min(80dvh,28rem)] w-full max-w-md flex-col overflow-hidden rounded-[var(--radius-lg)] border border-bg-border bg-bg-surface/95 shadow-glow-cyan-strong backdrop-blur-xl"
+            className="border-bg-border bg-bg-surface/95 shadow-glow-cyan-strong relative z-10 flex max-h-[min(80dvh,28rem)] w-full max-w-md flex-col overflow-hidden rounded-[var(--radius-lg)] border backdrop-blur-xl"
             variants={modalContent}
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex shrink-0 items-center justify-between border-b border-bg-border px-5 py-4">
+            <div className="border-bg-border flex shrink-0 items-center justify-between border-b px-5 py-4">
               <div className="min-w-0">
-                <p className="text-[10px] font-medium uppercase tracking-wide text-text-secondary">
+                <p className="text-text-secondary text-[10px] font-medium tracking-wide uppercase">
                   Novedades
                 </p>
-                <p className="truncate text-sm font-semibold text-text-primary">
-                  {titulo}
-                </p>
+                <p className="text-text-primary truncate text-sm font-semibold">{titulo}</p>
               </div>
               <button
                 type="button"
                 aria-label="Cerrar"
                 onClick={onClose}
-                className="flex h-8 w-8 items-center justify-center rounded-[var(--radius-md)] text-text-muted hover:bg-bg-elevated hover:text-text-primary"
+                className="text-text-muted hover:bg-bg-elevated hover:text-text-primary flex h-8 w-8 items-center justify-center rounded-[var(--radius-md)]"
               >
                 <X size={18} />
               </button>
             </div>
-            <div
-             
-              className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-4"
-            >
+            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-4">
               <NovedadesVaso
                 novedades={novedades}
                 motivos={motivos}
