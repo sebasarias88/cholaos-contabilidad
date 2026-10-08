@@ -2,17 +2,18 @@
 
 import { useMemo, useState } from 'react'
 import { differenceInCalendarDays, parseISO } from 'date-fns'
-import { FileSpreadsheet, FileText } from 'lucide-react'
+import { FileSpreadsheet, FileText, CupSoda, TrendingUp, Wallet } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { Button } from '@/components/ui/Button'
+import { TarjetaKpi } from '@/components/dashboard/TarjetaKpi'
 import { Card } from '@/components/ui/Card'
 import { GraficoIngresosLinea } from '@/components/reportes/GraficoIngresosLinea'
 import { GraficoVasosBarras } from '@/components/reportes/GraficoVasosBarras'
-import { Skeleton, SkeletonStat } from '@/components/ui/Skeleton'
+import { Skeleton } from '@/components/ui/Skeleton'
 import { fadeUp, staggerContainer } from '@/lib/animations'
 import type { FormatoExport } from '@/lib/export-reportes'
 import { exportarPeriodo } from '@/lib/exportar-periodo'
-import { formatPesos } from '@/lib/utils'
+import { hoyColombia } from '@/lib/fechas'
 import { toastError, toastLoading, toastSuccess } from '@/lib/toast'
 import type { ResumenDia, Venta } from '@/types'
 import { FiltroRango } from '@/components/ui/FiltroRango'
@@ -35,15 +36,24 @@ export function ReportesDashboard() {
 
   const loading = resumenApi.loading || ventasApi.loading
   const nombreNegocio = configApi.data?.nombre_negocio ?? 'Cholao Oscar'
+  // Días futuros (resto de la semana o del mes) no cuentan para gráficas ni promedio
+  const hoy = hoyColombia()
+  const hastaEfectivo = rango.hasta > hoy ? hoy : rango.hasta
   const resumen = useMemo(
-    () => fillRango(resumenApi.data ?? [], rango.desde, rango.hasta),
-    [resumenApi.data, rango.desde, rango.hasta]
+    () =>
+      rango.desde > hastaEfectivo
+        ? []
+        : fillRango(resumenApi.data ?? [], rango.desde, hastaEfectivo),
+    [resumenApi.data, rango.desde, hastaEfectivo]
   )
   const topProductos = useMemo(() => agruparProductos(ventasApi.data ?? []), [ventasApi.data])
 
   const totalIngresos = resumen.reduce((s, r) => s + r.ingresos, 0)
   const totalVasos = resumen.reduce((s, r) => s + r.total_vasos, 0)
-  const diasPeriodo = differenceInCalendarDays(parseISO(rango.hasta), parseISO(rango.desde)) + 1
+  const diasPeriodo = Math.max(
+    0,
+    differenceInCalendarDays(parseISO(hastaEfectivo), parseISO(rango.desde)) + 1
+  )
   const promedioDiario = diasPeriodo > 0 ? totalIngresos / diasPeriodo : 0
 
   async function exportar(formato: FormatoExport) {
@@ -71,8 +81,6 @@ export function ReportesDashboard() {
       initial="hidden"
       animate="visible"
     >
-      <p className="text-text-secondary text-sm">{nombreNegocio}</p>
-
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0 flex-1">
           <FiltroRango filtro={filtro} idPrefix="reportes" />
@@ -86,7 +94,7 @@ export function ReportesDashboard() {
             loading={exportando === 'excel'}
             onClick={() => exportar('excel')}
           >
-            <FileSpreadsheet size={18} className="mr-2" aria-hidden />
+            <FileSpreadsheet size={18} aria-hidden />
             Excel
           </Button>
           <Button
@@ -97,67 +105,44 @@ export function ReportesDashboard() {
             loading={exportando === 'pdf'}
             onClick={() => exportar('pdf')}
           >
-            <FileText size={18} className="mr-2" aria-hidden />
+            <FileText size={18} aria-hidden />
             PDF
           </Button>
         </div>
       </div>
 
       {loading && !resumenApi.data ? (
-        <motion.div
-          className="grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-4"
-          variants={staggerContainer}
-        >
-          <motion.div variants={fadeUp} className="h-full">
-            <SkeletonStat />
-          </motion.div>
-          <motion.div variants={fadeUp} className="h-full">
-            <SkeletonStat />
-          </motion.div>
-          <motion.div variants={fadeUp} className="h-full">
-            <SkeletonStat />
-          </motion.div>
-        </motion.div>
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <Skeleton key={i} className="h-[122px] rounded-[20px]" />
+          ))}
+        </div>
       ) : (
         <motion.div
-          className="grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-4"
+          className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4"
           variants={staggerContainer}
         >
-          <motion.div variants={fadeUp} className="h-full">
-            <Card title="Ingresos totales" glow fillHeight>
-              <p className="font-display text-accent-cyan text-xl font-bold tabular-nums sm:text-2xl">
-                {formatPesos(totalIngresos)}
-              </p>
-              <p className="text-text-muted invisible mt-1 min-h-5 text-xs" aria-hidden>
-                —
-              </p>
-            </Card>
-          </motion.div>
-          <motion.div variants={fadeUp} className="h-full">
-            <Card title="Total vasos" fillHeight>
-              <p className="font-display text-accent-green text-xl font-bold tabular-nums sm:text-2xl">
-                {totalVasos}
-              </p>
-              <p className="text-text-muted invisible mt-1 min-h-5 text-xs" aria-hidden>
-                —
-              </p>
-            </Card>
-          </motion.div>
-          <motion.div variants={fadeUp} className="h-full">
-            <Card title="Promedio diario" fillHeight>
-              <p className="font-display text-text-primary text-xl font-bold tabular-nums sm:text-2xl">
-                {formatPesos(promedioDiario)}
-              </p>
-              <p className="text-text-muted mt-1 min-h-5 text-xs">
-                {diasPeriodo} día{diasPeriodo !== 1 ? 's' : ''} en el período
-              </p>
-            </Card>
-          </motion.div>
+          <TarjetaKpi titulo="Ingresos totales" valor={totalIngresos} icono={Wallet} tono="brand" />
+          <TarjetaKpi
+            titulo="Vasos vendidos"
+            valor={totalVasos}
+            formato="numero"
+            icono={CupSoda}
+            tono="ok"
+          />
+          <TarjetaKpi
+            titulo="Promedio diario"
+            valor={promedioDiario}
+            icono={TrendingUp}
+            tono="cocoa"
+            className="col-span-2 sm:col-span-1"
+            detalle={`${diasPeriodo} día${diasPeriodo !== 1 ? 's' : ''} en el período`}
+          />
         </motion.div>
       )}
 
       <motion.div variants={fadeUp} className="grid min-w-0 gap-4 sm:gap-6 lg:grid-cols-2">
-        <Card title="Ingresos por día">
+        <Card title="Ingresos por día" fillHeight>
           {loading ? (
             <Skeleton className="h-[200px] w-full sm:h-[300px]" />
           ) : (
@@ -166,7 +151,7 @@ export function ReportesDashboard() {
             </div>
           )}
         </Card>
-        <Card title="Vasos vendidos por día">
+        <Card title="Vasos vendidos por día" fillHeight>
           {loading ? (
             <Skeleton className="h-[200px] w-full sm:h-[300px]" />
           ) : (

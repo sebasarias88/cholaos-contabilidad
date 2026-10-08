@@ -56,6 +56,11 @@ export function parsePesosInput(val: string): number {
   return Number.isFinite(n) ? Math.max(0, Math.floor(n)) : 0
 }
 
+/** Primera letra en mayúscula (fechas en español vienen en minúscula) */
+export function capitalizar(texto: string): string {
+  return texto.charAt(0).toUpperCase() + texto.slice(1)
+}
+
 export function formatFecha(fecha: string): string {
   return format(parseISO(fecha), "d 'de' MMMM yyyy", { locale: es })
 }

@@ -1,24 +1,36 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
-import { motion } from 'framer-motion'
-import { BarraCierre } from '@/components/cierre/caja/BarraCierre'
-import { ResumenCajaModal } from '@/components/cierre/caja/ResumenCajaModal'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { AnimatePresence, motion } from 'framer-motion'
+import { ArrowLeft } from 'lucide-react'
+import { BarraMovil } from '@/components/cierre/caja/BarraMovil'
+import { CajaEnVivo } from '@/components/cierre/caja/CajaEnVivo'
+import { PasoCaja } from '@/components/cierre/caja/PasoCaja'
 import { CierreEncabezado } from '@/components/cierre/CierreEncabezado'
-import { ConfirmarCierreModal } from '@/components/cierre/ConfirmarCierreModal'
 import { NovedadesDrawer } from '@/components/cierre/NovedadesDrawer'
+import { PasoRevisar } from '@/components/cierre/PasoRevisar'
+import { PasosCierre } from '@/components/cierre/PasosCierre'
 import { SeccionComida } from '@/components/cierre/SeccionComida'
-import { SeccionHeader } from '@/components/cierre/SeccionHeader'
 import { TablaInsumos } from '@/components/cierre/TablaInsumos'
 import { TablaVasos } from '@/components/cierre/TablaVasos'
+import { Celebracion } from '@/components/ui/Celebracion'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { useCierreDia } from '@/hooks/useCierreDia'
-import { fadeUp } from '@/lib/animations'
 import { etiquetaVaso } from '@/lib/cierre/estado'
-import { calcularItemsVendidos } from '@/lib/cierre/ventas-vasos'
+import { calcularPasos, type IdPaso } from '@/lib/cierre/pasos'
 import { hoyColombia } from '@/lib/fechas'
 import { toastError } from '@/lib/toast'
+import { formatPesos } from '@/lib/utils'
 import type { Rol } from '@/types'
+
+const AYUDA: Record<IdPaso, string> = {
+  vasos:
+    'Cuenta cuántos vasos llegaron y cuántos quedan. Presiona Enter para pasar a la siguiente casilla.',
+  comida: 'Suma lo que se vendió de comida, bebidas y adiciones.',
+  insumos: 'Cuenta los insumos que quedan (no suman a las ventas).',
+  caja: 'Registra gastos, transferencias y domicilios, y cuenta el dinero de la caja.',
+  revisar: 'Revisa el resumen. Si todo está bien, finaliza el cierre.',
+}
 
 interface FormCierreDiaProps {
   rol: Rol
@@ -28,10 +40,11 @@ interface FormCierreDiaProps {
 
 export function FormCierreDia({ rol, fecha }: FormCierreDiaProps) {
   const cierre = useCierreDia({ fecha, rol })
-  const { estado, productos, porTalla, bloqueado, esAdmin, datos } = cierre
-  const [resumenAbierto, setResumenAbierto] = useState(false)
-  const [confirmarAbierto, setConfirmarAbierto] = useState(false)
+  const { estado, porTalla, bloqueado, esAdmin, datos, esCorreccion } = cierre
+  const [paso, setPaso] = useState<IdPaso>('vasos')
+  const [direccion, setDireccion] = useState(1)
   const [novedadesTallaId, setNovedadesTallaId] = useState<string | null>(null)
+  const [celebrar, setCelebrar] = useState<{ detalle: string } | null>(null)
 
   // Avisar antes de salir con cambios sin guardar
   useEffect(() => {
@@ -41,49 +54,77 @@ export function FormCierreDia({ rol, fecha }: FormCierreDiaProps) {
     return () => window.removeEventListener('beforeunload', avisar)
   }, [cierre.hayCambios, bloqueado])
 
-  const totalVasosPesos = useMemo(
+  const errores = useMemo(() => cierre.validar(true), [cierre])
+  const pasos = useMemo(
     () =>
-      calcularItemsVendidos(estado.vasos, productos).reduce(
-        (s, i) => s + i.cantidad * i.precio_unitario,
-        0
-      ),
-    [estado.vasos, productos]
+      calcularPasos(estado, {
+        hayComida: cierre.productosComida.length > 0,
+        porTalla,
+        errores: errores.length,
+      }),
+    [estado, cierre.productosComida.length, porTalla, errores.length]
+  )
+  const indice = Math.max(
+    0,
+    pasos.findIndex((p) => p.id === paso)
+  )
+  const siguiente = pasos[indice + 1] ?? null
+  const esRevisar = paso === 'revisar'
+
+  const irA = useCallback(
+    (id: IdPaso) => {
+      const nuevo = pasos.findIndex((p) => p.id === id)
+      setDireccion(nuevo >= indice ? 1 : -1)
+      setPaso(id)
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+    },
+    [pasos, indice]
   )
 
-  const filaNovedades = estado.vasos.find((f) => f.talla_id === novedadesTallaId) ?? null
-
-  function pedirFinalizar() {
+  async function finalizar() {
     if (datos && fecha === datos.hoy && hoyColombia() !== datos.hoy) {
       toastError('Cambió el día. Recarga la página para cerrar con la fecha correcta.')
       return
     }
-    const errores = cierre.validar(true)
     if (errores.length > 0) {
       toastError(errores[0])
+      irA('revisar')
       return
     }
-    setConfirmarAbierto(true)
+    const { diferencia } = cierre.cuadre
+    const correccion = esCorreccion
+    const ok = await cierre.guardar(true)
+    if (ok && !correccion) {
+      setCelebrar({
+        detalle:
+          diferencia === 0
+            ? 'La caja cuadró perfecto.'
+            : diferencia < 0
+              ? `Faltaron ${formatPesos(-diferencia)} en caja.`
+              : `Sobraron ${formatPesos(diferencia)} en caja.`,
+      })
+    }
   }
 
-  async function confirmar() {
-    const ok = await cierre.guardar(true)
-    if (ok) setConfirmarAbierto(false)
-  }
+  const filaNovedades = estado.vasos.find((f) => f.talla_id === novedadesTallaId) ?? null
 
   if (cierre.loading && !datos) {
     return (
-      <div className="min-w-0 space-y-4 p-4 sm:p-6">
-        <Skeleton className="h-8 w-56" />
-        <Skeleton className="h-40 w-full rounded-[var(--radius-lg)]" />
-        <Skeleton className="h-56 w-full rounded-[var(--radius-lg)]" />
+      <div className="flex flex-col gap-5 p-4 sm:p-6 lg:p-8">
+        <Skeleton className="h-10 w-72" />
+        <Skeleton className="h-16 w-full rounded-[16px]" />
+        <div className="grid gap-4 md:grid-cols-2">
+          <Skeleton className="h-56 rounded-[20px]" />
+          <Skeleton className="h-56 rounded-[20px]" />
+        </div>
       </div>
     )
   }
 
   if (cierre.error || !datos) {
     return (
-      <div className="p-4 sm:p-6">
-        <p className="border-accent-red/30 bg-accent-red-dim text-accent-red rounded-[var(--radius-md)] border p-4 text-sm">
+      <div className="p-4 sm:p-6 lg:p-8">
+        <p className="border-bad/30 bg-bad-soft text-bad rounded-[var(--radius-lg)] border p-5 font-semibold">
           {cierre.error ?? 'No se pudo cargar el cierre'}
         </p>
       </div>
@@ -91,93 +132,92 @@ export function FormCierreDia({ rol, fecha }: FormCierreDiaProps) {
   }
 
   return (
-    <motion.div
-      className="flex w-full min-w-0 flex-col gap-6 p-4 sm:p-6"
-      variants={fadeUp}
-      initial="hidden"
-      animate="visible"
-    >
+    <div className="flex min-w-0 flex-col gap-5 p-4 sm:p-6 lg:p-8">
       <CierreEncabezado cierre={cierre} fecha={fecha} />
+      <PasosCierre pasos={pasos} actual={paso} onCambiar={irA} />
 
-      <section>
-        <SeccionHeader
-          emoji="🥤"
-          titulo="Vasos"
-          cantidad={estado.vasos.length}
-          totalVendido={totalVasosPesos}
-          esAdmin={esAdmin}
-        />
-        {estado.vasos.length === 0 ? (
-          <p className="text-text-muted text-sm">No hay productos vaso.</p>
-        ) : (
-          <TablaVasos
-            filas={estado.vasos}
-            esAdmin={esAdmin}
-            disabled={bloqueado}
-            productosPorTalla={porTalla}
-            onChange={cierre.actualizarVaso}
-            onDesgloseChange={cierre.actualizarDesglose}
-            onAbrirNovedades={setNovedadesTallaId}
+      <div className="flex items-start gap-6">
+        <div className="min-w-0 flex-1">
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+            <p className="text-text-secondary max-w-2xl text-[15px]">{AYUDA[paso]}</p>
+            {indice > 0 && (
+              <button
+                type="button"
+                onClick={() => irA(pasos[indice - 1].id)}
+                className="focus-ring text-text-secondary hover:text-text-primary inline-flex min-h-10 items-center gap-1.5 text-sm font-bold"
+              >
+                <ArrowLeft size={16} />
+                {pasos[indice - 1].titulo}
+              </button>
+            )}
+          </div>
+
+          <AnimatePresence mode="wait" custom={direccion}>
+            <motion.div
+              key={paso}
+              custom={direccion}
+              initial={{ opacity: 0, x: direccion * 28 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: direccion * -28 }}
+              transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
+            >
+              {paso === 'vasos' &&
+                (estado.vasos.length === 0 ? (
+                  <p className="text-text-secondary">No hay productos tipo vaso activos.</p>
+                ) : (
+                  <TablaVasos
+                    filas={estado.vasos}
+                    esAdmin={esAdmin}
+                    disabled={bloqueado}
+                    productosPorTalla={porTalla}
+                    onChange={cierre.actualizarVaso}
+                    onDesgloseChange={cierre.actualizarDesglose}
+                    onAbrirNovedades={setNovedadesTallaId}
+                  />
+                ))}
+              {paso === 'comida' && (
+                <SeccionComida
+                  productos={cierre.productosComida}
+                  ventasVariantes={estado.ventasVariantes}
+                  ventasComida={estado.ventasComida}
+                  esAdmin={esAdmin}
+                  disabled={bloqueado}
+                  onVarianteChange={cierre.cambiarVariante}
+                  onComidaChange={cierre.cambiarComida}
+                />
+              )}
+              {paso === 'insumos' && (
+                <TablaInsumos
+                  filas={estado.insumos}
+                  disabled={bloqueado}
+                  onChange={cierre.actualizarInsumo}
+                />
+              )}
+              {paso === 'caja' && <PasoCaja cierre={cierre} />}
+              {paso === 'revisar' && <PasoRevisar cierre={cierre} errores={errores} onIrA={irA} />}
+            </motion.div>
+          </AnimatePresence>
+        </div>
+
+        <div className="hidden w-[340px] shrink-0 lg:block">
+          <CajaEnVivo
+            cierre={cierre}
+            textoSiguiente={siguiente?.titulo ?? null}
+            onSiguiente={() => siguiente && irA(siguiente.id)}
+            onFinalizar={finalizar}
+            esRevisar={esRevisar}
           />
-        )}
-      </section>
+        </div>
+      </div>
 
-      <SeccionComida
-        productos={cierre.productosComida}
-        ventasVariantes={estado.ventasVariantes}
-        ventasComida={estado.ventasComida}
-        esAdmin={esAdmin}
-        disabled={bloqueado}
-        onVarianteChange={cierre.cambiarVariante}
-        onComidaChange={cierre.cambiarComida}
-      />
-
-      <section>
-        <SeccionHeader
-          emoji="🧂"
-          titulo="Insumos"
-          cantidad={estado.insumos.length}
-          esAdmin={esAdmin}
-        />
-        {estado.insumos.length === 0 ? (
-          <p className="text-text-muted text-sm">No hay insumos activos.</p>
-        ) : (
-          <TablaInsumos
-            filas={estado.insumos}
-            disabled={bloqueado}
-            onChange={cierre.actualizarInsumo}
-          />
-        )}
-      </section>
-
-      <BarraCierre
+      <BarraMovil
         cierre={cierre}
-        onAbrirResumen={() => setResumenAbierto(true)}
-        onFinalizar={pedirFinalizar}
-      />
-
-      <ResumenCajaModal
-        open={resumenAbierto}
-        onClose={() => setResumenAbierto(false)}
-        cierre={cierre}
-      />
-
-      <ConfirmarCierreModal
-        open={confirmarAbierto}
-        guardando={cierre.guardando === 'finalizar'}
-        esAdmin={esAdmin}
-        esCorreccion={cierre.esCorreccion}
-        fecha={fecha}
-        vasosVendidos={cierre.vasosVendidos}
-        itemsComida={
-          estado.ventasVariantes.reduce((s, v) => s + (v.cantidad || 0), 0) +
-          estado.ventasComida.reduce((s, v) => s + (v.cantidad || 0), 0)
+        textoBoton={
+          esRevisar || esCorreccion ? (esCorreccion ? 'Guardar' : 'Finalizar') : 'Siguiente'
         }
-        cuadre={cierre.cuadre}
-        dineroBase={estado.dineroBase}
-        dineroFinal={estado.dineroFinal}
-        onCancel={() => setConfirmarAbierto(false)}
-        onConfirm={confirmar}
+        onBoton={() =>
+          esRevisar || esCorreccion ? void finalizar() : siguiente && irA(siguiente.id)
+        }
       />
 
       <NovedadesDrawer
@@ -191,6 +231,13 @@ export function FormCierreDia({ rol, fecha }: FormCierreDiaProps) {
           if (novedadesTallaId) cierre.actualizarVaso(novedadesTallaId, 'novedades', novedades)
         }}
       />
-    </motion.div>
+
+      <Celebracion
+        abierta={!!celebrar}
+        titulo="¡Día cerrado!"
+        detalle={celebrar?.detalle}
+        onCerrar={() => setCelebrar(null)}
+      />
+    </div>
   )
 }

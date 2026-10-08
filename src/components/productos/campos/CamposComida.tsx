@@ -66,7 +66,7 @@ export function CamposComida({
           type="checkbox"
           checked={form.tiene_variantes}
           onChange={(e) => setTieneVariantes(e.target.checked)}
-          className="border-bg-border accent-accent-cyan mt-0.5 h-4 w-4 rounded"
+          className="border-bg-border mt-0.5 h-4 w-4 rounded accent-[var(--brand)]"
         />
         <span className="text-text-secondary text-sm leading-snug">
           Tiene variantes de precio (Mesa, Para llevar, Paisa…)
@@ -96,7 +96,7 @@ export function CamposComida({
                 type="button"
                 onClick={() => eliminarVariante(i)}
                 aria-label="Eliminar variante"
-                className="text-text-muted hover:bg-accent-red-dim hover:text-accent-red flex h-9 w-9 shrink-0 items-center justify-center rounded-[var(--radius-md)]"
+                className="text-text-muted hover:bg-bad-soft hover:text-bad flex h-9 w-9 shrink-0 items-center justify-center rounded-[var(--radius-md)]"
               >
                 <X size={14} />
               </button>
@@ -105,7 +105,7 @@ export function CamposComida({
           <button
             type="button"
             onClick={agregarVariante}
-            className="text-accent-cyan inline-flex items-center gap-1 text-xs font-medium hover:underline"
+            className="text-brand inline-flex items-center gap-1 text-xs font-medium hover:underline"
           >
             <Plus size={12} aria-hidden />
             Agregar variante

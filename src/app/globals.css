@@ -1,43 +1,51 @@
 @import 'tailwindcss';
 
+/* ============================================================
+   Cholao Oscar — sistema visual "Fresco"
+   Claro y cálido, con los colores de la marca (coral, verde, mango).
+   ============================================================ */
 :root {
-  --bg-base: #080c10;
-  --bg-surface: #0f1520;
-  --bg-elevated: #162033;
-  --bg-border: #2a4060;
+  /* Superficies */
+  --bg-base: #fff8f1;
+  --bg-surface: #ffffff;
+  --bg-elevated: #fff3e9;
+  --bg-border: #f0e2d3;
 
-  --text-primary: #e8edf5;
-  --text-secondary: #8fa3b8;
-  --text-muted: #5a7088;
+  /* Texto (todas ≥ 4.5:1 sobre blanco) */
+  --text-primary: #2a1a12;
+  --text-secondary: #6e574a;
+  --text-muted: #85695a;
 
-  --accent-cyan: #00d4ff;
-  --accent-cyan-dim: #00d4ff20;
-  --accent-green: #00e5a0;
-  --accent-green-dim: #00e5a020;
-  --accent-red: #ff4566;
-  --accent-red-dim: #ff456620;
-  --accent-amber: #ffb547;
+  /* Marca */
+  --brand: #d14a1f;
+  --brand-strong: #b83e17;
+  --brand-soft: #ffe9dd;
 
-  --radius-sm: 6px;
-  --radius-md: 10px;
-  --radius-lg: 16px;
-  --radius-xl: 24px;
+  /* Estados */
+  --ok: #237a4a;
+  --ok-solid: #2e8b57;
+  --ok-soft: #e6f3ec;
+  --bad: #b4232c;
+  --bad-soft: #fdecec;
+  --warn: #8a5a08;
+  --warn-solid: #f5a524;
+  --warn-soft: #fef3dc;
 
-  --shadow-glow-cyan: 0 0 20px #00d4ff15;
-  --shadow-glow-cyan-strong: 0 0 32px #00d4ff25;
+  /* Café de la marca (menú y paneles oscuros) */
+  --cocoa: #2a1a12;
+  --cocoa-2: #3a2820;
+  --cocoa-3: #4a362b;
+  --cocoa-text: #f7ede4;
+  --cocoa-muted: #c9b5a5;
 
-  /* Header del dashboard (sticky) — altura aprox. para paneles laterales */
-  --dashboard-header-h: 4.25rem;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 20px;
+  --radius-xl: 28px;
 
-  /* aliases para compatibilidad */
-  --background: var(--bg-base);
-  --foreground: var(--text-primary);
-}
-
-@media (min-width: 1024px) {
-  :root {
-    --dashboard-header-h: 5rem;
-  }
+  --shadow-soft: 0 1px 2px rgb(42 26 18 / 0.04), 0 4px 16px rgb(42 26 18 / 0.05);
+  --shadow-pop: 0 10px 40px rgb(42 26 18 / 0.16), 0 2px 8px rgb(42 26 18 / 0.08);
+  --shadow-brand: 0 8px 24px rgb(209 74 31 / 0.28);
 }
 
 @theme inline {
@@ -48,302 +56,241 @@
   --color-text-primary: var(--text-primary);
   --color-text-secondary: var(--text-secondary);
   --color-text-muted: var(--text-muted);
-  --color-accent-cyan: var(--accent-cyan);
-  --color-accent-cyan-dim: var(--accent-cyan-dim);
-  --color-accent-green: var(--accent-green);
-  --color-accent-green-dim: var(--accent-green-dim);
-  --color-accent-red: var(--accent-red);
-  --color-accent-red-dim: var(--accent-red-dim);
-  --color-accent-amber: var(--accent-amber);
-  --font-sans: var(--font-dm-sans);
-  --font-display: var(--font-syne);
+  --color-brand: var(--brand);
+  --color-brand-strong: var(--brand-strong);
+  --color-brand-soft: var(--brand-soft);
+  --color-ok: var(--ok);
+  --color-ok-solid: var(--ok-solid);
+  --color-ok-soft: var(--ok-soft);
+  --color-bad: var(--bad);
+  --color-bad-soft: var(--bad-soft);
+  --color-warn: var(--warn);
+  --color-warn-solid: var(--warn-solid);
+  --color-warn-soft: var(--warn-soft);
+  --color-cocoa: var(--cocoa);
+  --color-cocoa-2: var(--cocoa-2);
+  --color-cocoa-3: var(--cocoa-3);
+  --color-cocoa-text: var(--cocoa-text);
+  --color-cocoa-muted: var(--cocoa-muted);
+  --font-sans: var(--font-manrope), system-ui, sans-serif;
+  --font-display: var(--font-bricolage), system-ui, sans-serif;
   --radius-sm: var(--radius-sm);
   --radius-md: var(--radius-md);
   --radius-lg: var(--radius-lg);
   --radius-xl: var(--radius-xl);
+  --shadow-soft: var(--shadow-soft);
+  --shadow-pop: var(--shadow-pop);
+  --shadow-brand: var(--shadow-brand);
 }
 
 @layer base {
+  html {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    background: var(--bg-base);
+    color: var(--text-primary);
+    font-family: var(--font-manrope), system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    font-feature-settings: 'tnum' 0;
+  }
+
+  ::selection {
+    background: var(--brand-soft);
+    color: var(--brand-strong);
+  }
+
   button:not(:disabled),
   [type='button']:not(:disabled),
   [type='submit']:not(:disabled),
-  [type='reset']:not(:disabled),
-  [role='button']:not([aria-disabled='true']) {
+  [role='menuitem'] {
     cursor: pointer;
   }
 
-  button:disabled,
-  [type='button']:disabled,
-  [type='submit']:disabled,
-  [role='button'][aria-disabled='true'] {
+  button:disabled {
     cursor: not-allowed;
   }
 
-  [role='menuitem'] {
+  /* Sin flechas en inputs numéricos (usamos botones + y −) */
+  input[type='number']::-webkit-outer-spin-button,
+  input[type='number']::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  input[type='number'] {
+    -moz-appearance: textfield;
+  }
+
+  input[type='date']::-webkit-calendar-picker-indicator {
     cursor: pointer;
+    opacity: 0.7;
   }
 }
 
 @layer utilities {
   .font-display {
-    font-family: var(--font-syne), 'Syne', sans-serif;
+    font-family: var(--font-bricolage), 'Bricolage Grotesque', sans-serif;
+    letter-spacing: -0.02em;
   }
-
-  .font-body {
-    font-family: var(--font-dm-sans), 'DM Sans', sans-serif;
+  .tabular-nums {
+    font-variant-numeric: tabular-nums;
   }
 }
 
 @layer components {
   .card {
-    @apply border-bg-border bg-bg-surface rounded-[var(--radius-lg)] border;
+    @apply border-bg-border bg-bg-surface shadow-soft rounded-[var(--radius-lg)] border;
   }
 
   .card-hover {
-    @apply border-bg-border bg-bg-surface hover:border-accent-cyan/30 rounded-[var(--radius-lg)] border transition-colors duration-150;
+    @apply border-bg-border bg-bg-surface shadow-soft hover:border-brand/30 rounded-[var(--radius-lg)] border transition-[border-color,box-shadow,transform] duration-200 hover:-translate-y-0.5 hover:shadow-[var(--shadow-pop)];
   }
 
   .input {
-    @apply border-bg-border bg-bg-elevated text-text-primary placeholder:text-text-muted focus:border-accent-cyan focus:ring-accent-cyan/20 rounded-[var(--radius-md)] border px-3 py-2 text-sm transition-colors duration-150 focus:ring-2 focus:outline-none;
+    @apply border-bg-border bg-bg-surface text-text-primary placeholder:text-text-muted focus:border-brand focus:ring-brand/15 disabled:bg-bg-elevated disabled:text-text-secondary min-h-11 rounded-[var(--radius-md)] border px-3.5 py-2 text-[15px] transition-[border-color,box-shadow] duration-150 focus:ring-4 focus:outline-none;
   }
 
-  .btn-primary {
-    @apply bg-accent-cyan text-bg-base cursor-pointer rounded-[var(--radius-md)] px-4 py-2 text-sm font-medium transition-opacity duration-150 hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40;
+  .select-field {
+    @apply border-bg-border bg-bg-surface text-text-primary placeholder:text-text-muted focus:border-brand focus:ring-brand/15 disabled:bg-bg-elevated disabled:text-text-secondary min-h-11 w-full rounded-[var(--radius-md)] border px-3.5 py-2 text-[15px] transition-[border-color,box-shadow] duration-150 focus:ring-4 focus:outline-none;
   }
 
-  .btn-secondary {
-    @apply border-bg-border text-text-primary hover:border-accent-cyan/30 hover:bg-bg-elevated cursor-pointer rounded-[var(--radius-md)] border px-4 py-2 text-sm transition-colors duration-150 disabled:cursor-not-allowed;
+  .select-field--with-icon {
+    padding-left: 2.75rem !important;
   }
 
-  .btn-danger {
-    @apply bg-accent-red-dim text-accent-red cursor-pointer rounded-[var(--radius-md)] px-4 py-2 text-sm transition-opacity duration-150 hover:opacity-80 disabled:cursor-not-allowed;
+  .empty-dashed {
+    @apply border-bg-border text-text-secondary rounded-[var(--radius-md)] border border-dashed px-3 py-3 text-center text-sm;
   }
 
-  /* Botón secundario con borde punteado (Agregar, etc.) */
-  .btn-add-dashed {
-    @apply border-accent-cyan/45 bg-accent-cyan/5 text-accent-cyan hover:border-accent-cyan/70 hover:bg-accent-cyan/10 inline-flex shrink-0 items-center gap-1 rounded-[var(--radius-md)] border border-dashed px-2.5 py-1.5 text-xs font-medium transition-colors;
+  .surface-bordered {
+    @apply border-bg-border bg-bg-elevated/60 rounded-[var(--radius-md)] border;
   }
 
   .btn-add-dashed-amber {
-    @apply border-accent-amber/45 bg-accent-amber/5 text-accent-amber hover:border-accent-amber/70 hover:bg-accent-amber/10 inline-flex shrink-0 items-center gap-1 rounded-[var(--radius-md)] border border-dashed px-2.5 py-1.5 text-xs font-medium transition-colors;
-  }
-
-  /* Estado vacío con borde punteado */
-  .empty-dashed {
-    @apply border-bg-border text-text-secondary rounded-[var(--radius-md)] border border-dashed px-3 py-2.5 text-center text-xs;
-  }
-
-  /* Tarjeta / fila con borde visible */
-  .surface-bordered {
-    @apply border-bg-border bg-bg-elevated/40 rounded-[var(--radius-md)] border;
+    @apply border-warn-solid/60 bg-warn-soft text-warn hover:bg-warn-soft/70 inline-flex min-h-9 shrink-0 items-center gap-1 rounded-[var(--radius-md)] border border-dashed px-3 text-xs font-bold transition-colors;
   }
 
   /* ── Tablas ── */
   .table-surface {
-    @apply border-bg-border bg-bg-surface max-w-full overflow-x-auto overflow-y-hidden rounded-[var(--radius-lg)] border;
+    @apply border-bg-border bg-bg-surface shadow-soft max-w-full overflow-x-auto overflow-y-hidden rounded-[var(--radius-lg)] border;
     -webkit-overflow-scrolling: touch;
   }
-
   .table-surface--expandable {
-    @apply overflow-x-auto overflow-y-visible;
+    @apply overflow-y-visible;
   }
-
   .table-scroll-wrap {
     @apply max-w-full min-w-0 overflow-x-auto;
   }
-
-  .data-table,
-  .table-surface > table,
-  .table-scroll-wrap > table {
+  .data-table {
     @apply w-max min-w-full table-auto border-collapse text-left text-sm;
   }
-
-  .data-table thead,
-  .table-surface thead {
-    @apply bg-bg-elevated;
+  .data-table thead {
+    @apply bg-bg-elevated/70;
   }
-
-  .data-table :is(th, td),
-  .table-surface :is(th, td),
-  .table-scroll-wrap :is(th, td) {
-    @apply px-5 py-3 align-middle;
+  .data-table :is(th, td) {
+    @apply px-5 py-3.5 align-middle;
   }
-
-  .data-table th,
-  .table-surface th {
-    @apply text-text-secondary text-xs font-medium tracking-wide whitespace-nowrap uppercase;
+  .data-table th {
+    @apply text-text-secondary text-xs font-bold tracking-wide whitespace-nowrap uppercase;
   }
-
-  .data-table tbody tr,
-  .table-surface tbody tr {
-    @apply border-bg-border hover:bg-bg-elevated border-t transition-colors duration-150;
+  .data-table tbody tr {
+    @apply border-bg-border hover:bg-bg-elevated/50 border-t transition-colors duration-150;
   }
-
-  /* Columna de nombre (puede envolver) */
   .col-name {
     @apply max-w-[16rem] min-w-[10rem] whitespace-normal;
   }
-
-  /* Columna compacta (números, badges, acciones) */
   .col-compact {
     @apply whitespace-nowrap;
   }
+
+  /* Pastillas de filtro */
+  .filter-pill {
+    @apply inline-flex min-h-10 items-center rounded-full px-4 text-sm font-bold transition-[background-color,color,box-shadow] duration-200;
+  }
+  .filter-pill-active {
+    @apply bg-cocoa text-cocoa-text shadow-soft;
+  }
+  .filter-pill-inactive {
+    @apply border-bg-border bg-bg-surface text-text-secondary hover:border-brand/30 hover:text-text-primary border;
+  }
+
+  /* Badges */
+  .badge-brand,
+  .badge-green,
+  .badge-warn,
+  .badge-bad {
+    @apply inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-bold;
+  }
+  .badge-brand {
+    @apply bg-brand-soft text-brand-strong;
+  }
+  .badge-green {
+    @apply bg-ok-soft text-ok;
+  }
+  .badge-warn {
+    @apply bg-warn-soft text-warn;
+  }
+  .badge-bad {
+    @apply bg-bad-soft text-bad;
+  }
 }
 
-/* Scroll táctil en modales / sheets (Lenis no captura el gesto) */
-.scroll-touch {
-  overflow-y: scroll;
-  overflow-x: hidden;
-  -webkit-overflow-scrolling: touch;
-  touch-action: pan-y;
-  overscroll-behavior: contain;
-}
-
-body {
-  background: var(--bg-base);
-  color: var(--text-primary);
-  font-family: var(--font-dm-sans), system-ui, sans-serif;
-  font-weight: 400;
-  -webkit-font-smoothing: antialiased;
-}
-
-/* Glow cyan */
-.shadow-glow-cyan {
-  box-shadow: var(--shadow-glow-cyan);
-}
-
-.shadow-glow-cyan-strong {
-  box-shadow: var(--shadow-glow-cyan-strong);
-}
-
-/* Glassmorphism — solo modales */
-.glass-modal {
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
-  background: rgb(255 255 255 / 0.05);
-  border: 1px solid var(--bg-border);
-}
-
-/* Header de sección con gradiente sutil */
-.section-header-gradient {
-  background: linear-gradient(
-    135deg,
-    var(--bg-surface) 0%,
-    color-mix(in srgb, var(--accent-cyan) 8%, var(--bg-surface)) 100%
-  );
-  border-bottom: 1px solid var(--bg-border);
-}
-
-/* Focus ring cyan */
-.focus-ring-cyan:focus-visible {
+/* Foco visible accesible */
+.focus-ring:focus-visible {
   outline: none;
   box-shadow:
-    0 0 0 2px var(--bg-base),
-    0 0 0 4px var(--accent-cyan);
+    0 0 0 2px var(--bg-surface),
+    0 0 0 4px var(--brand);
 }
 
-/* Transición estándar hover */
 .transition-surface {
   transition:
     background-color 150ms ease,
     border-color 150ms ease,
-    color 150ms ease;
-}
-
-/* Badge utilidades */
-.badge-cyan {
-  background: var(--accent-cyan-dim);
-  color: var(--accent-cyan);
-  border-radius: var(--radius-sm);
-  padding: 0.125rem 0.5rem;
-  font-size: 0.75rem;
-  font-weight: 500;
-}
-
-.badge-green {
-  background: var(--accent-green-dim);
-  color: var(--accent-green);
-  border-radius: var(--radius-sm);
-  padding: 0.125rem 0.5rem;
-  font-size: 0.75rem;
-  font-weight: 500;
-}
-
-/* Scroll sutil en paneles laterales */
-.scroll-thin {
-  overflow-y: auto;
-  scrollbar-width: thin;
-  scrollbar-color: var(--bg-border) transparent;
-}
-
-.scroll-thin::-webkit-scrollbar {
-  width: 6px;
-}
-
-.scroll-thin::-webkit-scrollbar-thumb {
-  background: var(--bg-border);
-  border-radius: 3px;
-}
-
-.scroll-thin::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-/* Select nativo */
-.select-field {
-  width: 100%;
-  border-radius: var(--radius-md);
-  border: 1px solid var(--bg-border);
-  background: var(--bg-base);
-  padding: 0.5rem 0.75rem;
-  font-size: 0.875rem;
-  color: var(--text-primary);
-  transition:
-    background-color 150ms ease,
-    border-color 150ms ease;
-}
-
-.select-field:focus {
-  outline: none;
-  border-color: var(--accent-cyan);
-  box-shadow:
-    0 0 0 2px var(--bg-base),
-    0 0 0 4px var(--accent-cyan);
-}
-
-/* Icono de búsqueda a la izquierda (padding shorthand de .select-field anula pl-* de Tailwind) */
-.select-field.select-field--with-icon {
-  padding: 0.5rem 0.75rem 0.5rem 2.75rem;
-}
-
-/* Pills de filtro (reportes) */
-.filter-pill {
-  cursor: pointer;
-  border-radius: var(--radius-md);
-  padding: 0.5rem 1rem;
-  font-size: 0.875rem;
-  font-weight: 500;
-  text-transform: capitalize;
-  transition:
-    background-color 150ms ease,
     color 150ms ease,
     box-shadow 150ms ease;
 }
 
-.filter-pill-active {
-  background: var(--accent-cyan-dim);
-  color: var(--accent-cyan);
-  box-shadow: var(--shadow-glow-cyan);
-}
-
-.filter-pill-inactive {
-  background: var(--bg-surface);
-  color: var(--text-secondary);
-  border: 1px solid var(--bg-border);
-}
-
-.filter-pill-inactive:hover {
+/* Brillo del skeleton */
+.shimmer {
+  position: relative;
+  overflow: hidden;
   background: var(--bg-elevated);
-  color: var(--text-primary);
-  border-color: color-mix(in srgb, var(--accent-cyan) 35%, var(--bg-border));
+}
+.shimmer::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, rgb(255 255 255 / 0.7), transparent);
+  animation: shimmer 1.4s infinite;
+}
+@keyframes shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.scroll-touch {
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+
+.scroll-thin {
+  scrollbar-width: thin;
+  scrollbar-color: var(--bg-border) transparent;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .shimmer::after {
+    animation: none;
+  }
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+  }
 }

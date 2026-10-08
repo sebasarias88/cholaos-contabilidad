@@ -1,8 +1,10 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Plus, Search } from 'lucide-react'
+import { Plus, Search, Package } from 'lucide-react'
 import { motion } from 'framer-motion'
+import { EstadoVacio } from '@/components/ui/EstadoVacio'
+import { PildorasFiltro } from '@/components/ui/PildorasFiltro'
 import { Button } from '@/components/ui/Button'
 import { Modal } from '@/components/ui/Modal'
 import { MenuAccionesPortal } from '@/components/ui/MenuAccionesPortal'
@@ -278,34 +280,29 @@ export function GestionProductos() {
           />
         </div>
         <Button type="button" onClick={abrirNuevo} className="w-full shrink-0 sm:w-auto">
-          <Plus size={18} className="mr-2" aria-hidden />
+          <Plus size={18} aria-hidden />
           Nuevo producto
         </Button>
       </div>
 
-      <div className="-mx-1 overflow-x-auto px-1 pb-0.5">
-        <div className="flex w-max min-w-full flex-nowrap gap-2 sm:w-auto sm:flex-wrap">
-          {filtrosTipo.map((f) => (
-            <button
-              key={f.id}
-              type="button"
-              onClick={() => setFiltroTipo(f.id)}
-              className={
-                filtroTipo === f.id
-                  ? 'filter-pill filter-pill-active shrink-0'
-                  : 'filter-pill filter-pill-inactive shrink-0'
-              }
-            >
-              {f.label}
-            </button>
-          ))}
-        </div>
-      </div>
+      <PildorasFiltro
+        opciones={filtrosTipo}
+        valor={filtroTipo}
+        onChange={setFiltroTipo}
+        id="productos"
+        etiqueta="Tipo de producto"
+      />
 
       {loading ? (
         <SkeletonTabla filas={6} />
       ) : filtrados.length === 0 ? (
-        <p className="text-text-muted text-sm">No hay productos que mostrar.</p>
+        <EstadoVacio
+          icono={<Package size={26} aria-hidden />}
+          titulo="No hay productos que mostrar"
+          descripcion={
+            busqueda ? 'Prueba con otro nombre.' : 'Crea uno con el botón Nuevo producto.'
+          }
+        />
       ) : (
         <>
           <ProductosLista
@@ -349,7 +346,7 @@ export function GestionProductos() {
               <button
                 type="button"
                 role="menuitem"
-                className="text-accent-green hover:bg-bg-elevated w-full px-3 py-2 text-left text-sm"
+                className="text-ok hover:bg-bg-elevated w-full px-3 py-2 text-left text-sm"
                 onClick={() => activarDesdeMenu(productoMenu)}
               >
                 Activar
@@ -359,7 +356,7 @@ export function GestionProductos() {
             <button
               type="button"
               role="menuitem"
-              className="text-accent-red hover:bg-bg-elevated w-full px-3 py-2 text-left text-sm"
+              className="text-bad hover:bg-bg-elevated w-full px-3 py-2 text-left text-sm"
               onClick={() => pedirEliminar(productoMenu)}
             >
               Eliminar

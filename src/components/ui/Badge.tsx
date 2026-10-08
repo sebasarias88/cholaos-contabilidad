@@ -2,29 +2,22 @@ import type { HTMLAttributes } from 'react'
 
 type BadgeVariant = 'admin' | 'empleado' | 'activo' | 'inactivo'
 
-interface BadgeProps extends HTMLAttributes<HTMLSpanElement> {
-  variant?: BadgeVariant
-}
-
 const variants: Record<BadgeVariant, string> = {
-  admin: 'bg-accent-cyan-dim text-accent-cyan',
-  empleado: 'bg-bg-elevated text-text-secondary',
-  activo: 'bg-accent-green-dim text-accent-green',
-  inactivo: 'bg-accent-red-dim text-accent-red',
+  admin: 'badge-brand',
+  empleado:
+    'bg-bg-elevated text-text-secondary inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-bold',
+  activo: 'badge-green',
+  inactivo: 'badge-bad',
 }
 
-export function Badge({ variant = 'empleado', className, children, ...props }: BadgeProps) {
+export function Badge({
+  variant = 'empleado',
+  className,
+  children,
+  ...props
+}: HTMLAttributes<HTMLSpanElement> & { variant?: BadgeVariant }) {
   return (
-    <span
-      className={[
-        'inline-flex items-center rounded-[var(--radius-sm)] px-2 py-0.5 text-xs font-medium',
-        variants[variant],
-        className,
-      ]
-        .filter(Boolean)
-        .join(' ')}
-      {...props}
-    >
+    <span className={[variants[variant], className].filter(Boolean).join(' ')} {...props}>
       {children}
     </span>
   )

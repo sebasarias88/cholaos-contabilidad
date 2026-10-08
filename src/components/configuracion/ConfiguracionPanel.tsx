@@ -1,8 +1,8 @@
 'use client'
 
 import { useState } from 'react'
-import { motion } from 'framer-motion'
-import { Settings, Smartphone, Tags, User, Users } from 'lucide-react'
+import { AnimatePresence, motion } from 'framer-motion'
+import { Smartphone, Tags, User, Users } from 'lucide-react'
 import { GestionEquipo } from '@/components/configuracion/GestionEquipo'
 import { GestionMediosTransferencia } from '@/components/configuracion/GestionMediosTransferencia'
 import { GestionMotivosNovedad } from '@/components/configuracion/GestionMotivosNovedad'
@@ -37,39 +37,56 @@ export function ConfiguracionPanel({ usuario: usuarioInicial, email }: Configura
       animate="visible"
       className="min-w-0 space-y-6"
     >
-      <motion.div variants={fadeUp} className="flex items-center gap-3">
-        <Settings size={20} className="text-accent-cyan" />
-        <h1 className="font-display text-text-primary text-xl">Configuración</h1>
+      <motion.div variants={fadeUp} className="-mx-1 overflow-x-auto px-1 pb-1">
+        <div
+          role="tablist"
+          aria-label="Secciones de configuración"
+          className="bg-bg-elevated border-bg-border inline-flex gap-1 rounded-[16px] border p-1"
+        >
+          {TABS.map(({ id, label, icon: Icon }) => {
+            const activa = tab === id
+            return (
+              <button
+                key={id}
+                type="button"
+                role="tab"
+                aria-selected={activa}
+                onClick={() => setTab(id)}
+                className={`focus-ring relative flex min-h-11 shrink-0 items-center gap-2 rounded-[12px] px-4 text-sm font-bold transition-colors ${
+                  activa ? 'text-text-primary' : 'text-text-secondary hover:text-text-primary'
+                }`}
+              >
+                {activa && (
+                  <motion.span
+                    layoutId="config-tab"
+                    className="bg-bg-surface shadow-soft absolute inset-0 rounded-[12px]"
+                    transition={{ type: 'spring', stiffness: 400, damping: 34 }}
+                  />
+                )}
+                <Icon size={17} className={`relative ${activa ? 'text-brand' : ''}`} aria-hidden />
+                <span className="relative">{label}</span>
+              </button>
+            )
+          })}
+        </div>
       </motion.div>
 
-      <motion.div
-        variants={fadeUp}
-        className="border-bg-border flex gap-2 overflow-x-auto border-b pb-px"
-      >
-        {TABS.map(({ id, label, icon: Icon }) => (
-          <button
-            key={id}
-            type="button"
-            onClick={() => setTab(id)}
-            className={[
-              '-mb-px flex shrink-0 items-center gap-2 border-b-2 px-4 py-2 text-sm font-medium transition-colors',
-              tab === id
-                ? 'border-accent-cyan text-accent-cyan'
-                : 'text-text-secondary hover:text-text-primary border-transparent',
-            ].join(' ')}
-          >
-            <Icon size={16} />
-            {label}
-          </button>
-        ))}
-      </motion.div>
-
-      {tab === 'equipo' && <GestionEquipo usuarioActualId={usuario.id} />}
-      {tab === 'motivos' && <GestionMotivosNovedad />}
-      {tab === 'transferencias' && <GestionMediosTransferencia />}
-      {tab === 'cuenta' && (
-        <MiCuenta usuario={usuario} email={email} onNombreActualizado={setNombrePerfil} />
-      )}
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={tab}
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -6 }}
+          transition={{ duration: 0.2 }}
+        >
+          {tab === 'equipo' && <GestionEquipo usuarioActualId={usuario.id} />}
+          {tab === 'motivos' && <GestionMotivosNovedad />}
+          {tab === 'transferencias' && <GestionMediosTransferencia />}
+          {tab === 'cuenta' && (
+            <MiCuenta usuario={usuario} email={email} onNombreActualizado={setNombrePerfil} />
+          )}
+        </motion.div>
+      </AnimatePresence>
     </motion.div>
   )
 }

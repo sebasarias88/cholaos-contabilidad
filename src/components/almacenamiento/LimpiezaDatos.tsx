@@ -127,11 +127,11 @@ export function LimpiezaDatos({
               </p>
               <div className="mt-3 flex flex-col gap-2 sm:flex-row">
                 <Button type="button" variant="secondary" loading={exportando} onClick={exportar}>
-                  <FileSpreadsheet size={16} className="mr-2" aria-hidden />
+                  <FileSpreadsheet size={16} aria-hidden />
                   Descargar respaldo en Excel
                 </Button>
                 <Button type="button" variant="danger" onClick={() => setConfirmando(true)}>
-                  <Trash2 size={16} className="mr-2" aria-hidden />
+                  <Trash2 size={16} aria-hidden />
                   Borrar estos datos
                 </Button>
               </div>

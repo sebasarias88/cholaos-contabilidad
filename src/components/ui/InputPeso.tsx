@@ -36,7 +36,8 @@ export function InputPeso({
       disabled={disabled}
       title={title}
       placeholder={placeholder}
-      value={focused ? display : formatPesosInput(value)}
+      // Si el valor cambió desde afuera (ej. se limpió al agregar), se muestra el nuevo
+      value={focused && parsePesosInput(display) === value ? display : formatPesosInput(value)}
       onKeyDown={onKeyDown}
       onFocus={() => {
         setDisplay(formatPesosInput(value))
@@ -44,9 +45,7 @@ export function InputPeso({
       }}
       onBlur={() => {
         setFocused(false)
-        const n = parsePesosInput(display)
-        onChange(n)
-        setDisplay(formatPesosInput(n))
+        setDisplay(formatPesosInput(value))
       }}
       onChange={(e) => {
         const n = parsePesosInput(e.target.value)

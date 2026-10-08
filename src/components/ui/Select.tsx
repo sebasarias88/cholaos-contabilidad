@@ -140,7 +140,7 @@ export function Select({
         onClick={() => (open ? closeMenu() : openMenu())}
         className={[
           'select-field flex min-w-0 flex-1 items-center justify-between gap-2 text-left',
-          open ? 'border-accent-cyan ring-accent-cyan/20 ring-2' : '',
+          open ? 'border-brand ring-brand/20 ring-2' : '',
           disabled ? 'cursor-not-allowed opacity-50' : '',
           className,
         ]
@@ -173,7 +173,7 @@ export function Select({
             id={listboxId}
             role="listbox"
             aria-label={ariaLabel}
-            className="scroll-touch border-bg-border bg-bg-surface fixed z-[250] max-h-56 overflow-y-auto overscroll-contain rounded-[var(--radius-md)] border py-1 shadow-xl"
+            className="scroll-touch border-bg-border bg-bg-surface shadow-pop fixed z-[250] max-h-64 overflow-y-auto overscroll-contain rounded-[14px] border p-1"
           >
             {options.length === 0 ? (
               <p className="text-text-muted px-3 py-2 text-sm">Sin opciones</p>
@@ -190,7 +190,7 @@ export function Select({
                     className={[
                       'flex w-full items-center justify-between gap-2 px-3 py-2.5 text-left text-sm capitalize transition-colors',
                       activa
-                        ? 'bg-accent-cyan-dim text-accent-cyan'
+                        ? 'bg-brand-soft text-brand'
                         : 'text-text-primary hover:bg-bg-elevated',
                     ].join(' ')}
                   >

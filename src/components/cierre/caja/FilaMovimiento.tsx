@@ -89,7 +89,7 @@ export function FilaMovimientoEditable({
         type="button"
         onClick={onEliminar}
         aria-label="Eliminar"
-        className="text-text-secondary hover:bg-accent-red-dim hover:text-accent-red flex h-10 w-10 shrink-0 items-center justify-center rounded-[var(--radius-md)] transition-colors"
+        className="text-text-secondary hover:bg-bad-soft hover:text-bad flex h-10 w-10 shrink-0 items-center justify-center rounded-[var(--radius-md)] transition-colors"
       >
         <X size={16} aria-hidden />
       </button>

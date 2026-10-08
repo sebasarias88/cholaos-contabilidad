@@ -176,7 +176,7 @@ export function GestionMotivosNovedad() {
         className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"
       >
         <div>
-          <h2 className="font-display text-text-primary text-lg">Motivos de novedad</h2>
+          <h2 className="font-display text-text-primary text-xl font-bold">Motivos de novedad</h2>
           <p className="text-text-secondary mt-1 text-sm">
             Motivos para vasos que no se vendieron en el cierre del día.
           </p>

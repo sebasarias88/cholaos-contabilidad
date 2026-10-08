@@ -24,11 +24,11 @@ export const TIPOS_PRODUCTO = [
 export const BADGE_TIPO: Record<TipoProducto, { label: string; className: string }> = {
   vaso: {
     label: '🥤 Vaso',
-    className: 'bg-accent-cyan-dim text-accent-cyan',
+    className: 'bg-brand-soft text-brand',
   },
   comida: {
     label: '🍕 Comida',
-    className: 'bg-accent-green-dim text-accent-green',
+    className: 'bg-ok-soft text-ok',
   },
   insumo: {
     label: '🧂 Insumo',

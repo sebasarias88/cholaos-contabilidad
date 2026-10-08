@@ -70,14 +70,14 @@ export function ProductoSlideOver({
           <motion.button
             type="button"
             aria-label="Cerrar"
-            className="bg-bg-base/80 absolute inset-0"
+            className="bg-cocoa/40 absolute inset-0"
             variants={modalOverlay}
             onClick={onClose}
           />
           <motion.aside
             role="dialog"
             aria-modal
-            className="border-bg-border bg-bg-surface shadow-glow-cyan-strong relative z-10 flex h-dvh max-h-dvh w-full max-w-md flex-col overflow-hidden border-l md:h-full md:max-h-none"
+            className="border-bg-border bg-bg-surface shadow-pop relative z-10 flex h-dvh max-h-dvh w-full max-w-md flex-col overflow-hidden border-l md:h-full md:max-h-none"
             initial={{ x: '100%' }}
             animate={{ x: 0 }}
             exit={{ x: '100%' }}
@@ -96,7 +96,7 @@ export function ProductoSlideOver({
                 type="button"
                 aria-label="Cerrar"
                 onClick={onClose}
-                className="focus-ring-cyan text-text-secondary hover:bg-bg-elevated rounded-[var(--radius-md)] p-2"
+                className="focus-ring text-text-secondary hover:bg-bg-elevated rounded-[var(--radius-md)] p-2"
               >
                 <X size={20} />
               </button>
@@ -126,8 +126,8 @@ export function ProductoSlideOver({
                             className={[
                               'rounded-[var(--radius-md)] border p-3 text-left transition-all',
                               activo
-                                ? 'border-accent-cyan bg-accent-cyan-dim'
-                                : 'border-bg-border bg-bg-elevated hover:border-accent-cyan/30',
+                                ? 'border-brand bg-brand-soft'
+                                : 'border-bg-border bg-bg-elevated hover:border-brand/30',
                             ].join(' ')}
                           >
                             <span className="mb-1 block text-xl" aria-hidden>

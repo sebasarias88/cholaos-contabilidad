@@ -50,7 +50,7 @@ function StepperCantidad({
         disabled={disabled}
         aria-label="Más uno"
         onClick={() => onChange(value + 1)}
-        className={`flex w-8 ${CONTROL_H} text-accent-cyan hover:bg-accent-cyan-dim items-center justify-center transition-colors disabled:cursor-not-allowed disabled:opacity-40`}
+        className={`flex w-8 ${CONTROL_H} text-brand hover:bg-brand-soft items-center justify-center transition-colors disabled:cursor-not-allowed disabled:opacity-40`}
       >
         <Plus size={13} aria-hidden />
       </button>
@@ -103,7 +103,7 @@ export function NovedadesVaso({
     <div className="space-y-2">
       <div className="flex items-center justify-between gap-2">
         <div className="flex min-w-0 items-center gap-1.5">
-          <AlertTriangle size={13} className="text-accent-amber shrink-0" aria-hidden />
+          <AlertTriangle size={13} className="text-warn shrink-0" aria-hidden />
           <span className="text-text-secondary text-xs font-medium">Vasos no vendidos</span>
         </div>
         {!disabled && (
@@ -163,7 +163,7 @@ export function NovedadesVaso({
                       type="button"
                       onClick={() => eliminar(i)}
                       aria-label="Quitar novedad"
-                      className={`flex ${CONTROL_H} text-text-secondary hover:bg-accent-red-dim hover:text-accent-red w-9 shrink-0 items-center justify-center rounded-[var(--radius-md)] transition-colors`}
+                      className={`flex ${CONTROL_H} text-text-secondary hover:bg-bad-soft hover:text-bad w-9 shrink-0 items-center justify-center rounded-[var(--radius-md)] transition-colors`}
                     >
                       <Trash2 size={14} aria-hidden />
                     </button>
@@ -187,7 +187,7 @@ export function NovedadesVaso({
       </AnimatePresence>
 
       {totalNovedades > 0 && (
-        <p className="text-accent-amber flex items-center justify-end gap-1 text-[11px]">
+        <p className="text-warn flex items-center justify-end gap-1 text-[11px]">
           <AlertTriangle size={11} aria-hidden />
           <span className="font-medium tabular-nums">
             {totalNovedades} descontado{totalNovedades !== 1 ? 's' : ''}

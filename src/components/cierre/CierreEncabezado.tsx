@@ -1,13 +1,15 @@
 'use client'
 
 import { format } from 'date-fns'
-import { CalendarDays } from 'lucide-react'
+import { es } from 'date-fns/locale'
+import { motion } from 'framer-motion'
+import { CalendarDays, PencilLine } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import type { CierreDiaApi } from '@/hooks/useCierreDia'
-import { sumarDias } from '@/lib/fechas'
-import { formatFecha } from '@/lib/utils'
+import { fechaComoDate, sumarDias } from '@/lib/fechas'
+import { formatFecha, capitalizar } from '@/lib/utils'
 
-/** Fecha del cierre, estado y avisos */
+/** Título, fecha del cierre (el admin la puede elegir), estado y avisos */
 export function CierreEncabezado({ cierre, fecha }: { cierre: CierreDiaApi; fecha: string }) {
   const router = useRouter()
   const { datos, esAdmin, estadoCierre, esCorreccion, corrigiendo, hayCambios } = cierre
@@ -17,48 +19,61 @@ export function CierreEncabezado({ cierre, fecha }: { cierre: CierreDiaApi; fech
 
   function cambiarFecha(nueva: string) {
     if (!nueva || nueva === fecha) return
-    if (
-      hayCambios &&
-      !window.confirm('Tienes cambios sin guardar. ¿Cambiar de fecha igualmente?')
-    ) {
+    if (hayCambios && !window.confirm('Tienes cambios sin guardar. ¿Cambiar de fecha igualmente?'))
       return
-    }
     router.push(nueva === hoy ? '/dashboard/cierre' : `/dashboard/cierre?fecha=${nueva}`)
   }
 
+  const fechaCorta = capitalizar(format(fechaComoDate(fecha), "EEEE d 'de' MMMM", { locale: es }))
+
   return (
-    <div className="flex flex-col gap-3">
-      <div className="flex flex-wrap items-center gap-2">
+    <header className="flex flex-col gap-3">
+      <div className="flex flex-wrap items-center gap-3">
+        <h1 className="font-display text-text-primary text-[28px] leading-tight font-extrabold sm:text-[32px]">
+          Cierre del día
+        </h1>
+
         {puedeElegirFecha ? (
-          <label className="border-bg-border bg-bg-surface inline-flex items-center gap-2 rounded-[var(--radius-md)] border px-3 py-1.5 text-sm">
-            <CalendarDays size={16} className="text-accent-cyan" aria-hidden />
-            <span className="text-text-secondary">Fecha del cierre</span>
+          <label className="focus-within:border-brand focus-within:ring-brand/15 border-bg-border bg-bg-surface shadow-soft relative inline-flex min-h-11 items-center gap-2 rounded-[12px] border px-3 text-sm font-bold focus-within:ring-4">
+            <CalendarDays size={18} className="text-brand" aria-hidden />
+            <span className="sr-only">Fecha del cierre</span>
             <input
               type="date"
               value={fecha}
               min={minimo}
               max={hoy}
               onChange={(e) => cambiarFecha(e.target.value)}
-              className="text-text-primary bg-transparent font-medium outline-none"
-              aria-label="Fecha del cierre"
+              className="text-text-primary bg-transparent font-bold outline-none"
             />
           </label>
         ) : (
-          <span className="text-text-primary inline-flex items-center gap-2 text-sm font-medium">
-            <CalendarDays size={16} className="text-accent-cyan" aria-hidden />
-            {formatFecha(fecha)}
+          <span className="border-bg-border bg-bg-surface inline-flex min-h-11 items-center gap-2 rounded-[12px] border px-3 text-sm font-bold">
+            <CalendarDays size={18} className="text-brand" aria-hidden />
+            {fechaCorta}
           </span>
         )}
 
-        {estadoCierre === 'borrador' && <span className="badge-cyan">En progreso</span>}
-        {estadoCierre === 'cerrado' && <span className="badge-green">Cerrado</span>}
+        {estadoCierre && (
+          <motion.span
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className={estadoCierre === 'cerrado' ? 'badge-green py-1.5' : 'badge-warn py-1.5'}
+          >
+            <span
+              className={`h-2 w-2 rounded-full ${estadoCierre === 'cerrado' ? 'bg-ok-solid' : 'bg-warn-solid animate-pulse'}`}
+            />
+            {estadoCierre === 'cerrado' ? 'Cerrado' : 'En progreso'}
+            {cierre.ultimoGuardado && ` · guardado ${format(cierre.ultimoGuardado, 'h:mm a')}`}
+          </motion.span>
+        )}
 
         {esAdmin && esCorreccion && !corrigiendo && (
           <button
             type="button"
-            className="border-bg-border text-text-secondary hover:text-text-primary rounded-[var(--radius-md)] border px-3 py-1 text-xs font-medium"
             onClick={() => cierre.setCorrigiendo(true)}
+            className="focus-ring border-bg-border bg-bg-surface text-text-primary hover:border-brand/40 inline-flex min-h-10 items-center gap-2 rounded-[12px] border px-3 text-sm font-bold"
           >
+            <PencilLine size={16} />
             Corregir cierre
           </button>
         )}
@@ -67,45 +82,31 @@ export function CierreEncabezado({ cierre, fecha }: { cierre: CierreDiaApi; fech
           <button
             type="button"
             onClick={() => router.push('/dashboard/cierre')}
-            className="text-accent-cyan text-xs font-medium hover:underline"
+            className="text-brand-strong text-sm font-bold hover:underline"
           >
             Ir al cierre de hoy
           </button>
         )}
-
-        {cierre.vasosVendidos > 0 && (
-          <span className="text-text-secondary ml-auto text-xs">
-            Vasos vendidos:{' '}
-            <span className="text-accent-cyan font-medium tabular-nums">
-              {cierre.vasosVendidos}
-            </span>
-          </span>
-        )}
       </div>
 
-      <div className="flex flex-col gap-1 text-xs">
+      <div className="flex flex-col gap-1 text-sm">
         {corrigiendo && (
-          <span className="text-amber-400">
-            Editando un cierre ya hecho. La fecha no cambia; al guardar se reemplazan los datos de
-            este día.
-          </span>
+          <p className="text-warn font-semibold">
+            Estás corrigiendo un día ya cerrado. La fecha no cambia y no se recalculan los días
+            siguientes.
+          </p>
         )}
         {cierre.bloqueado && !esAdmin && (
-          <span className="text-text-muted">
+          <p className="text-text-secondary">
             Este día ya se cerró. Solo el administrador puede corregirlo.
-          </span>
+          </p>
         )}
         {!esCorreccion && datos?.fecha_anterior && (
-          <span className="text-text-secondary">
-            Inventario y base inicial tomados del cierre del {formatFecha(datos.fecha_anterior)}.
-          </span>
-        )}
-        {cierre.ultimoGuardado && (
-          <span className="text-text-secondary">
-            Último guardado: {format(cierre.ultimoGuardado, 'h:mm a')}
-          </span>
+          <p className="text-text-secondary">
+            Inventario y base tomados del cierre del {formatFecha(datos.fecha_anterior)}.
+          </p>
         )}
       </div>
-    </div>
+    </header>
   )
 }

@@ -131,7 +131,7 @@ export function GestionEquipo({ usuarioActualId }: GestionEquipoProps) {
   return (
     <motion.div variants={fadeUp} initial="hidden" animate="visible" className="min-w-0 space-y-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <h2 className="font-display text-text-primary text-lg">Equipo</h2>
+        <h2 className="font-display text-text-primary text-xl font-bold">Equipo</h2>
         <Button
           type="button"
           onClick={() => setModalNuevo(true)}

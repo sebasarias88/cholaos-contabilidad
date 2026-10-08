@@ -5,9 +5,9 @@ import { Database } from 'lucide-react'
 import { formatBytes, LIMITE_BD_BYTES, nivelUso, porcentajeUso } from '@/lib/almacenamiento'
 
 const COLOR = {
-  normal: { barra: 'bg-accent-green', texto: 'text-accent-green', msg: 'Todo en orden' },
-  aviso: { barra: 'bg-amber-400', texto: 'text-amber-400', msg: 'Conviene planear una limpieza' },
-  critico: { barra: 'bg-accent-red', texto: 'text-accent-red', msg: 'Haz una limpieza pronto' },
+  normal: { barra: 'bg-ok', texto: 'text-ok', msg: 'Todo en orden' },
+  aviso: { barra: 'bg-warn-solid', texto: 'text-warn', msg: 'Conviene planear una limpieza' },
+  critico: { barra: 'bg-bad', texto: 'text-bad', msg: 'Haz una limpieza pronto' },
 }
 
 /** Barra de uso de la base de datos frente al límite del plan gratuito */
@@ -27,7 +27,7 @@ export function MedidorUso({
       <div className="flex items-start justify-between gap-4">
         <div>
           <p className="text-text-secondary flex items-center gap-2 text-sm">
-            <Database size={16} className="text-accent-cyan" aria-hidden />
+            <Database size={16} className="text-brand" aria-hidden />
             Base de datos
           </p>
           <p className="font-display text-text-primary mt-2 text-3xl font-bold tabular-nums">

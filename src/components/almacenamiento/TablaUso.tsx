@@ -19,7 +19,7 @@ export function TablaUso({ tablas }: { tablas: UsoTabla[] }) {
           </div>
           <div className="bg-bg-elevated h-1.5 overflow-hidden rounded-full">
             <div
-              className="bg-accent-cyan/70 h-full rounded-full"
+              className="bg-brand/70 h-full rounded-full"
               style={{ width: `${Math.max(2, (t.bytes / maximo) * 100)}%` }}
             />
           </div>

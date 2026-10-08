@@ -32,23 +32,23 @@ export function GraficoIngresosLinea({ data }: GraficoIngresosLineaProps) {
       <AreaChart data={data} margin={{ top: 8, right: 4, left: 0, bottom: 0 }}>
         <defs>
           <linearGradient id="ingresosGradient" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#00D4FF" stopOpacity={0.35} />
-            <stop offset="100%" stopColor="#00D4FF" stopOpacity={0} />
+            <stop offset="0%" stopColor="#D14A1F" stopOpacity={0.35} />
+            <stop offset="100%" stopColor="#D14A1F" stopOpacity={0} />
           </linearGradient>
         </defs>
-        <CartesianGrid stroke="#1E2D45" strokeDasharray="3 3" vertical={false} />
+        <CartesianGrid stroke="#F0E2D3" strokeDasharray="3 3" vertical={false} />
         <XAxis
           dataKey="fecha"
           tickFormatter={tickFecha}
-          tick={{ fontSize: 10, fill: '#7A8BA3' }}
-          axisLine={{ stroke: '#1E2D45' }}
+          tick={{ fontSize: 10, fill: '#85695A' }}
+          axisLine={{ stroke: '#F0E2D3' }}
           tickLine={false}
           interval="preserveStartEnd"
           minTickGap={28}
         />
         <YAxis
           width={36}
-          tick={{ fontSize: 10, fill: '#7A8BA3' }}
+          tick={{ fontSize: 10, fill: '#85695A' }}
           axisLine={false}
           tickLine={false}
           tickFormatter={(v) =>
@@ -57,10 +57,10 @@ export function GraficoIngresosLinea({ data }: GraficoIngresosLineaProps) {
         />
         <Tooltip
           contentStyle={{
-            background: '#0F1520',
-            border: '1px solid #1E2D45',
+            background: '#2A1A12',
+            border: '1px solid #3A2820',
             borderRadius: '10px',
-            color: '#E8EDF5',
+            color: '#F7EDE4',
           }}
           labelFormatter={(f) => tickFecha(String(f))}
           formatter={(value) => formatPesos(typeof value === 'number' ? value : Number(value))}
@@ -68,11 +68,11 @@ export function GraficoIngresosLinea({ data }: GraficoIngresosLineaProps) {
         <Area
           type="monotone"
           dataKey="ingresos"
-          stroke="#00D4FF"
+          stroke="#D14A1F"
           strokeWidth={2}
           fill="url(#ingresosGradient)"
-          dot={{ fill: '#00D4FF', r: 2 }}
-          activeDot={{ r: 4, fill: '#00D4FF' }}
+          dot={{ fill: '#D14A1F', r: 2 }}
+          activeDot={{ r: 4, fill: '#D14A1F' }}
         />
       </AreaChart>
     </ResponsiveContainer>

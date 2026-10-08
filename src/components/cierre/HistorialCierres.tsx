@@ -8,6 +8,7 @@ import { useApiGet } from '@/hooks/useApiGet'
 import { useRangoFechas } from '@/hooks/useRangoFechas'
 import { fadeUp } from '@/lib/animations'
 import type { CierreDia } from '@/types'
+import { EncabezadoPagina } from '@/components/ui/EncabezadoPagina'
 
 export function HistorialCierres() {
   const filtro = useRangoFechas('semana')
@@ -19,23 +20,19 @@ export function HistorialCierres() {
 
   return (
     <motion.div
-      className="flex min-w-0 flex-col gap-5 px-4 py-4 md:px-6 md:py-5"
+      className="flex min-w-0 flex-col gap-6 p-4 sm:p-6 lg:p-8"
       variants={fadeUp}
       initial="hidden"
       animate="visible"
     >
-      <header>
-        <h1 className="font-display text-text-primary text-xl font-bold sm:text-2xl">
-          Historial de Cierres
-        </h1>
-        <p className="text-text-secondary mt-1 text-sm">
-          Un resumen por día; expande una tarjeta para ver el detalle.
-        </p>
-      </header>
+      <EncabezadoPagina
+        titulo="Historial de cierres"
+        descripcion="Un resumen por día. Toca una tarjeta para ver el detalle."
+      />
 
       <FiltroRango filtro={filtro} idPrefix="cierres" />
 
-      {error && <p className="text-accent-red text-sm">{error}</p>}
+      {error && <p className="text-bad text-sm">{error}</p>}
 
       {loading && !data ? (
         <div className="flex flex-col gap-3">

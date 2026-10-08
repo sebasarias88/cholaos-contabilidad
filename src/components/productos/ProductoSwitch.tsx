@@ -24,15 +24,15 @@ export function ProductoSwitch({
       disabled={disabled}
       onClick={() => onChange(!active)}
       className={[
-        'relative inline-flex h-6 w-11 shrink-0 rounded-full transition-colors duration-200',
-        active ? 'bg-accent-cyan' : 'bg-bg-border',
+        'focus-ring relative inline-flex h-7 w-12 shrink-0 rounded-full transition-colors duration-200',
+        active ? 'bg-ok-solid' : 'bg-bg-border',
         disabled ? 'cursor-not-allowed opacity-50' : 'cursor-pointer',
       ].join(' ')}
     >
       <motion.span
         layout
         transition={{ type: 'spring', stiffness: 500, damping: 32 }}
-        className="bg-text-primary absolute top-0.5 left-0.5 block h-5 w-5 rounded-full shadow-md"
+        className="absolute top-0.5 left-0.5 block h-6 w-6 rounded-full bg-white shadow-md"
         animate={{ x: active ? 20 : 0 }}
       />
     </button>
