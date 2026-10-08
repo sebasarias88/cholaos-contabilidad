@@ -65,10 +65,6 @@ export function formatFecha(fecha: string): string {
   return format(parseISO(fecha), "d 'de' MMMM yyyy", { locale: es })
 }
 
-export function formatFechaHoy() {
-  return format(fechaComoDate(hoyColombia()), "EEEE, d 'de' MMMM", { locale: es })
-}
-
 export function getIniciales(nombre: string) {
   return nombre
     .split(/\s+/)

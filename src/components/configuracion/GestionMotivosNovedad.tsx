@@ -10,7 +10,7 @@ import { useMenuAcciones } from '@/hooks/useMenuAcciones'
 import { Input } from '@/components/ui/Input'
 import { Modal } from '@/components/ui/Modal'
 import { Skeleton } from '@/components/ui/Skeleton'
-import { fadeUp } from '@/lib/animations'
+import { fadeUp, staggerContainer } from '@/lib/animations'
 import { esMotivoPredefinido } from '@/lib/motivos-novedad'
 import { toastError, toastLoading, toastSuccess } from '@/lib/toast'
 import type { MotivoNovedad } from '@/types'
@@ -170,7 +170,12 @@ export function GestionMotivosNovedad() {
   }
 
   return (
-    <motion.div variants={fadeUp} className="space-y-4">
+    <motion.div
+      variants={staggerContainer}
+      initial="hidden"
+      animate="visible"
+      className="space-y-4"
+    >
       <motion.div
         variants={fadeUp}
         className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"

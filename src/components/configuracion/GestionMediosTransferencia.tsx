@@ -11,7 +11,7 @@ import { useMenuAcciones } from '@/hooks/useMenuAcciones'
 import { Input } from '@/components/ui/Input'
 import { Modal } from '@/components/ui/Modal'
 import { Skeleton } from '@/components/ui/Skeleton'
-import { fadeUp } from '@/lib/animations'
+import { fadeUp, staggerContainer } from '@/lib/animations'
 import { toastError, toastLoading, toastSuccess } from '@/lib/toast'
 import type { MedioTransferencia } from '@/types'
 
@@ -157,14 +157,19 @@ export function GestionMediosTransferencia() {
           atenuado ? 'opacity-70' : '',
         ].join(' ')}
       >
-        <span className="text-text-primary min-w-0 text-sm font-medium capitalize">{m.nombre}</span>
+        <span className="text-text-primary min-w-0 text-sm font-medium">{m.nombre}</span>
         <BotonAcciones abierto={menu.isOpen(m.id)} onClick={(e) => menu.toggle(m.id, e)} />
       </li>
     )
   }
 
   return (
-    <motion.div variants={fadeUp} className="space-y-4">
+    <motion.div
+      variants={staggerContainer}
+      initial="hidden"
+      animate="visible"
+      className="space-y-4"
+    >
       <motion.div
         variants={fadeUp}
         className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"
@@ -264,9 +269,9 @@ export function GestionMediosTransferencia() {
         onConfirmar={confirmarEliminar}
       >
         ¿Eliminar permanentemente{' '}
-        <span className="text-text-primary font-medium capitalize">{medioEliminar?.nombre}</span>?
-        Esta acción no se puede deshacer. Si el medio ya aparece en cierres, no se podrá borrar (usa
-        Desactivar en ese caso).
+        <span className="text-text-primary font-medium">{medioEliminar?.nombre}</span>? Esta acción
+        no se puede deshacer. Si el medio ya aparece en cierres, no se podrá borrar (usa Desactivar
+        en ese caso).
       </ConfirmarModal>
     </motion.div>
   )

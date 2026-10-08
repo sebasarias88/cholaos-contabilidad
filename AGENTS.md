@@ -1,7 +1,11 @@
 <!-- BEGIN:nextjs-agent-rules -->
-# This is NOT the Next.js you know
 
-This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` before writing any code. Heed deprecation notices.
+## This is NOT the Next.js you know
+
+This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
+
+This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
+
 <!-- END:nextjs-agent-rules -->
 
 # Cholaos Contabilidad — convenciones
@@ -10,7 +14,7 @@ This version has breaking changes — APIs, conventions, and file structure may 
 
 - Next.js 16.4 App Router (`src/proxy.ts`, antes middleware), TypeScript, Tailwind 4
 - Supabase (auth + DB + RLS), Framer Motion, react-hot-toast, Lucide, Recharts, ExcelJS + jsPDF (exportes)
-- Fuentes: Syne (`font-display`), DM Sans (`font-body` / `font-sans`)
+- Fuentes: Bricolage Grotesque (`font-display`), Manrope (`font-sans`) vía `next/font`
 
 ## Rutas protegidas
 
@@ -68,15 +72,21 @@ async function guardarVenta(payload: NuevaVentaPayload) {
 1. `'use client'` arriba
 2. Estados: `data`, `loading`, `error?`, filtros UI
 3. `useEffect` para GET inicial
-4. `motion.div` con `staggerContainer` + `fadeUp` / `listItem` (`@/lib/animations`)
-5. `SkeletonTabla` o `SkeletonStat` mientras `loading`
-6. Clases utilitarias: `.input`, `.btn-primary`, `.card`, `.card-hover`
+4. `motion.div` con `staggerContainer` + `fadeUp` (`@/lib/animations`). Si un bloque usa `variants`, su contenedor debe tener `initial="hidden" animate="visible"` (si no, queda invisible)
+5. `Skeleton` / `SkeletonTabla` mientras `loading`
+6. Clases utilitarias de `globals.css`: `.card`, `.card-hover`, `.input`, `.select-field`, `.badge-*`, `.data-table`, `.focus-ring`
 7. Iconos Lucide import individual (`import { Package } from 'lucide-react'`)
 8. Tipos desde `@/types`, formato con `@/lib/utils` (`formatPesos`, `getRangoFecha`, etc.)
 
 ## Componentes UI
 
-Preferir `@/components/ui/*` (Button, Input, Card, Badge, Modal, StatCard, Skeleton) sobre clases sueltas cuando aplique.
+Preferir `@/components/ui/*` sobre clases sueltas: `Button`, `Input`, `InputPeso`, `Select`, `Card`, `Badge`, `Modal` (en celular sale desde abajo), `ConfirmarModal`, `EncabezadoPagina` (título de cada página), `PildorasFiltro`, `FiltroRango`, `EstadoVacio`, `Skeleton`, `NumeroAnimado`, `BarraProgreso`, `Stepper`, `Celebracion`.
+
+## Diseño "Fresco"
+
+- Colores como tokens en `globals.css` (`bg-base` crema, `brand` naranja, `cocoa` café oscuro, `ok` / `bad` / `warn`). No usar hex sueltos salvo en gráficas (Recharts).
+- Pensado primero para celular y para un monitor pequeño: probar en 390 px y 1366×768.
+- Fechas en español: usar `capitalizar()` de `@/lib/utils`, no la clase `capitalize` (pone mayúscula a cada palabra).
 
 ## Variables de entorno (Vercel: tipo **Sensitive**, sin prefijo `NEXT_PUBLIC_`)
 
@@ -92,7 +102,7 @@ Copia `.env.example` → `.env` en local. Auth del navegador va por `/api/auth` 
 
 - **Toda ruta API** empieza con `requireAuthApi()` o `requireAdminApi()` (`@/lib/api-auth`). Nunca confiar solo en el proxy.
 - Las API usan el cliente con la sesión del usuario (RLS activo). `createAdminClient()` solo en `/api/usuarios`.
-- RLS (ver `supabase/migrations`): anon sin acceso; empleado solo lee catálogo activo y el cierre de **hoy**; ventas e historial solo admin.
+- RLS (configurado en Supabase): anon sin acceso; empleado solo lee catálogo activo y el cierre de **hoy**; ventas e historial solo admin.
 - El cierre se guarda con la función `guardar_cierre(p jsonb)` (una transacción). **Precios e inventario inicial los pone la BD**, nunca el cliente.
 - Validar body con whitelist (no hacer `.insert(body)`).
 
@@ -102,7 +112,7 @@ Siempre `hoyColombia()` / `fechaColombia()` de `@/lib/fechas` (America/Bogota). 
 
 ## Base de datos
 
-- Migraciones en `supabase/migrations/` (fuente de verdad del esquema nuevo).
+- El esquema (tablas, RLS y funciones) vive en el proyecto de Supabase; los cambios de base de datos se aplican desde el SQL Editor.
 - Funciones: `guardar_cierre` (borrador o definitivo), `base_cierre` (último cierre anterior: dinero y conteos finales), `ultimo_cierre_cerrado`, `uso_almacenamiento`, `vista_previa_limpieza`, `limpiar_datos`, `hoy_colombia`, `es_admin`, `es_usuario_activo`, `puede_ver_cierre`.
 - Reglas del cierre: un cierre nuevo (o un borrador que se finaliza) debe ser **posterior al último cierre cerrado**; corregir un día cerrado no cambia su fecha ni recalcula los días siguientes; un cierre cerrado no vuelve a borrador.
 - `limpiar_datos` siempre conserva el último cierre (es la base del inventario).
@@ -126,8 +136,10 @@ Siempre `hoyColombia()` / `fechaColombia()` de `@/lib/fechas` (America/Bogota). 
 - `src/lib/cierre/` — lógica pura del cierre (estado del formulario, cuadre, ventas de vasos, historial) + `api.ts` (servidor)
 - `src/hooks/useCierreDia.ts` — estado y acciones del cierre (guardar avance / finalizar)
 - `src/hooks/useApiGet.ts`, `useRangoFechas.ts`, `useMenuAcciones.ts` — datos, filtros de período y menús
-- `src/components/cierre/` — formulario (`FormCierreDia` compone `CierreEncabezado`, `TablaVasos`, `TablaInsumos`, `SeccionComida`, `caja/*`), historial en `historial/`
-- `src/components/ui/` — `Modal`, `ConfirmarModal`, `FiltroRango`, `MenuAccionesPortal` (+ `MenuItem`), `BotonAcciones`…
+- `src/components/cierre/` — `FormCierreDia` compone `CierreEncabezado`, `TablaVasos`, `SeccionComida`, `TablaInsumos`, `caja/PasoCaja`, `PasoRevisar`; historial en `historial/`
+- `src/components/cierre/` — el cierre es un asistente por pasos (`lib/cierre/pasos.ts` + `PasosCierre`): Vasos, Comida, Insumos, Caja, Revisar; a un lado `caja/CajaEnVivo` y en celular `caja/BarraMovil`
+- `src/components/dashboard/` — Inicio (estado del cierre de hoy, KPIs, barras de 7 días)
+- `src/components/ui/` — componentes base (ver arriba) y `MenuAccionesPortal` (+ `MenuItem`), `BotonAcciones`
 
 ## Calidad
 
@@ -145,7 +157,7 @@ Imágenes del negocio para UI, marketing o branding. **Ruta en código:** `/imag
 | Archivo | Uso típico |
 |---------|------------|
 | `icons/icon-512.png`, `icons/icon-192.png` | PWA, favicon |
-| `cholao-hero.jpg` | Fondo login (mobile) y panel derecho (desktop) |
+| `cholao-hero.jpg` | Login: arriba en celular, panel izquierdo en PC |
 
 ```tsx
 import Image from 'next/image'
@@ -153,7 +165,6 @@ import Image from 'next/image'
 <Image src="/icons/icon-512.png" alt="Cholao Oscar" width={64} height={64} />
 ```
 
-Login: fondo `cholao-hero.jpg` en mobile; formulario sin logo PNG (icono copo en mobile, panel hero en desktop).
 
 ### Favicon e iconos PWA (desde `logo.JPG`)
 
