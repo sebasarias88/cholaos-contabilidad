@@ -1,207 +1,37 @@
 'use client'
 
-import { useCallback, useEffect, useRef, useState } from 'react'
-import { createPortal } from 'react-dom'
+import { useCallback, useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
-import { Check, Copy, MoreHorizontal, Plus, RefreshCw, X } from 'lucide-react'
-import { Badge } from '@/components/ui/Badge'
+import { Plus } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
-import { Input } from '@/components/ui/Input'
-import { Modal } from '@/components/ui/Modal'
+import { ConfirmarModal } from '@/components/ui/ConfirmarModal'
+import { MenuAccionesPortal, MenuItem, MenuSeparador } from '@/components/ui/MenuAccionesPortal'
+import { useMenuAcciones } from '@/hooks/useMenuAcciones'
 import {
   ModalCredenciales,
   type CredencialesEmpleado,
 } from '@/components/configuracion/ModalCredenciales'
 import { SkeletonTabla } from '@/components/ui/Skeleton'
 import { fadeUp } from '@/lib/animations'
-import { generarPasswordSimple } from '@/lib/utils'
-import { isValidEmail, isValidPassword, PASSWORD_MIN } from '@/lib/validators'
 import toast from 'react-hot-toast'
 import { toastError, toastLoading, toastSuccess } from '@/lib/toast'
 import type { Usuario } from '@/types'
+import { EquipoLista, ordenarEquipo } from '@/components/configuracion/equipo/EquipoLista'
+import { NuevoEmpleadoModal } from '@/components/configuracion/equipo/NuevoEmpleadoModal'
+import { ResetPasswordModal } from '@/components/configuracion/equipo/ResetPasswordModal'
 
 interface GestionEquipoProps {
   usuarioActualId: string
 }
 
-type FilaEquipo = Usuario & { esYo: boolean }
-
-function ordenarEquipo(usuarios: Usuario[], actualId: string): FilaEquipo[] {
-  const admin = usuarios.find((u) => u.rol === 'admin')
-  const empleados = usuarios
-    .filter((u) => u.rol === 'empleado')
-    .sort((a, b) => a.nombre.localeCompare(b.nombre))
-  const lista = [...(admin ? [admin] : []), ...empleados]
-  return lista.map((u) => ({ ...u, esYo: u.id === actualId }))
-}
-
-function EstadoUsuario({ activo }: { activo: boolean }) {
-  if (activo) {
-    return (
-      <span className="inline-flex items-center gap-1.5 text-sm">
-        <Check size={14} className="shrink-0 text-accent-green" />
-        <span className="text-accent-green">Activo</span>
-      </span>
-    )
-  }
-
-  return (
-    <span className="inline-flex items-center gap-1.5 text-sm">
-      <X size={14} className="shrink-0 text-accent-red" />
-      <span className="text-accent-red">Inactivo</span>
-    </span>
-  )
-}
-
-function BotonMenuEquipo({
-  abierto,
-  onClick,
-}: {
-  abierto: boolean
-  onClick: (e: React.MouseEvent<HTMLButtonElement>) => void
-}) {
-  return (
-    <button
-      type="button"
-      data-menu-accion
-      aria-label="Acciones"
-      aria-expanded={abierto}
-      onClick={onClick}
-      className="focus-ring-cyan inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-[var(--radius-md)] text-text-secondary hover:bg-bg-elevated hover:text-text-primary"
-    >
-      <MoreHorizontal size={20} />
-    </button>
-  )
-}
-
-function EquipoLista({
-  filas,
-  menuAbierto,
-  onToggleMenu,
-}: {
-  filas: FilaEquipo[]
-  menuAbierto: string | null
-  onToggleMenu: (u: FilaEquipo, e: React.MouseEvent<HTMLButtonElement>) => void
-}) {
-  if (filas.length === 0) {
-    return (
-      <p className="py-8 text-center text-sm text-text-muted">
-        No hay usuarios en el equipo
-      </p>
-    )
-  }
-
-  return (
-    <>
-      {/* Vista móvil: tarjetas */}
-      <ul className="flex flex-col gap-3 md:hidden">
-        {filas.map((u) => (
-          <li
-            key={u.id}
-            className="overflow-hidden rounded-[var(--radius-lg)] border border-bg-border bg-bg-surface"
-          >
-            <div className="flex items-start gap-2 p-4">
-              <div className="min-w-0 flex-1">
-                <p className="font-medium leading-snug text-text-primary">
-                  {u.nombre}
-                  {u.esYo && (
-                    <span className="ml-1.5 text-xs font-normal text-text-muted">
-                      (tú)
-                    </span>
-                  )}
-                </p>
-                {u.email && (
-                  <p className="mt-0.5 truncate text-xs text-text-secondary">{u.email}</p>
-                )}
-                <div className="mt-2 flex flex-wrap items-center gap-2">
-                  <Badge variant={u.rol === 'admin' ? 'admin' : 'empleado'}>
-                    {u.rol === 'admin' ? 'Admin' : 'Empleado'}
-                  </Badge>
-                  <EstadoUsuario activo={u.activo} />
-                </div>
-              </div>
-              {u.rol === 'empleado' && (
-                <BotonMenuEquipo
-                  abierto={menuAbierto === u.id}
-                  onClick={(e) => onToggleMenu(u, e)}
-                />
-              )}
-            </div>
-          </li>
-        ))}
-      </ul>
-
-      {/* Vista escritorio: tabla */}
-      <div className="table-surface hidden min-w-0 max-w-full md:block">
-        <table className="data-table">
-          <thead>
-            <tr>
-              <th className="col-name">Nombre</th>
-              <th className="col-compact min-w-[5.5rem]">Rol</th>
-              <th className="col-compact min-w-[5.5rem]">Estado</th>
-              <th className="col-compact min-w-[4.5rem] text-right">Acción</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filas.map((u) => (
-              <tr key={u.id}>
-                <td className="col-name font-medium text-text-primary">
-                  {u.nombre}
-                  {u.esYo && (
-                    <span className="ml-2 text-xs font-normal text-text-muted">
-                      (tú)
-                    </span>
-                  )}
-                  {u.email && (
-                    <p className="text-xs font-normal text-text-secondary">{u.email}</p>
-                  )}
-                </td>
-                <td className="col-compact">
-                  <Badge variant={u.rol === 'admin' ? 'admin' : 'empleado'}>
-                    {u.rol === 'admin' ? 'Admin' : 'Empleado'}
-                  </Badge>
-                </td>
-                <td className="col-compact">
-                  <EstadoUsuario activo={u.activo} />
-                </td>
-                <td className="col-compact text-right">
-                  {u.rol === 'empleado' && (
-                    <BotonMenuEquipo
-                      abierto={menuAbierto === u.id}
-                      onClick={(e) => onToggleMenu(u, e)}
-                    />
-                  )}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </>
-  )
-}
-
 export function GestionEquipo({ usuarioActualId }: GestionEquipoProps) {
   const [usuarios, setUsuarios] = useState<Usuario[]>([])
   const [loading, setLoading] = useState(true)
-  const [menuAbierto, setMenuAbierto] = useState<string | null>(null)
-  const [menuPos, setMenuPos] = useState<{ top: number; left: number } | null>(
-    null
-  )
-  const menuRef = useRef<HTMLDivElement>(null)
+  const menu = useMenuAcciones()
 
   const [modalNuevo, setModalNuevo] = useState(false)
-  const [email, setEmail] = useState('')
-  const [nombre, setNombre] = useState('')
-  const [password, setPassword] = useState('')
-  const [passwordEditada, setPasswordEditada] = useState(false)
   const [resetUsuario, setResetUsuario] = useState<Usuario | null>(null)
-  const [resetPassword, setResetPassword] = useState('')
-  const [reseteando, setReseteando] = useState(false)
-  const [guardando, setGuardando] = useState(false)
-  const [credenciales, setCredenciales] = useState<CredencialesEmpleado | null>(
-    null
-  )
+  const [credenciales, setCredenciales] = useState<CredencialesEmpleado | null>(null)
   const [eliminarId, setEliminarId] = useState<string | null>(null)
   const [eliminando, setEliminando] = useState(false)
 
@@ -220,166 +50,9 @@ export function GestionEquipo({ usuarioActualId }: GestionEquipoProps) {
     cargar()
   }, [cargar])
 
-  useEffect(() => {
-    if (!menuAbierto) return
-
-    function cerrarMenu() {
-      setMenuAbierto(null)
-      setMenuPos(null)
-    }
-
-    function onClickOutside(e: MouseEvent) {
-      const target = e.target as Node
-      if (menuRef.current?.contains(target)) return
-      if ((target as Element).closest?.('[data-menu-accion]')) return
-      cerrarMenu()
-    }
-
-    function onScroll() {
-      cerrarMenu()
-    }
-
-    document.addEventListener('mousedown', onClickOutside)
-    window.addEventListener('scroll', onScroll, true)
-    return () => {
-      document.removeEventListener('mousedown', onClickOutside)
-      window.removeEventListener('scroll', onScroll, true)
-    }
-  }, [menuAbierto])
-
-  function toggleMenuEmpleado(
-    u: FilaEquipo,
-    e: React.MouseEvent<HTMLButtonElement>
-  ) {
-    if (menuAbierto === u.id) {
-      setMenuAbierto(null)
-      setMenuPos(null)
-      return
-    }
-    const rect = e.currentTarget.getBoundingClientRect()
-    setMenuPos({ top: rect.bottom + 4, left: rect.right })
-    setMenuAbierto(u.id)
-  }
-
-  function abrirNuevo() {
-    setEmail('')
-    setNombre('')
-    setPassword('')
-    setPasswordEditada(false)
-    setModalNuevo(true)
-  }
-
-  /** La contraseña sugerida sigue al correo hasta que el admin la edite */
-  function cambiarEmail(valor: string) {
-    setEmail(valor)
-    if (!passwordEditada) {
-      setPassword(valor.includes('@') || valor.length > 2 ? generarPasswordSimple(valor) : '')
-    }
-  }
-
   function abrirReset(u: Usuario) {
-    setMenuAbierto(null)
-    setMenuPos(null)
+    menu.close()
     setResetUsuario(u)
-    setResetPassword(generarPasswordSimple(u.email ?? u.nombre))
-  }
-
-  async function confirmarReset(e: React.FormEvent) {
-    e.preventDefault()
-    if (!resetUsuario) return
-    if (!isValidPassword(resetPassword)) {
-      toast.error(`La contraseña debe tener al menos ${PASSWORD_MIN} caracteres`)
-      return
-    }
-    setReseteando(true)
-    const toastId = toastLoading('Cambiando contraseña...')
-    try {
-      const res = await fetch(`/api/usuarios/${resetUsuario.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ password: resetPassword }),
-      })
-      const data = await res.json().catch(() => ({}))
-      if (!res.ok) {
-        toastError(data.error ?? 'No se pudo cambiar la contraseña', toastId)
-        return
-      }
-      toastSuccess('Contraseña actualizada', toastId)
-      setCredenciales({
-        email: resetUsuario.email ?? '',
-        password: resetPassword,
-        nombre: resetUsuario.nombre,
-      })
-      setResetUsuario(null)
-    } catch {
-      toastError('No se pudo cambiar la contraseña', toastId)
-    } finally {
-      setReseteando(false)
-    }
-  }
-
-  async function copiarPasswordModal() {
-    try {
-      await navigator.clipboard.writeText(password)
-      toast.success('Contraseña copiada')
-    } catch {
-      toast.error('No se pudo copiar')
-    }
-  }
-
-  async function crearEmpleado(e: React.FormEvent) {
-    e.preventDefault()
-
-    const nombreTrim = nombre.trim()
-    const emailTrim = email.trim().toLowerCase()
-
-    if (!nombreTrim) {
-      toast.error('El nombre es requerido')
-      return
-    }
-    if (!isValidEmail(emailTrim)) {
-      toast.error('Ingresa un correo válido')
-      return
-    }
-    if (!isValidPassword(password)) {
-      toast.error(`La contraseña debe tener al menos ${PASSWORD_MIN} caracteres`)
-      return
-    }
-
-    setGuardando(true)
-    const id = toast.loading('Creando cuenta...')
-
-    try {
-      const res = await fetch('/api/usuarios', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email: emailTrim,
-          nombre: nombreTrim,
-          password,
-        }),
-      })
-
-      const data = await res.json()
-
-      if (!res.ok) {
-        toast.error(data.error ?? 'Error al crear empleado', { id })
-        return
-      }
-
-      toast.success('Empleado creado. Comparte las credenciales con él.', { id })
-      setModalNuevo(false)
-      setCredenciales({
-        email: emailTrim,
-        password,
-        nombre: nombreTrim,
-      })
-      cargar()
-    } catch {
-      toast.error('Error al crear empleado', { id })
-    } finally {
-      setGuardando(false)
-    }
   }
 
   async function cambiarEstado(u: Usuario, activo: boolean) {
@@ -392,8 +65,7 @@ export function GestionEquipo({ usuarioActualId }: GestionEquipoProps) {
       return
     }
 
-    setMenuAbierto(null)
-    setMenuPos(null)
+    menu.close()
     const toastId = toastLoading(activo ? 'Activando empleado...' : 'Desactivando empleado...')
 
     const res = await fetch(`/api/usuarios/${u.id}`, {
@@ -421,8 +93,7 @@ export function GestionEquipo({ usuarioActualId }: GestionEquipoProps) {
       toast.error('No puedes eliminar tu propia cuenta')
       return
     }
-    setMenuAbierto(null)
-    setMenuPos(null)
+    menu.close()
     setEliminarId(u.id)
   }
 
@@ -454,23 +125,16 @@ export function GestionEquipo({ usuarioActualId }: GestionEquipoProps) {
   }
 
   const filas = ordenarEquipo(usuarios, usuarioActualId)
-  const empleadoMenu = filas.find(
-    (u) => u.id === menuAbierto && u.rol === 'empleado'
-  )
+  const empleadoMenu = filas.find((u) => u.id === menu.menuId && u.rol === 'empleado')
   const empleadoEliminar = filas.find((u) => u.id === eliminarId)
 
   return (
-    <motion.div
-      variants={fadeUp}
-      initial="hidden"
-      animate="visible"
-      className="min-w-0 space-y-4"
-    >
+    <motion.div variants={fadeUp} initial="hidden" animate="visible" className="min-w-0 space-y-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <h2 className="font-display text-lg text-text-primary">Equipo</h2>
+        <h2 className="font-display text-text-primary text-lg">Equipo</h2>
         <Button
           type="button"
-          onClick={abrirNuevo}
+          onClick={() => setModalNuevo(true)}
           size="sm"
           className="w-full shrink-0 sm:w-auto"
         >
@@ -484,250 +148,63 @@ export function GestionEquipo({ usuarioActualId }: GestionEquipoProps) {
       ) : (
         <EquipoLista
           filas={filas}
-          menuAbierto={menuAbierto}
-          onToggleMenu={toggleMenuEmpleado}
+          menuAbierto={menu.menuId}
+          onToggleMenu={(u, e) => menu.toggle(u.id, e)}
         />
       )}
 
-      <Modal
+      <NuevoEmpleadoModal
         open={modalNuevo}
-        onClose={() => !guardando && setModalNuevo(false)}
-        title="Nuevo empleado"
-      >
-        <form onSubmit={crearEmpleado} className="space-y-4">
-          <Input
-            label="Nombre completo"
-            value={nombre}
-            onChange={(e) => setNombre(e.target.value)}
-            required
-            placeholder="Ej. Carlos Pérez"
-            disabled={guardando}
-          />
-          <Input
-            label="Correo electrónico"
-            type="email"
-            value={email}
-            onChange={(e) => cambiarEmail(e.target.value)}
-            required
-            placeholder="empleado@cholaooscar.com"
-            disabled={guardando}
-          />
-          <div className="space-y-1.5">
-            <label className="text-sm text-text-secondary">
-              Contraseña inicial
-            </label>
-            <div className="flex flex-col gap-2 sm:flex-row">
-              <input
-                type="text"
-                value={password}
-                onChange={(e) => {
-                  setPassword(e.target.value.trim())
-                  setPasswordEditada(true)
-                }}
-                placeholder="Se genera con el correo"
-                autoComplete="off"
-                disabled={guardando}
-                className="input min-w-0 flex-1 font-mono text-sm"
-              />
-              <div className="flex gap-2">
-                <Button
-                  type="button"
-                  variant="secondary"
-                  onClick={copiarPasswordModal}
-                  aria-label="Copiar contraseña"
-                  title="Copiar contraseña"
-                  className="flex-1 sm:flex-none"
-                >
-                  <Copy size={16} />
-                </Button>
-                <Button
-                  type="button"
-                  variant="secondary"
-                  onClick={() => {
-                    setPassword(generarPasswordSimple(email || nombre))
-                    setPasswordEditada(false)
-                  }}
-                  aria-label="Generar nueva contraseña"
-                  title="Generar nueva"
-                  className="flex-1 sm:flex-none"
-                >
-                  <RefreshCw size={16} />
-                </Button>
-              </div>
-            </div>
-            <p className="text-xs text-text-muted">
-              Fácil de recordar: inicio del correo + 4 números. Puedes escribir otra (mínimo{' '}
-              {PASSWORD_MIN} caracteres).
-            </p>
-          </div>
-          <div className="flex flex-col-reverse gap-2 pt-2 sm:flex-row sm:justify-end">
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={() => setModalNuevo(false)}
-              disabled={guardando}
-              className="w-full sm:w-auto"
-            >
-              Cancelar
-            </Button>
-            <Button
-              type="submit"
-              disabled={guardando}
-              className="w-full sm:w-auto"
-            >
-              {guardando ? 'Creando...' : 'Crear empleado'}
-            </Button>
-          </div>
-        </form>
-      </Modal>
-
-      <ModalCredenciales
-        credenciales={credenciales}
-        onClose={() => setCredenciales(null)}
+        onClose={() => setModalNuevo(false)}
+        onCreado={(c) => {
+          setModalNuevo(false)
+          setCredenciales(c)
+          cargar()
+        }}
       />
 
-      {menuAbierto &&
-        menuPos &&
-        empleadoMenu &&
-        typeof document !== 'undefined' &&
-        createPortal(
-          <div
-            ref={menuRef}
-            role="menu"
-            className="fixed z-[200] min-w-[11rem] rounded-[var(--radius-md)] border border-bg-border bg-bg-surface py-1 shadow-xl"
-            style={{
-              top: menuPos.top,
-              left: menuPos.left,
-              transform: 'translateX(-100%)',
-            }}
-          >
+      <ResetPasswordModal
+        usuario={resetUsuario}
+        onClose={() => setResetUsuario(null)}
+        onListo={(c) => {
+          setResetUsuario(null)
+          setCredenciales(c)
+        }}
+      />
+
+      <ModalCredenciales credenciales={credenciales} onClose={() => setCredenciales(null)} />
+
+      <MenuAccionesPortal open={!!empleadoMenu} position={menu.menuPos} menuRef={menu.menuRef}>
+        {empleadoMenu && (
+          <>
             {empleadoMenu.activo ? (
-              <button
-                type="button"
-                role="menuitem"
-                className="w-full px-3 py-2 text-left text-sm text-text-primary hover:bg-bg-elevated"
-                onClick={() => cambiarEstado(empleadoMenu, false)}
-              >
-                Desactivar
-              </button>
+              <MenuItem onClick={() => cambiarEstado(empleadoMenu, false)}>Desactivar</MenuItem>
             ) : (
-              <button
-                type="button"
-                role="menuitem"
-                className="w-full px-3 py-2 text-left text-sm text-text-primary hover:bg-bg-elevated"
-                onClick={() => cambiarEstado(empleadoMenu, true)}
-              >
-                Activar
-              </button>
+              <MenuItem onClick={() => cambiarEstado(empleadoMenu, true)}>Activar</MenuItem>
             )}
-            <button
-              type="button"
-              role="menuitem"
-              className="w-full px-3 py-2 text-left text-sm text-text-primary hover:bg-bg-elevated"
-              onClick={() => abrirReset(empleadoMenu)}
-            >
-              Restablecer contraseña
-            </button>
-            <div className="my-1 border-t border-bg-border" />
-            <button
-              type="button"
-              role="menuitem"
-              className="w-full px-3 py-2 text-left text-sm text-accent-red hover:bg-bg-elevated"
-              onClick={() => pedirEliminar(empleadoMenu)}
-            >
+            <MenuItem onClick={() => abrirReset(empleadoMenu)}>Restablecer contraseña</MenuItem>
+            <MenuSeparador />
+            <MenuItem tono="peligro" onClick={() => pedirEliminar(empleadoMenu)}>
               Eliminar
-            </button>
-          </div>,
-          document.body
+            </MenuItem>
+          </>
         )}
+      </MenuAccionesPortal>
 
-      <Modal
-        open={resetUsuario !== null}
-        onClose={() => !reseteando && setResetUsuario(null)}
-        title="Restablecer contraseña"
-      >
-        <form onSubmit={confirmarReset} className="space-y-4">
-          <p className="text-sm text-text-secondary">
-            Nueva contraseña para{' '}
-            <span className="font-medium text-text-primary">{resetUsuario?.nombre}</span>
-            {resetUsuario?.email ? ` (${resetUsuario.email})` : ''}.
-          </p>
-          <div className="flex gap-2">
-            <input
-              type="text"
-              value={resetPassword}
-              onChange={(e) => setResetPassword(e.target.value.trim())}
-              autoComplete="off"
-              disabled={reseteando}
-              className="input min-w-0 flex-1 font-mono text-sm"
-            />
-            <Button
-              type="button"
-              variant="secondary"
-              aria-label="Generar otra"
-              title="Generar otra"
-              disabled={reseteando}
-              onClick={() =>
-                setResetPassword(
-                  generarPasswordSimple(resetUsuario?.email ?? resetUsuario?.nombre ?? '')
-                )
-              }
-            >
-              <RefreshCw size={16} />
-            </Button>
-          </div>
-          <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={() => setResetUsuario(null)}
-              disabled={reseteando}
-              className="w-full sm:w-auto"
-            >
-              Cancelar
-            </Button>
-            <Button type="submit" loading={reseteando} disabled={reseteando} className="w-full sm:w-auto">
-              Guardar contraseña
-            </Button>
-          </div>
-        </form>
-      </Modal>
-
-      <Modal
+      <ConfirmarModal
         open={eliminarId !== null}
-        onClose={() => !eliminando && setEliminarId(null)}
-        title="Eliminar cuenta"
+        titulo="Eliminar cuenta"
+        cargando={eliminando}
+        onCancelar={() => setEliminarId(null)}
+        onConfirmar={confirmarEliminar}
       >
-        <p className="mb-6 text-sm text-text-secondary">
-          ¿Eliminar permanentemente la cuenta de{' '}
-          <span className="font-medium text-text-primary">
-            {empleadoEliminar?.nombre ?? 'este empleado'}
-          </span>
-          ? No podrá volver a iniciar sesión. Si ya hizo cierres, no se podrá
-          borrar (usa Desactivar en ese caso).
-        </p>
-        <div className="flex flex-col-reverse gap-2 sm:flex-row">
-          <Button
-            type="button"
-            variant="secondary"
-            className="flex-1"
-            disabled={eliminando}
-            onClick={() => setEliminarId(null)}
-          >
-            Cancelar
-          </Button>
-          <Button
-            type="button"
-            variant="danger"
-            className="flex-1"
-            loading={eliminando}
-            disabled={eliminando}
-            onClick={confirmarEliminar}
-          >
-            Eliminar
-          </Button>
-        </div>
-      </Modal>
+        ¿Eliminar permanentemente la cuenta de{' '}
+        <span className="text-text-primary font-medium">
+          {empleadoEliminar?.nombre ?? 'este empleado'}
+        </span>
+        ? No podrá volver a iniciar sesión. Si ya hizo cierres, no se podrá borrar (usa Desactivar
+        en ese caso).
+      </ConfirmarModal>
     </motion.div>
   )
 }

@@ -3,10 +3,7 @@ import { esMotivoPredefinido } from '@/lib/motivos-novedad'
 import { NextResponse } from 'next/server'
 import type { ActualizarMotivoNovedadPayload } from '@/types'
 
-export async function PUT(
-  request: Request,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function PUT(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   const auth = await requireAdminApi()
   if (!auth.ok) return auth.response
@@ -44,10 +41,7 @@ export async function PUT(
     }
     const descripcion = body.descripcion.trim()
     if (!descripcion) {
-      return NextResponse.json(
-        { error: 'La descripción es requerida' },
-        { status: 400 }
-      )
+      return NextResponse.json({ error: 'La descripción es requerida' }, { status: 400 })
     }
     update.descripcion = descripcion
   }

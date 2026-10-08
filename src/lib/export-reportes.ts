@@ -64,9 +64,10 @@ function pesos(n: number) {
   }).format(n)
 }
 
-function construirFilas(data: ExportReportesInput): { dias: FilaDia[]; totales: Totales } {
+export function construirFilas(data: ExportReportesInput): { dias: FilaDia[]; totales: Totales } {
   const vasosPorFecha = new Map(data.resumen.map((r) => [r.fecha, r.total_vasos]))
-  const dias: FilaDia[] = [...data.cierres]
+  const dias: FilaDia[] = data.cierres
+    .filter((c) => c.estado === 'cerrado')
     .sort((a, b) => a.fecha.localeCompare(b.fecha))
     .map((c) => {
       const domicilios = Number(c.total_domicilios ?? 0)
@@ -112,7 +113,10 @@ function construirFilas(data: ExportReportesInput): { dias: FilaDia[]; totales: 
 
 function gastosDetalle(cierres: CierreDia[]) {
   return cierres
-    .flatMap((c) => (c.gastos ?? []).map((g) => ({ fecha: c.fecha, descripcion: g.descripcion, monto: g.monto })))
+    .filter((c) => c.estado === 'cerrado')
+    .flatMap((c) =>
+      (c.gastos ?? []).map((g) => ({ fecha: c.fecha, descripcion: g.descripcion, monto: g.monto }))
+    )
     .sort((a, b) => a.fecha.localeCompare(b.fecha))
 }
 
@@ -204,7 +208,16 @@ async function exportarExcel(data: ExportReportesInput) {
     diferencia: totales.diferencia,
   })
   total.font = { bold: true }
-  for (const key of ['ventas', 'gastos', 'transferencias', 'domicilios', 'base', 'esperado', 'contado', 'diferencia']) {
+  for (const key of [
+    'ventas',
+    'gastos',
+    'transferencias',
+    'domicilios',
+    'base',
+    'esperado',
+    'contado',
+    'diferencia',
+  ]) {
     hd.getColumn(key).numFmt = FMT_PESOS
   }
   hd.views = [{ state: 'frozen', ySplit: 1 }]
@@ -263,11 +276,7 @@ async function exportarPdf(data: ExportReportesInput) {
   doc.text(data.nombreNegocio, margen, 44)
   doc.setFontSize(10)
   doc.setFont('helvetica', 'normal')
-  doc.text(
-    `Reporte de ventas · ${fechaLarga(data.desde)} — ${fechaLarga(data.hasta)}`,
-    margen,
-    62
-  )
+  doc.text(`Reporte de ventas · ${fechaLarga(data.desde)} — ${fechaLarga(data.hasta)}`, margen, 62)
   doc.text(`Generado: ${format(new Date(), 'dd/MM/yyyy HH:mm')}`, margen, 76)
 
   autoTable(doc, {
@@ -276,17 +285,30 @@ async function exportarPdf(data: ExportReportesInput) {
     theme: 'grid',
     headStyles: { fillColor: azul },
     styles: { fontSize: 9 },
-    head: [['Ventas totales', 'Vasos', 'Días con cierre', 'Promedio/día', 'Gastos', 'Transferencias', 'Domicilios', 'Diferencia caja']],
-    body: [[
-      pesos(totales.ingresos),
-      String(totales.vasos),
-      `${totales.diasConCierre} de ${totales.diasPeriodo}`,
-      pesos(totales.promedioDiario),
-      pesos(totales.gastos),
-      pesos(totales.transferencias),
-      pesos(totales.domicilios),
-      pesos(totales.diferencia),
-    ]],
+    head: [
+      [
+        'Ventas totales',
+        'Vasos',
+        'Días con cierre',
+        'Promedio/día',
+        'Gastos',
+        'Transferencias',
+        'Domicilios',
+        'Diferencia caja',
+      ],
+    ],
+    body: [
+      [
+        pesos(totales.ingresos),
+        String(totales.vasos),
+        `${totales.diasConCierre} de ${totales.diasPeriodo}`,
+        pesos(totales.promedioDiario),
+        pesos(totales.gastos),
+        pesos(totales.transferencias),
+        pesos(totales.domicilios),
+        pesos(totales.diferencia),
+      ],
+    ],
   })
 
   type DocConTabla = typeof doc & { lastAutoTable?: { finalY: number } }
@@ -302,8 +324,30 @@ async function exportarPdf(data: ExportReportesInput) {
     theme: 'striped',
     headStyles: { fillColor: azul },
     styles: { fontSize: 8 },
-    columnStyles: { 1: { halign: 'right' }, 2: { halign: 'right' }, 3: { halign: 'right' }, 4: { halign: 'right' }, 5: { halign: 'right' }, 6: { halign: 'right' }, 7: { halign: 'right' }, 8: { halign: 'right' } },
-    head: [['Fecha', 'Ventas', 'Vasos', 'Gastos', 'Transf.', 'Domicilios', 'Esperado', 'Contado', 'Diferencia', 'Responsable']],
+    columnStyles: {
+      1: { halign: 'right' },
+      2: { halign: 'right' },
+      3: { halign: 'right' },
+      4: { halign: 'right' },
+      5: { halign: 'right' },
+      6: { halign: 'right' },
+      7: { halign: 'right' },
+      8: { halign: 'right' },
+    },
+    head: [
+      [
+        'Fecha',
+        'Ventas',
+        'Vasos',
+        'Gastos',
+        'Transf.',
+        'Domicilios',
+        'Esperado',
+        'Contado',
+        'Diferencia',
+        'Responsable',
+      ],
+    ],
     body: dias.map((d) => [
       fechaCorta(d.fecha),
       pesos(d.ventas),
@@ -316,18 +360,20 @@ async function exportarPdf(data: ExportReportesInput) {
       pesos(d.diferencia),
       d.responsable,
     ]),
-    foot: [[
-      'TOTAL',
-      pesos(totales.ingresos),
-      String(totales.vasos),
-      pesos(totales.gastos),
-      pesos(totales.transferencias),
-      pesos(totales.domicilios),
-      '',
-      '',
-      pesos(totales.diferencia),
-      '',
-    ]],
+    foot: [
+      [
+        'TOTAL',
+        pesos(totales.ingresos),
+        String(totales.vasos),
+        pesos(totales.gastos),
+        pesos(totales.transferencias),
+        pesos(totales.domicilios),
+        '',
+        '',
+        pesos(totales.diferencia),
+        '',
+      ],
+    ],
     footStyles: { fillColor: [230, 230, 230], textColor: 20, fontStyle: 'bold' },
   })
 
@@ -344,7 +390,13 @@ async function exportarPdf(data: ExportReportesInput) {
       styles: { fontSize: 8 },
       columnStyles: { 3: { halign: 'right' }, 4: { halign: 'right' } },
       head: [['Producto', 'Tipo', 'Medida', 'Cantidad', 'Ingresos']],
-      body: data.productos.map((p) => [p.nombre, p.tipo, p.medida, String(p.cantidad), pesos(p.ingresos)]),
+      body: data.productos.map((p) => [
+        p.nombre,
+        p.tipo,
+        p.medida,
+        String(p.cantidad),
+        pesos(p.ingresos),
+      ]),
     })
   }
 

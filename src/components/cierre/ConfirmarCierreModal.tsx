@@ -3,10 +3,8 @@
 import { AlertTriangle } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { Modal } from '@/components/ui/Modal'
-import type { calcularCuadre } from '@/hooks/useCuadre'
+import type { Cuadre } from '@/lib/cierre/cuadre'
 import { formatFecha, formatPesos } from '@/lib/utils'
-
-type Cuadre = ReturnType<typeof calcularCuadre>
 
 interface ConfirmarCierreModalProps {
   open: boolean
@@ -40,7 +38,7 @@ function Fila({
       <span
         className={[
           'tabular-nums',
-          fuerte ? 'font-semibold text-text-primary' : 'text-text-primary',
+          fuerte ? 'text-text-primary font-semibold' : 'text-text-primary',
           className,
         ]
           .filter(Boolean)
@@ -75,11 +73,7 @@ export function ConfirmarCierreModal({
         ? `Falta ${formatPesos(Math.abs(diferencia))}`
         : `Sobra ${formatPesos(diferencia)}`
   const colorDiferencia =
-    diferencia === 0
-      ? 'text-accent-green'
-      : diferencia < 0
-        ? 'text-accent-red'
-        : 'text-amber-400'
+    diferencia === 0 ? 'text-accent-green' : diferencia < 0 ? 'text-accent-red' : 'text-amber-400'
 
   return (
     <Modal
@@ -88,11 +82,11 @@ export function ConfirmarCierreModal({
       title={esCorreccion ? 'Guardar corrección' : 'Confirmar cierre del día'}
     >
       <div className="space-y-4">
-        <p className="text-sm text-text-secondary">
+        <p className="text-text-secondary text-sm">
           {formatFecha(fecha)}. Revisa el resumen antes de guardar.
         </p>
 
-        <div className="divide-y divide-bg-border rounded-[var(--radius-md)] border border-bg-border px-4 py-1">
+        <div className="divide-bg-border border-bg-border divide-y rounded-[var(--radius-md)] border px-4 py-1">
           <Fila label="Vasos vendidos" valor={String(vasosVendidos)} />
           <Fila label="Comida vendida" valor={`${itemsComida} und.`} />
           {esAdmin && (

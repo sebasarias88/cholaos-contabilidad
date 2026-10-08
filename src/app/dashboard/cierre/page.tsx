@@ -13,20 +13,13 @@ export default async function CierrePage({
   const usuario = await requireAuth()
   const { fecha } = await searchParams
   const hoy = hoyColombia()
-  const fechaCorreccion =
-    usuario.rol === 'admin' &&
-    esFechaISO(fecha) &&
-    fecha < hoy
-      ? fecha
-      : null
+
+  // El admin puede abrir otra fecha (cierre atrasado o corrección); el empleado siempre hoy
+  const fechaCierre = usuario.rol === 'admin' && esFechaISO(fecha) && fecha <= hoy ? fecha : hoy
 
   return (
     <div className="min-w-0">
-      <FormCierreDia
-        rol={usuario.rol}
-        hoy={hoy}
-        fechaCorreccion={fechaCorreccion}
-      />
+      <FormCierreDia key={fechaCierre} rol={usuario.rol} fecha={fechaCierre} />
     </div>
   )
 }

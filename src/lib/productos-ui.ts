@@ -21,10 +21,7 @@ export const TIPOS_PRODUCTO = [
   },
 ]
 
-export const BADGE_TIPO: Record<
-  TipoProducto,
-  { label: string; className: string }
-> = {
+export const BADGE_TIPO: Record<TipoProducto, { label: string; className: string }> = {
   vaso: {
     label: '🥤 Vaso',
     className: 'bg-accent-cyan-dim text-accent-cyan',
@@ -61,9 +58,7 @@ export function medidaProducto(p: {
   return p.unidad?.trim() || '—'
 }
 
-export function tipoProducto(p: {
-  tipo?: TipoProducto | string | null
-}): TipoProducto {
+export function tipoProducto(p: { tipo?: TipoProducto | string | null }): TipoProducto {
   if (p.tipo === 'comida' || p.tipo === 'insumo' || p.tipo === 'vaso') {
     return p.tipo
   }

@@ -11,8 +11,7 @@ interface ModalProps {
   children: React.ReactNode
 }
 
-const FOCUSABLE =
-  'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+const FOCUSABLE = 'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
 
 export function Modal({ open, onClose, title, children }: ModalProps) {
   const panelRef = useRef<HTMLDivElement>(null)
@@ -35,9 +34,9 @@ export function Modal({ open, onClose, title, children }: ModalProps) {
     if (!open || !panelRef.current) return
 
     const panel = panelRef.current
-    const focusables = Array.from(
-      panel.querySelectorAll<HTMLElement>(FOCUSABLE)
-    ).filter((el) => !el.hasAttribute('disabled'))
+    const focusables = Array.from(panel.querySelectorAll<HTMLElement>(FOCUSABLE)).filter(
+      (el) => !el.hasAttribute('disabled')
+    )
 
     const first = focusables[0]
     const last = focusables[focusables.length - 1]
@@ -82,14 +81,14 @@ export function Modal({ open, onClose, title, children }: ModalProps) {
             aria-modal="true"
             aria-labelledby={title ? 'modal-title' : undefined}
             tabIndex={-1}
-            className="relative z-10 w-full max-w-md rounded-[var(--radius-lg)] border border-bg-border bg-bg-surface/90 p-6 shadow-glow-cyan-strong backdrop-blur-xl"
+            className="border-bg-border bg-bg-surface/90 shadow-glow-cyan-strong relative z-10 w-full max-w-md rounded-[var(--radius-lg)] border p-6 backdrop-blur-xl"
             variants={scaleIn}
             onClick={(e) => e.stopPropagation()}
           >
             {title && (
               <h2
                 id="modal-title"
-                className="font-display mb-4 text-lg font-bold text-text-primary"
+                className="font-display text-text-primary mb-4 text-lg font-bold"
               >
                 {title}
               </h2>

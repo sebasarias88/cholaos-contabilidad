@@ -3,7 +3,7 @@ import {
   normalizarPayloadCierre,
   respuestaErrorRpc,
   sanitizarCierreParaEmpleado,
-} from '@/lib/cierres-api'
+} from '@/lib/cierre/api'
 import { jsonError, leerJson, requireAuthApi } from '@/lib/api-auth'
 import { esFechaISO, hoyColombia } from '@/lib/fechas'
 import { NextResponse } from 'next/server'
@@ -53,7 +53,7 @@ export async function GET(request: Request) {
   return NextResponse.json(fecha ? (filas[0] ?? null) : filas)
 }
 
-// POST — guarda el cierre completo en una sola transacción (función guardar_cierre)
+// POST — guarda avance (finalizar=false) o cierra el día (finalizar=true) en una transacción
 export async function POST(request: Request) {
   const auth = await requireAuthApi()
   if (!auth.ok) return auth.response
@@ -74,10 +74,10 @@ export async function POST(request: Request) {
 
   const r = data as GuardarCierreResponse & { creado: boolean }
   const body: GuardarCierreResponse = esAdmin
-    ? { ...r, ok: true, estado: 'cerrado' }
+    ? { ...r, ok: true }
     : {
         ok: true,
-        estado: 'cerrado',
+        estado: r.estado,
         cierre_id: r.cierre_id,
         fecha: r.fecha,
         total_gastos: r.total_gastos,

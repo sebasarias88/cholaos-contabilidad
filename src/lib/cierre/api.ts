@@ -1,10 +1,6 @@
 import type { PostgrestError } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
-import type {
-  CierreDia,
-  CierreDiaEmpleado,
-  GuardarCierrePayload,
-} from '@/types'
+import type { CierreDia, CierreDiaEmpleado, GuardarCierrePayload } from '@/types'
 
 /** Select común para GET cierres y prellenado */
 export const CIERRE_SELECT = `
@@ -66,10 +62,7 @@ export function sanitizarCierreParaEmpleado(cierre: CierreDia): CierreDiaEmplead
 /** Error de una función Postgres (raise exception) → respuesta HTTP */
 export function respuestaErrorRpc(error: PostgrestError) {
   const status = error.code === '42501' ? 403 : 400
-  return NextResponse.json(
-    { error: error.message || 'No se pudo guardar el cierre' },
-    { status }
-  )
+  return NextResponse.json({ error: error.message || 'No se pudo guardar el cierre' }, { status })
 }
 
 function num(valor: unknown): number | null {
@@ -92,11 +85,10 @@ function str(valor: unknown): string {
  * Deja pasar solo los campos que entiende guardar_cierre.
  * La validación de negocio (precios, inventario, totales) la hace la BD.
  */
-export function normalizarPayloadCierre(
-  raw: Record<string, unknown>
-): GuardarCierrePayload {
+export function normalizarPayloadCierre(raw: Record<string, unknown>): GuardarCierrePayload {
   return {
     fecha: str(raw.fecha),
+    finalizar: raw.finalizar !== false,
     dinero_base_inicio: num(raw.dinero_base_inicio) ?? undefined,
     dinero_final: num(raw.dinero_final),
     observaciones: str(raw.observaciones) || undefined,

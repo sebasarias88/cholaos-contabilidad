@@ -88,10 +88,7 @@ export function MiCuenta({ usuario, email, onNombreActualizado }: MiCuentaProps)
 
     if (!res.ok) {
       const data = await res.json().catch(() => ({}))
-      toast.error(
-        (data as { error?: string }).error ?? 'Error al cambiar contraseña',
-        { id }
-      )
+      toast.error((data as { error?: string }).error ?? 'Error al cambiar contraseña', { id })
       return
     }
 
@@ -106,28 +103,28 @@ export function MiCuenta({ usuario, email, onNombreActualizado }: MiCuentaProps)
       variants={staggerContainer}
       initial="hidden"
       animate="visible"
-      className="flex min-w-0 w-full flex-col gap-5"
+      className="flex w-full min-w-0 flex-col gap-5"
     >
       {/* Cabecera de perfil — ancho completo */}
       <motion.section
         variants={fadeUp}
-        className="flex flex-col gap-4 rounded-[var(--radius-lg)] border border-bg-border bg-bg-surface p-5 sm:flex-row sm:items-center sm:justify-between sm:gap-6 sm:p-6"
+        className="border-bg-border bg-bg-surface flex flex-col gap-4 rounded-[var(--radius-lg)] border p-5 sm:flex-row sm:items-center sm:justify-between sm:gap-6 sm:p-6"
       >
         <div className="flex min-w-0 items-center gap-4">
           <div
-            className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-accent-cyan-dim font-display text-xl font-bold text-accent-cyan sm:h-20 sm:w-20 sm:text-2xl"
+            className="bg-accent-cyan-dim font-display text-accent-cyan flex h-16 w-16 shrink-0 items-center justify-center rounded-full text-xl font-bold sm:h-20 sm:w-20 sm:text-2xl"
             aria-hidden
           >
             {getIniciales(usuario.nombre)}
           </div>
           <div className="min-w-0">
-            <h2 className="truncate font-display text-xl font-semibold text-text-primary sm:text-2xl">
+            <h2 className="font-display text-text-primary truncate text-xl font-semibold sm:text-2xl">
               {usuario.nombre}
             </h2>
-            <p className="mt-1 truncate text-sm text-text-secondary">{email}</p>
+            <p className="text-text-secondary mt-1 truncate text-sm">{email}</p>
           </div>
         </div>
-        <span className="w-fit shrink-0 rounded-full bg-accent-cyan-dim px-3 py-1 text-xs font-semibold capitalize text-accent-cyan">
+        <span className="bg-accent-cyan-dim text-accent-cyan w-fit shrink-0 rounded-full px-3 py-1 text-xs font-semibold capitalize">
           {usuario.rol}
         </span>
       </motion.section>
@@ -136,32 +133,25 @@ export function MiCuenta({ usuario, email, onNombreActualizado }: MiCuentaProps)
       <div className="grid min-w-0 gap-5 lg:grid-cols-2 lg:items-stretch">
         <motion.section
           variants={fadeUp}
-          className="flex min-w-0 flex-col rounded-[var(--radius-lg)] border border-bg-border bg-bg-surface"
+          className="border-bg-border bg-bg-surface flex min-w-0 flex-col rounded-[var(--radius-lg)] border"
         >
-          <div className="flex items-start gap-3 border-b border-bg-border px-5 py-4 sm:px-6">
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[var(--radius-md)] bg-accent-cyan-dim text-accent-cyan">
+          <div className="border-bg-border flex items-start gap-3 border-b px-5 py-4 sm:px-6">
+            <div className="bg-accent-cyan-dim text-accent-cyan flex h-9 w-9 shrink-0 items-center justify-center rounded-[var(--radius-md)]">
               <UserRound size={18} aria-hidden />
             </div>
             <div>
-              <h3 className="font-display text-base font-semibold text-text-primary">
+              <h3 className="font-display text-text-primary text-base font-semibold">
                 Datos personales
               </h3>
-              <p className="mt-0.5 text-sm text-text-secondary">
+              <p className="text-text-secondary mt-0.5 text-sm">
                 Actualiza cómo apareces en el sistema
               </p>
             </div>
           </div>
 
-          <form
-            onSubmit={guardarNombre}
-            className="flex flex-1 flex-col gap-4 p-5 sm:p-6"
-          >
-            <Input
-              label="Correo electrónico"
-              value={email}
-              disabled
-            />
-            <p className="-mt-2 text-xs text-text-muted">
+          <form onSubmit={guardarNombre} className="flex flex-1 flex-col gap-4 p-5 sm:p-6">
+            <Input label="Correo electrónico" value={email} disabled />
+            <p className="text-text-muted -mt-2 text-xs">
               El correo no se puede cambiar desde aquí.
             </p>
 
@@ -188,26 +178,19 @@ export function MiCuenta({ usuario, email, onNombreActualizado }: MiCuentaProps)
 
         <motion.section
           variants={fadeUp}
-          className="flex min-w-0 flex-col rounded-[var(--radius-lg)] border border-bg-border bg-bg-surface"
+          className="border-bg-border bg-bg-surface flex min-w-0 flex-col rounded-[var(--radius-lg)] border"
         >
-          <div className="flex items-start gap-3 border-b border-bg-border px-5 py-4 sm:px-6">
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[var(--radius-md)] bg-accent-cyan-dim text-accent-cyan">
+          <div className="border-bg-border flex items-start gap-3 border-b px-5 py-4 sm:px-6">
+            <div className="bg-accent-cyan-dim text-accent-cyan flex h-9 w-9 shrink-0 items-center justify-center rounded-[var(--radius-md)]">
               <KeyRound size={18} aria-hidden />
             </div>
             <div>
-              <h3 className="font-display text-base font-semibold text-text-primary">
-                Seguridad
-              </h3>
-              <p className="mt-0.5 text-sm text-text-secondary">
-                Cambia tu contraseña de acceso
-              </p>
+              <h3 className="font-display text-text-primary text-base font-semibold">Seguridad</h3>
+              <p className="text-text-secondary mt-0.5 text-sm">Cambia tu contraseña de acceso</p>
             </div>
           </div>
 
-          <form
-            onSubmit={guardarPassword}
-            className="flex flex-1 flex-col gap-4 p-5 sm:p-6"
-          >
+          <form onSubmit={guardarPassword} className="flex flex-1 flex-col gap-4 p-5 sm:p-6">
             <Input
               label="Contraseña actual"
               type="password"
@@ -235,7 +218,7 @@ export function MiCuenta({ usuario, email, onNombreActualizado }: MiCuentaProps)
                 disabled={guardandoPassword}
               />
             </div>
-            <p className="-mt-2 text-xs text-text-muted">
+            <p className="text-text-muted -mt-2 text-xs">
               La nueva contraseña debe tener al menos 6 caracteres.
             </p>
 

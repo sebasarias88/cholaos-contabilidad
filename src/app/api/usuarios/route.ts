@@ -57,8 +57,12 @@ export async function POST(request: Request) {
   const body = await leerJson(request)
   if (!body) return jsonError('Body inválido', 400)
 
-  const email = String(body.email ?? '').trim().toLowerCase()
-  const nombre = String(body.nombre ?? '').trim().slice(0, 80)
+  const email = String(body.email ?? '')
+    .trim()
+    .toLowerCase()
+  const nombre = String(body.nombre ?? '')
+    .trim()
+    .slice(0, 80)
   const password = String(body.password ?? '')
 
   if (!nombre) return jsonError('El nombre es requerido', 400)
@@ -82,10 +86,7 @@ export async function POST(request: Request) {
   // El perfil se crea explícitamente (no dependemos solo del trigger)
   const { data: perfil, error: perfilError } = await admin
     .from('usuarios')
-    .upsert(
-      { id: authData.user.id, nombre, rol: 'empleado', activo: true },
-      { onConflict: 'id' }
-    )
+    .upsert({ id: authData.user.id, nombre, rol: 'empleado', activo: true }, { onConflict: 'id' })
     .select(CAMPOS_USUARIO)
     .single()
 

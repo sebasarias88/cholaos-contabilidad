@@ -12,10 +12,7 @@ const BLOQUEO_INDEFINIDO = '876000h' // ~100 años
  * - El admin puede cambiar su propio nombre, pero no desactivarse.
  * - password: restablece la contraseña de un empleado.
  */
-export async function PUT(
-  request: Request,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function PUT(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const auth = await requireAdminApi()
   if (!auth.ok) return auth.response
 
@@ -93,10 +90,7 @@ export async function PUT(
 }
 
 /** DELETE — elimina la cuenta (solo empleados sin cierres ni ventas). */
-export async function DELETE(
-  _: Request,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function DELETE(_: Request, { params }: { params: Promise<{ id: string }> }) {
   const auth = await requireAdminApi()
   if (!auth.ok) return auth.response
 
@@ -121,7 +115,10 @@ export async function DELETE(
 
     const [ventas, cierres] = await Promise.all([
       supabase.from('ventas').select('id', { count: 'exact', head: true }).eq('usuario_id', id),
-      supabase.from('cierres_dia').select('id', { count: 'exact', head: true }).eq('usuario_id', id),
+      supabase
+        .from('cierres_dia')
+        .select('id', { count: 'exact', head: true })
+        .eq('usuario_id', id),
     ])
     if (ventas.error || cierres.error) {
       return jsonError((ventas.error ?? cierres.error)!.message, 500)

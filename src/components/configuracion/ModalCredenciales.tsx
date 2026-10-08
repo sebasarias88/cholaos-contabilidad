@@ -16,10 +16,7 @@ interface ModalCredencialesProps {
   onClose: () => void
 }
 
-export function ModalCredenciales({
-  credenciales,
-  onClose,
-}: ModalCredencialesProps) {
+export function ModalCredenciales({ credenciales, onClose }: ModalCredencialesProps) {
   async function copiarTodo() {
     if (!credenciales) return
     const texto = `Cholao Oscar — acceso al sistema
@@ -46,17 +43,13 @@ Entra en: ${window.location.origin}/login`
   }
 
   return (
-    <Modal
-      open={!!credenciales}
-      onClose={onClose}
-      title="Credenciales del empleado"
-    >
+    <Modal open={!!credenciales} onClose={onClose} title="Credenciales del empleado">
       {credenciales && (
         <div className="space-y-4">
-          <p className="text-sm text-text-secondary">
+          <p className="text-text-secondary text-sm">
             Copia y envía estos datos a{' '}
-            <span className="text-text-primary">{credenciales.nombre}</span>. Solo se
-            muestran una vez.
+            <span className="text-text-primary">{credenciales.nombre}</span>. Solo se muestran una
+            vez.
           </p>
           <dl className="card space-y-3 p-4 text-sm">
             <div>
@@ -65,18 +58,16 @@ Entra en: ${window.location.origin}/login`
             </div>
             <div>
               <dt className="text-text-muted">Correo</dt>
-              <dd className="font-mono text-text-primary">{credenciales.email}</dd>
+              <dd className="text-text-primary font-mono">{credenciales.email}</dd>
             </div>
             <div>
               <dt className="text-text-muted">Contraseña</dt>
               <dd className="flex items-center justify-between gap-2">
-                <span className="font-mono text-accent-cyan">
-                  {credenciales.password}
-                </span>
+                <span className="text-accent-cyan font-mono">{credenciales.password}</span>
                 <button
                   type="button"
                   onClick={copiarPassword}
-                  className="focus-ring-cyan rounded-[var(--radius-md)] p-1.5 text-text-secondary hover:bg-bg-elevated hover:text-text-primary"
+                  className="focus-ring-cyan text-text-secondary hover:bg-bg-elevated hover:text-text-primary rounded-[var(--radius-md)] p-1.5"
                   aria-label="Copiar contraseña"
                 >
                   <Copy size={14} />

@@ -2,7 +2,7 @@
  * Fechas del negocio — siempre en hora de Colombia.
  * El servidor (Vercel) corre en UTC: nunca usar format(new Date()) para "hoy".
  */
-export const ZONA_HORARIA_NEGOCIO = 'America/Bogota'
+const ZONA_HORARIA_NEGOCIO = 'America/Bogota'
 
 const formatoISO = new Intl.DateTimeFormat('en-CA', {
   timeZone: ZONA_HORARIA_NEGOCIO,

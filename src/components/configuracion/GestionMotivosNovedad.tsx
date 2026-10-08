@@ -1,10 +1,12 @@
 'use client'
 
-import { useCallback, useEffect, useRef, useState } from 'react'
-import { createPortal } from 'react-dom'
+import { useCallback, useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
-import { MoreHorizontal, Plus } from 'lucide-react'
+import { Plus } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
+import { MenuAccionesPortal, MenuItem } from '@/components/ui/MenuAccionesPortal'
+import { BotonAcciones } from '@/components/ui/BotonAcciones'
+import { useMenuAcciones } from '@/hooks/useMenuAcciones'
 import { Input } from '@/components/ui/Input'
 import { Modal } from '@/components/ui/Modal'
 import { Skeleton } from '@/components/ui/Skeleton'
@@ -20,27 +22,6 @@ type MotivoForm = {
 
 const FORM_VACIO: MotivoForm = { descripcion: '', emoji: '⚪' }
 
-function BotonMenuMotivo({
-  abierto,
-  onClick,
-}: {
-  abierto: boolean
-  onClick: (e: React.MouseEvent<HTMLButtonElement>) => void
-}) {
-  return (
-    <button
-      type="button"
-      data-menu-accion
-      aria-label="Acciones"
-      aria-expanded={abierto}
-      onClick={onClick}
-      className="focus-ring-cyan inline-flex min-h-9 min-w-9 shrink-0 items-center justify-center rounded-[var(--radius-md)] text-text-secondary hover:bg-bg-elevated hover:text-text-primary"
-    >
-      <MoreHorizontal size={18} />
-    </button>
-  )
-}
-
 export function GestionMotivosNovedad() {
   const [motivos, setMotivos] = useState<MotivoNovedad[]>([])
   const [loading, setLoading] = useState(true)
@@ -48,11 +29,7 @@ export function GestionMotivosNovedad() {
   const [modalOpen, setModalOpen] = useState(false)
   const [editando, setEditando] = useState<MotivoNovedad | null>(null)
   const [form, setForm] = useState<MotivoForm>(FORM_VACIO)
-  const [menuAbierto, setMenuAbierto] = useState<string | null>(null)
-  const [menuPos, setMenuPos] = useState<{ top: number; left: number } | null>(
-    null
-  )
-  const menuRef = useRef<HTMLDivElement>(null)
+  const menu = useMenuAcciones()
 
   const cargar = useCallback(() => {
     fetch('/api/motivos-novedad?todas=1')
@@ -72,44 +49,6 @@ export function GestionMotivosNovedad() {
     cargar()
   }, [cargar])
 
-  useEffect(() => {
-    if (!menuAbierto) return
-
-    function cerrarMenu() {
-      setMenuAbierto(null)
-      setMenuPos(null)
-    }
-
-    function onClickOutside(e: MouseEvent) {
-      const target = e.target as Node
-      if (menuRef.current?.contains(target)) return
-      if ((target as Element).closest?.('[data-menu-accion]')) return
-      cerrarMenu()
-    }
-
-    function onScroll() {
-      cerrarMenu()
-    }
-
-    document.addEventListener('mousedown', onClickOutside)
-    window.addEventListener('scroll', onScroll, true)
-    return () => {
-      document.removeEventListener('mousedown', onClickOutside)
-      window.removeEventListener('scroll', onScroll, true)
-    }
-  }, [menuAbierto])
-
-  function toggleMenu(m: MotivoNovedad, e: React.MouseEvent<HTMLButtonElement>) {
-    if (menuAbierto === m.id) {
-      setMenuAbierto(null)
-      setMenuPos(null)
-      return
-    }
-    const rect = e.currentTarget.getBoundingClientRect()
-    setMenuPos({ top: rect.bottom + 4, left: rect.right })
-    setMenuAbierto(m.id)
-  }
-
   function abrirNuevo() {
     setEditando(null)
     setForm(FORM_VACIO)
@@ -117,8 +56,7 @@ export function GestionMotivosNovedad() {
   }
 
   function abrirEditar(m: MotivoNovedad) {
-    setMenuAbierto(null)
-    setMenuPos(null)
+    menu.close()
     setEditando(m)
     setForm({
       descripcion: m.descripcion,
@@ -152,9 +90,7 @@ export function GestionMotivosNovedad() {
     setGuardando(true)
     const toastId = toastLoading(editando ? 'Guardando cambios...' : 'Creando motivo...')
 
-    const payload = esPredefinido
-      ? { emoji }
-      : { descripcion, emoji }
+    const payload = esPredefinido ? { emoji } : { descripcion, emoji }
 
     const res = await fetch(
       editando ? `/api/motivos-novedad/${editando.id}` : '/api/motivos-novedad',
@@ -169,10 +105,7 @@ export function GestionMotivosNovedad() {
 
     if (!res.ok) {
       const data = await res.json().catch(() => ({}))
-      toastError(
-        (data as { error?: string }).error ?? 'Error al guardar',
-        toastId
-      )
+      toastError((data as { error?: string }).error ?? 'Error al guardar', toastId)
       return
     }
 
@@ -187,8 +120,7 @@ export function GestionMotivosNovedad() {
       return
     }
 
-    setMenuAbierto(null)
-    setMenuPos(null)
+    menu.close()
     const toastId = toastLoading(activo ? 'Activando motivo...' : 'Desactivando motivo...')
 
     const res = await fetch(`/api/motivos-novedad/${m.id}`, {
@@ -199,10 +131,7 @@ export function GestionMotivosNovedad() {
 
     if (!res.ok) {
       const data = await res.json().catch(() => ({}))
-      toastError(
-        (data as { error?: string }).error ?? 'Error al actualizar',
-        toastId
-      )
+      toastError((data as { error?: string }).error ?? 'Error al actualizar', toastId)
       return
     }
 
@@ -212,7 +141,7 @@ export function GestionMotivosNovedad() {
 
   const activos = motivos.filter((m) => m.activo)
   const inactivos = motivos.filter((m) => !m.activo)
-  const motivoMenu = motivos.find((m) => m.id === menuAbierto)
+  const motivoMenu = motivos.find((m) => m.id === menu.menuId)
 
   function filaMotivo(m: MotivoNovedad, atenuado = false) {
     const predefinido = esMotivoPredefinido(m)
@@ -224,21 +153,18 @@ export function GestionMotivosNovedad() {
           atenuado ? 'opacity-70' : '',
         ].join(' ')}
       >
-        <span className="min-w-0 text-sm text-text-primary">
+        <span className="text-text-primary min-w-0 text-sm">
           <span className="mr-2" aria-hidden>
             {m.emoji}
           </span>
           {m.descripcion}
           {predefinido && (
-            <span className="ml-2 text-[10px] font-medium uppercase tracking-wide text-text-secondary">
+            <span className="text-text-secondary ml-2 text-[10px] font-medium tracking-wide uppercase">
               Predefinido
             </span>
           )}
         </span>
-        <BotonMenuMotivo
-          abierto={menuAbierto === m.id}
-          onClick={(e) => toggleMenu(m, e)}
-        />
+        <BotonAcciones abierto={menu.isOpen(m.id)} onClick={(e) => menu.toggle(m.id, e)} />
       </li>
     )
   }
@@ -250,10 +176,8 @@ export function GestionMotivosNovedad() {
         className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"
       >
         <div>
-          <h2 className="font-display text-lg text-text-primary">
-            Motivos de novedad
-          </h2>
-          <p className="mt-1 text-sm text-text-secondary">
+          <h2 className="font-display text-text-primary text-lg">Motivos de novedad</h2>
+          <p className="text-text-secondary mt-1 text-sm">
             Motivos para vasos que no se vendieron en el cierre del día.
           </p>
         </div>
@@ -273,10 +197,10 @@ export function GestionMotivosNovedad() {
         <>
           <motion.ul
             variants={fadeUp}
-            className="divide-y divide-bg-border overflow-hidden rounded-[var(--radius-lg)] border border-bg-border bg-bg-surface"
+            className="divide-bg-border border-bg-border bg-bg-surface divide-y overflow-hidden rounded-[var(--radius-lg)] border"
           >
             {activos.length === 0 ? (
-              <li className="px-4 py-8 text-center text-sm text-text-muted">
+              <li className="text-text-muted px-4 py-8 text-center text-sm">
                 No hay motivos activos.
               </li>
             ) : (
@@ -286,10 +210,10 @@ export function GestionMotivosNovedad() {
 
           {inactivos.length > 0 && (
             <motion.div variants={fadeUp} className="space-y-2">
-              <p className="text-xs font-medium uppercase tracking-wide text-text-secondary">
+              <p className="text-text-secondary text-xs font-medium tracking-wide uppercase">
                 Inactivos
               </p>
-              <ul className="divide-y divide-bg-border overflow-hidden rounded-[var(--radius-lg)] border border-bg-border bg-bg-elevated/30">
+              <ul className="divide-bg-border border-bg-border bg-bg-elevated/30 divide-y overflow-hidden rounded-[var(--radius-lg)] border">
                 {inactivos.map((m) => filaMotivo(m, true))}
               </ul>
             </motion.div>
@@ -304,7 +228,7 @@ export function GestionMotivosNovedad() {
       >
         <form onSubmit={guardarMotivo} className="space-y-4">
           <motion.div variants={fadeUp} className="space-y-1.5">
-            <label htmlFor="motivo-emoji" className="text-sm font-medium text-text-secondary">
+            <label htmlFor="motivo-emoji" className="text-text-secondary text-sm font-medium">
               Emoji
             </label>
             <input
@@ -317,7 +241,7 @@ export function GestionMotivosNovedad() {
               maxLength={8}
               required
             />
-            <p className="text-xs text-text-muted">
+            <p className="text-text-muted text-xs">
               Vista previa:{' '}
               <span className="text-lg" aria-hidden>
                 {form.emoji.trim() || '⚪'}
@@ -335,18 +259,13 @@ export function GestionMotivosNovedad() {
           />
 
           {editando && esMotivoPredefinido(editando) && (
-            <p className="text-xs text-text-muted">
+            <p className="text-text-muted text-xs">
               Los motivos predefinidos solo permiten cambiar el emoji.
             </p>
           )}
 
           <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-            <Button
-              type="button"
-              variant="ghost"
-              onClick={cerrarModal}
-              disabled={guardando}
-            >
+            <Button type="button" variant="ghost" onClick={cerrarModal} disabled={guardando}>
               Cancelar
             </Button>
             <Button type="submit" loading={guardando}>
@@ -356,52 +275,21 @@ export function GestionMotivosNovedad() {
         </form>
       </Modal>
 
-      {menuAbierto &&
-        menuPos &&
-        motivoMenu &&
-        typeof document !== 'undefined' &&
-        createPortal(
-          <div
-            ref={menuRef}
-            role="menu"
-            className="fixed z-[200] min-w-[10rem] rounded-[var(--radius-md)] border border-bg-border bg-bg-surface py-1 shadow-xl"
-            style={{
-              top: menuPos.top,
-              left: menuPos.left,
-              transform: 'translateX(-100%)',
-            }}
-          >
-            <button
-              type="button"
-              role="menuitem"
-              className="w-full px-3 py-2 text-left text-sm text-text-primary hover:bg-bg-elevated"
-              onClick={() => abrirEditar(motivoMenu)}
-            >
-              Editar
-            </button>
+      <MenuAccionesPortal open={!!motivoMenu} position={menu.menuPos} menuRef={menu.menuRef}>
+        {motivoMenu && (
+          <>
+            <MenuItem onClick={() => abrirEditar(motivoMenu)}>Editar</MenuItem>
             {!esMotivoPredefinido(motivoMenu) &&
               (motivoMenu.activo ? (
-                <button
-                  type="button"
-                  role="menuitem"
-                  className="w-full px-3 py-2 text-left text-sm text-accent-red hover:bg-bg-elevated"
-                  onClick={() => cambiarActivo(motivoMenu, false)}
-                >
+                <MenuItem tono="peligro" onClick={() => cambiarActivo(motivoMenu, false)}>
                   Desactivar
-                </button>
+                </MenuItem>
               ) : (
-                <button
-                  type="button"
-                  role="menuitem"
-                  className="w-full px-3 py-2 text-left text-sm text-text-primary hover:bg-bg-elevated"
-                  onClick={() => cambiarActivo(motivoMenu, true)}
-                >
-                  Activar
-                </button>
+                <MenuItem onClick={() => cambiarActivo(motivoMenu, true)}>Activar</MenuItem>
               ))}
-          </div>,
-          document.body
+          </>
         )}
+      </MenuAccionesPortal>
     </motion.div>
   )
 }

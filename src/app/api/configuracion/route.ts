@@ -30,10 +30,7 @@ export async function PUT(request: Request) {
   const nombre = String(nombre_negocio ?? '').trim()
 
   if (!nombre) {
-    return NextResponse.json(
-      { error: 'El nombre del negocio es requerido' },
-      { status: 400 }
-    )
+    return NextResponse.json({ error: 'El nombre del negocio es requerido' }, { status: 400 })
   }
 
   const { supabase } = auth.ctx

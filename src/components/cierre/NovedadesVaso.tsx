@@ -28,7 +28,7 @@ function StepperCantidad({
       role="group"
       aria-label="Cantidad"
       className={[
-        'inline-flex items-center overflow-hidden rounded-[var(--radius-md)] border border-bg-border bg-bg-surface',
+        'border-bg-border bg-bg-surface inline-flex items-center overflow-hidden rounded-[var(--radius-md)] border',
         CONTROL_H,
         disabled ? 'opacity-50' : '',
       ].join(' ')}
@@ -38,11 +38,11 @@ function StepperCantidad({
         disabled={disabled || value <= 1}
         aria-label="Menos uno"
         onClick={() => onChange(Math.max(1, value - 1))}
-        className={`flex w-8 ${CONTROL_H} items-center justify-center text-text-secondary transition-colors hover:bg-bg-elevated hover:text-text-primary disabled:cursor-not-allowed disabled:opacity-40`}
+        className={`flex w-8 ${CONTROL_H} text-text-secondary hover:bg-bg-elevated hover:text-text-primary items-center justify-center transition-colors disabled:cursor-not-allowed disabled:opacity-40`}
       >
         <Minus size={13} aria-hidden />
       </button>
-      <span className="min-w-[1.5rem] select-none px-0.5 text-center text-xs font-semibold tabular-nums text-text-primary">
+      <span className="text-text-primary min-w-[1.5rem] px-0.5 text-center text-xs font-semibold tabular-nums select-none">
         {value}
       </span>
       <button
@@ -50,14 +50,13 @@ function StepperCantidad({
         disabled={disabled}
         aria-label="Más uno"
         onClick={() => onChange(value + 1)}
-        className={`flex w-8 ${CONTROL_H} items-center justify-center text-accent-cyan transition-colors hover:bg-accent-cyan-dim disabled:cursor-not-allowed disabled:opacity-40`}
+        className={`flex w-8 ${CONTROL_H} text-accent-cyan hover:bg-accent-cyan-dim items-center justify-center transition-colors disabled:cursor-not-allowed disabled:opacity-40`}
       >
         <Plus size={13} aria-hidden />
       </button>
     </div>
   )
 }
-
 
 export function NovedadesVaso({
   novedades,
@@ -92,11 +91,7 @@ export function NovedadesVaso({
   }
 
   if (motivos.length === 0) {
-    return (
-      <p className="text-xs text-text-muted">
-        No hay motivos de novedad configurados.
-      </p>
-    )
+    return <p className="text-text-muted text-xs">No hay motivos de novedad configurados.</p>
   }
 
   const fieldClass = [
@@ -108,17 +103,11 @@ export function NovedadesVaso({
     <div className="space-y-2">
       <div className="flex items-center justify-between gap-2">
         <div className="flex min-w-0 items-center gap-1.5">
-          <AlertTriangle size={13} className="shrink-0 text-accent-amber" aria-hidden />
-          <span className="text-xs font-medium text-text-secondary">
-            Vasos no vendidos
-          </span>
+          <AlertTriangle size={13} className="text-accent-amber shrink-0" aria-hidden />
+          <span className="text-text-secondary text-xs font-medium">Vasos no vendidos</span>
         </div>
         {!disabled && (
-          <button
-            type="button"
-            onClick={agregar}
-            className="btn-add-dashed-amber"
-          >
+          <button type="button" onClick={agregar} className="btn-add-dashed-amber">
             <Plus size={12} aria-hidden />
             Agregar
           </button>
@@ -160,7 +149,7 @@ export function NovedadesVaso({
                       value: m.id,
                       label: `${m.emoji} ${m.descripcion}`,
                     }))}
-                    className="!h-9 !flex-none w-[14rem] shrink-0 !py-0 text-xs"
+                    className="!h-9 w-[14rem] !flex-none shrink-0 !py-0 text-xs"
                   />
 
                   <StepperCantidad
@@ -174,7 +163,7 @@ export function NovedadesVaso({
                       type="button"
                       onClick={() => eliminar(i)}
                       aria-label="Quitar novedad"
-                      className={`flex ${CONTROL_H} w-9 shrink-0 items-center justify-center rounded-[var(--radius-md)] text-text-secondary transition-colors hover:bg-accent-red-dim hover:text-accent-red`}
+                      className={`flex ${CONTROL_H} text-text-secondary hover:bg-accent-red-dim hover:text-accent-red w-9 shrink-0 items-center justify-center rounded-[var(--radius-md)] transition-colors`}
                     >
                       <Trash2 size={14} aria-hidden />
                     </button>
@@ -186,9 +175,7 @@ export function NovedadesVaso({
                     type="text"
                     disabled={disabled}
                     value={novedad.motivo_custom ?? ''}
-                    onChange={(e) =>
-                      actualizar(i, 'motivo_custom', e.target.value)
-                    }
+                    onChange={(e) => actualizar(i, 'motivo_custom', e.target.value)}
                     placeholder="Describe el motivo..."
                     className={`${fieldClass} max-w-[14rem] px-2.5`}
                   />
@@ -200,9 +187,9 @@ export function NovedadesVaso({
       </AnimatePresence>
 
       {totalNovedades > 0 && (
-        <p className="flex items-center justify-end gap-1 text-[11px] text-accent-amber">
+        <p className="text-accent-amber flex items-center justify-end gap-1 text-[11px]">
           <AlertTriangle size={11} aria-hidden />
-          <span className="tabular-nums font-medium">
+          <span className="font-medium tabular-nums">
             {totalNovedades} descontado{totalNovedades !== 1 ? 's' : ''}
           </span>
         </p>

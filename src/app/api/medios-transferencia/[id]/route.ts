@@ -2,10 +2,7 @@ import { requireAdminApi } from '@/lib/api-auth'
 import { NextResponse } from 'next/server'
 import type { ActualizarMedioTransferenciaPayload } from '@/types'
 
-export async function PUT(
-  request: Request,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function PUT(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   const auth = await requireAdminApi()
   if (!auth.ok) return auth.response
@@ -52,10 +49,7 @@ export async function PUT(
   return NextResponse.json(data)
 }
 
-export async function DELETE(
-  _request: Request,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function DELETE(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   const auth = await requireAdminApi()
   if (!auth.ok) return auth.response
@@ -91,18 +85,14 @@ export async function DELETE(
     )
   }
 
-  const { error } = await supabase
-    .from('medios_transferencia')
-    .delete()
-    .eq('id', id)
+  const { error } = await supabase.from('medios_transferencia').delete().eq('id', id)
 
   if (error) {
     const msg = error.message.toLowerCase()
     if (msg.includes('foreign key') || msg.includes('violates')) {
       return NextResponse.json(
         {
-          error:
-            'No se puede eliminar: el medio está en uso. Desactívalo para ocultarlo.',
+          error: 'No se puede eliminar: el medio está en uso. Desactívalo para ocultarlo.',
         },
         { status: 409 }
       )

@@ -14,10 +14,7 @@ export default async function ConfiguracionPage() {
 
   return (
     <div className="min-w-0 p-4 sm:p-6">
-      <ConfiguracionPanel
-        usuario={usuario}
-        email={user?.email ?? ''}
-      />
+      <ConfiguracionPanel usuario={usuario} email={user?.email ?? ''} />
     </div>
   )
 }

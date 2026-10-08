@@ -39,20 +39,23 @@ export function ConfiguracionPanel({ usuario: usuarioInicial, email }: Configura
     >
       <motion.div variants={fadeUp} className="flex items-center gap-3">
         <Settings size={20} className="text-accent-cyan" />
-        <h1 className="font-display text-xl text-text-primary">Configuración</h1>
+        <h1 className="font-display text-text-primary text-xl">Configuración</h1>
       </motion.div>
 
-      <motion.div variants={fadeUp} className="flex gap-2 overflow-x-auto border-b border-bg-border pb-px">
+      <motion.div
+        variants={fadeUp}
+        className="border-bg-border flex gap-2 overflow-x-auto border-b pb-px"
+      >
         {TABS.map(({ id, label, icon: Icon }) => (
           <button
             key={id}
             type="button"
             onClick={() => setTab(id)}
             className={[
-              'flex shrink-0 items-center gap-2 border-b-2 px-4 py-2 text-sm font-medium transition-colors -mb-px',
+              '-mb-px flex shrink-0 items-center gap-2 border-b-2 px-4 py-2 text-sm font-medium transition-colors',
               tab === id
                 ? 'border-accent-cyan text-accent-cyan'
-                : 'border-transparent text-text-secondary hover:text-text-primary',
+                : 'text-text-secondary hover:text-text-primary border-transparent',
             ].join(' ')}
           >
             <Icon size={16} />
@@ -61,17 +64,11 @@ export function ConfiguracionPanel({ usuario: usuarioInicial, email }: Configura
         ))}
       </motion.div>
 
-      {tab === 'equipo' && (
-        <GestionEquipo usuarioActualId={usuario.id} />
-      )}
+      {tab === 'equipo' && <GestionEquipo usuarioActualId={usuario.id} />}
       {tab === 'motivos' && <GestionMotivosNovedad />}
       {tab === 'transferencias' && <GestionMediosTransferencia />}
       {tab === 'cuenta' && (
-        <MiCuenta
-          usuario={usuario}
-          email={email}
-          onNombreActualizado={setNombrePerfil}
-        />
+        <MiCuenta usuario={usuario} email={email} onNombreActualizado={setNombrePerfil} />
       )}
     </motion.div>
   )

@@ -13,8 +13,6 @@ import toast from 'react-hot-toast'
  * toast('Producto actualizado', { icon: '✏️' })
  */
 
-export { toast }
-
 /** Éxito — opcionalmente reemplaza un toast.loading por id */
 export function toastSuccess(message: string, id?: string) {
   return toast.success(message, id ? { id } : undefined)
@@ -28,9 +26,4 @@ export function toastError(message: string, id?: string) {
 /** Loading — guarda el id para success/error después */
 export function toastLoading(message: string) {
   return toast.loading(message)
-}
-
-/** Mensaje custom con ícono */
-export function toastCustom(message: string, icon = 'ℹ️') {
-  return toast(message, { icon })
 }

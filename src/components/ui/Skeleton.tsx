@@ -9,7 +9,7 @@ interface SkeletonProps {
 export function Skeleton({ className = '' }: SkeletonProps) {
   return (
     <motion.div
-      className={`rounded-[var(--radius-md)] bg-bg-elevated ${className}`}
+      className={`bg-bg-elevated rounded-[var(--radius-md)] ${className}`}
       animate={{ opacity: [0.5, 1, 0.5] }}
       transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }}
     />
@@ -30,7 +30,7 @@ export function SkeletonTabla({ filas = 5 }: { filas?: number }) {
 // Skeleton de card de stat
 export function SkeletonStat() {
   return (
-    <div className="flex h-full min-h-[7.5rem] flex-col space-y-3 rounded-[var(--radius-lg)] border border-bg-border bg-bg-surface p-5">
+    <div className="border-bg-border bg-bg-surface flex h-full min-h-[7.5rem] flex-col space-y-3 rounded-[var(--radius-lg)] border p-5">
       <Skeleton className="h-4 w-24" />
       <Skeleton className="h-8 w-36" />
       <Skeleton className="h-3 w-20" />

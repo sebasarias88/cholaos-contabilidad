@@ -103,13 +103,16 @@ Siempre `hoyColombia()` / `fechaColombia()` de `@/lib/fechas` (America/Bogota). 
 ## Base de datos
 
 - Migraciones en `supabase/migrations/` (fuente de verdad del esquema nuevo).
-- Funciones: `guardar_cierre`, `base_cierre` (último cierre anterior: dinero y conteos finales), `hoy_colombia`, `es_admin`, `es_usuario_activo`, `puede_ver_cierre`.
+- Funciones: `guardar_cierre` (borrador o definitivo), `base_cierre` (último cierre anterior: dinero y conteos finales), `ultimo_cierre_cerrado`, `uso_almacenamiento`, `vista_previa_limpieza`, `limpiar_datos`, `hoy_colombia`, `es_admin`, `es_usuario_activo`, `puede_ver_cierre`.
+- Reglas del cierre: un cierre nuevo (o un borrador que se finaliza) debe ser **posterior al último cierre cerrado**; corregir un día cerrado no cambia su fecha ni recalcula los días siguientes; un cierre cerrado no vuelve a borrador.
+- `limpiar_datos` siempre conserva el último cierre (es la base del inventario).
 - `ventas_comida` y `ventas_variantes` guardan `precio_unitario` del día (precio histórico).
 
 ## APIs
 
 - Productos activos: `GET /api/productos` (sesión) · gestión: `?todos=true` (admin)
-- Cierre: `GET /api/cierres/prellenado`, `GET /api/cierres?fecha=` (empleado solo hoy), `GET /api/cierres?desde=&hasta=` (admin), `POST /api/cierres`
+- Cierre: `GET /api/cierres/prellenado?fecha=` (todo lo del formulario en una petición; empleado solo hoy), `GET /api/cierres?desde=&hasta=` (admin), `POST /api/cierres` (`finalizar: false` = guardar avance / borrador, `true` = cerrar)
+- Almacenamiento (admin): `GET /api/almacenamiento`, `GET|POST /api/almacenamiento/limpieza` (POST exige `confirmacion: "BORRAR"`)
 - Ventas (solo lectura, admin): `GET /api/ventas?desde=&hasta=` — se generan solo al cerrar el día
 - Reportes (admin): `GET /api/reportes?desde=&hasta=`; exportación Excel/PDF en el cliente (`@/lib/export-reportes`)
 - Usuarios (admin):
@@ -117,6 +120,19 @@ Siempre `hoyColombia()` / `fechaColombia()` de `@/lib/fechas` (America/Bogota). 
   - `POST /api/usuarios` `{ email, nombre, password }` → crea Auth + perfil (si falla el perfil, revierte)
   - `PUT /api/usuarios/[id]` `{ nombre?, activo?, password? }` (desactivar bloquea la sesión en Auth)
   - `DELETE /api/usuarios/[id]` → solo si no tiene cierres
+
+## Estructura
+
+- `src/lib/cierre/` — lógica pura del cierre (estado del formulario, cuadre, ventas de vasos, historial) + `api.ts` (servidor)
+- `src/hooks/useCierreDia.ts` — estado y acciones del cierre (guardar avance / finalizar)
+- `src/hooks/useApiGet.ts`, `useRangoFechas.ts`, `useMenuAcciones.ts` — datos, filtros de período y menús
+- `src/components/cierre/` — formulario (`FormCierreDia` compone `CierreEncabezado`, `TablaVasos`, `TablaInsumos`, `SeccionComida`, `caja/*`), historial en `historial/`
+- `src/components/ui/` — `Modal`, `ConfirmarModal`, `FiltroRango`, `MenuAccionesPortal` (+ `MenuItem`), `BotonAcciones`…
+
+## Calidad
+
+- `npm test` (Vitest, `src/lib/__tests__`), `npm run typecheck`, `npm run lint`, `npm run format`
+- La lógica de negocio va en `src/lib` (pura y con prueba); los componentes solo pintan.
 
 ## Empleados
 

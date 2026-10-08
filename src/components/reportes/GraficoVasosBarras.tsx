@@ -1,14 +1,6 @@
 'use client'
 
-import {
-  Bar,
-  BarChart,
-  CartesianGrid,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from 'recharts'
+import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { format, parseISO } from 'date-fns'
 import { es } from 'date-fns/locale'
 import type { ResumenDia } from '@/types'
@@ -23,19 +15,12 @@ function tickFecha(fecha: string) {
 
 export function GraficoVasosBarras({ data }: GraficoVasosBarrasProps) {
   if (data.length === 0) {
-    return (
-      <p className="text-sm text-text-muted">
-        Sin datos para el período seleccionado.
-      </p>
-    )
+    return <p className="text-text-muted text-sm">Sin datos para el período seleccionado.</p>
   }
 
   return (
     <ResponsiveContainer width="100%" height="100%">
-      <BarChart
-        data={data}
-        margin={{ top: 8, right: 4, left: 0, bottom: 0 }}
-      >
+      <BarChart data={data} margin={{ top: 8, right: 4, left: 0, bottom: 0 }}>
         <CartesianGrid stroke="#1E2D45" strokeDasharray="3 3" vertical={false} />
         <XAxis
           dataKey="fecha"
@@ -61,18 +46,10 @@ export function GraficoVasosBarras({ data }: GraficoVasosBarrasProps) {
             color: '#E8EDF5',
           }}
           labelFormatter={(f) => tickFecha(String(f))}
-          formatter={(value) => [
-            typeof value === 'number' ? value : Number(value),
-            'Vasos',
-          ]}
+          formatter={(value) => [typeof value === 'number' ? value : Number(value), 'Vasos']}
           cursor={{ fill: '#00E5A010' }}
         />
-        <Bar
-          dataKey="total_vasos"
-          fill="#00E5A0"
-          radius={[6, 6, 0, 0]}
-          maxBarSize={48}
-        />
+        <Bar dataKey="total_vasos" fill="#00E5A0" radius={[6, 6, 0, 0]} maxBarSize={48} />
       </BarChart>
     </ResponsiveContainer>
   )

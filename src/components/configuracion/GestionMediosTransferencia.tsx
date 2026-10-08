@@ -1,37 +1,19 @@
 'use client'
 
-import { useCallback, useEffect, useRef, useState } from 'react'
-import { createPortal } from 'react-dom'
+import { useCallback, useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
-import { MoreHorizontal, Plus } from 'lucide-react'
+import { Plus } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
+import { ConfirmarModal } from '@/components/ui/ConfirmarModal'
+import { MenuAccionesPortal, MenuItem, MenuSeparador } from '@/components/ui/MenuAccionesPortal'
+import { BotonAcciones } from '@/components/ui/BotonAcciones'
+import { useMenuAcciones } from '@/hooks/useMenuAcciones'
 import { Input } from '@/components/ui/Input'
 import { Modal } from '@/components/ui/Modal'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { fadeUp } from '@/lib/animations'
 import { toastError, toastLoading, toastSuccess } from '@/lib/toast'
 import type { MedioTransferencia } from '@/types'
-
-function BotonMenu({
-  abierto,
-  onClick,
-}: {
-  abierto: boolean
-  onClick: (e: React.MouseEvent<HTMLButtonElement>) => void
-}) {
-  return (
-    <button
-      type="button"
-      data-menu-accion
-      aria-label="Acciones"
-      aria-expanded={abierto}
-      onClick={onClick}
-      className="focus-ring-cyan inline-flex min-h-9 min-w-9 shrink-0 items-center justify-center rounded-[var(--radius-md)] text-text-secondary hover:bg-bg-elevated hover:text-text-primary"
-    >
-      <MoreHorizontal size={18} />
-    </button>
-  )
-}
 
 export function GestionMediosTransferencia() {
   const [medios, setMedios] = useState<MedioTransferencia[]>([])
@@ -40,13 +22,9 @@ export function GestionMediosTransferencia() {
   const [modalOpen, setModalOpen] = useState(false)
   const [editando, setEditando] = useState<MedioTransferencia | null>(null)
   const [nombre, setNombre] = useState('')
-  const [menuAbierto, setMenuAbierto] = useState<string | null>(null)
-  const [menuPos, setMenuPos] = useState<{ top: number; left: number } | null>(
-    null
-  )
+  const menu = useMenuAcciones()
   const [eliminarId, setEliminarId] = useState<string | null>(null)
   const [eliminando, setEliminando] = useState(false)
-  const menuRef = useRef<HTMLDivElement>(null)
 
   const cargar = useCallback(() => {
     fetch('/api/medios-transferencia?todas=1')
@@ -66,44 +44,6 @@ export function GestionMediosTransferencia() {
     cargar()
   }, [cargar])
 
-  useEffect(() => {
-    if (!menuAbierto) return
-
-    function cerrarMenu() {
-      setMenuAbierto(null)
-      setMenuPos(null)
-    }
-
-    function onClickOutside(e: MouseEvent) {
-      const target = e.target as Node
-      if (menuRef.current?.contains(target)) return
-      if ((target as Element).closest?.('[data-menu-accion]')) return
-      cerrarMenu()
-    }
-
-    function onScroll() {
-      cerrarMenu()
-    }
-
-    document.addEventListener('mousedown', onClickOutside)
-    window.addEventListener('scroll', onScroll, true)
-    return () => {
-      document.removeEventListener('mousedown', onClickOutside)
-      window.removeEventListener('scroll', onScroll, true)
-    }
-  }, [menuAbierto])
-
-  function toggleMenu(m: MedioTransferencia, e: React.MouseEvent<HTMLButtonElement>) {
-    if (menuAbierto === m.id) {
-      setMenuAbierto(null)
-      setMenuPos(null)
-      return
-    }
-    const rect = e.currentTarget.getBoundingClientRect()
-    setMenuPos({ top: rect.bottom + 4, left: rect.right })
-    setMenuAbierto(m.id)
-  }
-
   function abrirNuevo() {
     setEditando(null)
     setNombre('')
@@ -111,8 +51,7 @@ export function GestionMediosTransferencia() {
   }
 
   function abrirEditar(m: MedioTransferencia) {
-    setMenuAbierto(null)
-    setMenuPos(null)
+    menu.close()
     setEditando(m)
     setNombre(m.nombre)
     setModalOpen(true)
@@ -136,9 +75,7 @@ export function GestionMediosTransferencia() {
     const toastId = toastLoading(editando ? 'Guardando cambios...' : 'Creando medio...')
 
     const res = await fetch(
-      editando
-        ? `/api/medios-transferencia/${editando.id}`
-        : '/api/medios-transferencia',
+      editando ? `/api/medios-transferencia/${editando.id}` : '/api/medios-transferencia',
       {
         method: editando ? 'PUT' : 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -150,10 +87,7 @@ export function GestionMediosTransferencia() {
 
     if (!res.ok) {
       const data = await res.json().catch(() => ({}))
-      toastError(
-        (data as { error?: string }).error ?? 'Error al guardar',
-        toastId
-      )
+      toastError((data as { error?: string }).error ?? 'Error al guardar', toastId)
       return
     }
 
@@ -163,8 +97,7 @@ export function GestionMediosTransferencia() {
   }
 
   async function cambiarActivo(m: MedioTransferencia, activo: boolean) {
-    setMenuAbierto(null)
-    setMenuPos(null)
+    menu.close()
     const toastId = toastLoading(activo ? 'Activando...' : 'Desactivando...')
 
     const res = await fetch(`/api/medios-transferencia/${m.id}`, {
@@ -175,10 +108,7 @@ export function GestionMediosTransferencia() {
 
     if (!res.ok) {
       const data = await res.json().catch(() => ({}))
-      toastError(
-        (data as { error?: string }).error ?? 'Error al actualizar',
-        toastId
-      )
+      toastError((data as { error?: string }).error ?? 'Error al actualizar', toastId)
       return
     }
 
@@ -187,8 +117,7 @@ export function GestionMediosTransferencia() {
   }
 
   function pedirEliminar(m: MedioTransferencia) {
-    setMenuAbierto(null)
-    setMenuPos(null)
+    menu.close()
     setEliminarId(m.id)
   }
 
@@ -205,10 +134,7 @@ export function GestionMediosTransferencia() {
 
     if (!res.ok) {
       const data = await res.json().catch(() => ({}))
-      toastError(
-        (data as { error?: string }).error ?? 'Error al eliminar',
-        toastId
-      )
+      toastError((data as { error?: string }).error ?? 'Error al eliminar', toastId)
       return
     }
 
@@ -219,7 +145,7 @@ export function GestionMediosTransferencia() {
 
   const activos = medios.filter((m) => m.activo)
   const inactivos = medios.filter((m) => !m.activo)
-  const medioMenu = medios.find((m) => m.id === menuAbierto)
+  const medioMenu = medios.find((m) => m.id === menu.menuId)
   const medioEliminar = medios.find((m) => m.id === eliminarId)
 
   function filaMedio(m: MedioTransferencia, atenuado = false) {
@@ -231,13 +157,8 @@ export function GestionMediosTransferencia() {
           atenuado ? 'opacity-70' : '',
         ].join(' ')}
       >
-        <span className="min-w-0 text-sm font-medium capitalize text-text-primary">
-          {m.nombre}
-        </span>
-        <BotonMenu
-          abierto={menuAbierto === m.id}
-          onClick={(e) => toggleMenu(m, e)}
-        />
+        <span className="text-text-primary min-w-0 text-sm font-medium capitalize">{m.nombre}</span>
+        <BotonAcciones abierto={menu.isOpen(m.id)} onClick={(e) => menu.toggle(m.id, e)} />
       </li>
     )
   }
@@ -249,10 +170,8 @@ export function GestionMediosTransferencia() {
         className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"
       >
         <div>
-          <h2 className="font-display text-lg text-text-primary">
-            Medios de transferencia
-          </h2>
-          <p className="mt-1 text-sm text-text-secondary">
+          <h2 className="font-display text-text-primary text-lg">Medios de transferencia</h2>
+          <p className="text-text-secondary mt-1 text-sm">
             Opciones del select en el cierre del día (Nequi, Daviplata, etc.).
           </p>
         </div>
@@ -272,10 +191,10 @@ export function GestionMediosTransferencia() {
         <>
           <motion.ul
             variants={fadeUp}
-            className="divide-y divide-bg-border overflow-hidden rounded-[var(--radius-lg)] border border-bg-border bg-bg-surface"
+            className="divide-bg-border border-bg-border bg-bg-surface divide-y overflow-hidden rounded-[var(--radius-lg)] border"
           >
             {activos.length === 0 ? (
-              <li className="px-4 py-8 text-center text-sm text-text-muted">
+              <li className="text-text-muted px-4 py-8 text-center text-sm">
                 No hay medios activos. Agrega al menos uno para el cierre.
               </li>
             ) : (
@@ -285,10 +204,10 @@ export function GestionMediosTransferencia() {
 
           {inactivos.length > 0 && (
             <motion.div variants={fadeUp} className="space-y-2">
-              <p className="text-xs font-medium uppercase tracking-wide text-text-secondary">
+              <p className="text-text-secondary text-xs font-medium tracking-wide uppercase">
                 Inactivos
               </p>
-              <ul className="divide-y divide-bg-border overflow-hidden rounded-[var(--radius-lg)] border border-bg-border bg-bg-elevated/30">
+              <ul className="divide-bg-border border-bg-border bg-bg-elevated/30 divide-y overflow-hidden rounded-[var(--radius-lg)] border">
                 {inactivos.map((m) => filaMedio(m, true))}
               </ul>
             </motion.div>
@@ -320,78 +239,33 @@ export function GestionMediosTransferencia() {
         </form>
       </Modal>
 
-      {medioMenu &&
-        menuPos &&
-        createPortal(
-          <div
-            ref={menuRef}
-            className="fixed z-[100] min-w-[10rem] rounded-[var(--radius-md)] border border-bg-border bg-bg-surface py-1 shadow-lg"
-            style={{
-              top: menuPos.top,
-              left: Math.max(8, menuPos.left - 140),
-            }}
-          >
-            <button
-              type="button"
-              className="block w-full px-3 py-2 text-left text-sm text-text-primary hover:bg-bg-elevated"
-              onClick={() => abrirEditar(medioMenu)}
-            >
-              Editar nombre
-            </button>
-            <button
-              type="button"
-              className="block w-full px-3 py-2 text-left text-sm text-text-primary hover:bg-bg-elevated"
-              onClick={() => cambiarActivo(medioMenu, !medioMenu.activo)}
-            >
+      <MenuAccionesPortal open={!!medioMenu} position={menu.menuPos} menuRef={menu.menuRef}>
+        {medioMenu && (
+          <>
+            <MenuItem onClick={() => abrirEditar(medioMenu)}>Editar nombre</MenuItem>
+            <MenuItem onClick={() => cambiarActivo(medioMenu, !medioMenu.activo)}>
               {medioMenu.activo ? 'Desactivar' : 'Activar'}
-            </button>
-            <div className="my-1 border-t border-bg-border" />
-            <button
-              type="button"
-              className="block w-full px-3 py-2 text-left text-sm text-accent-red hover:bg-accent-red-dim"
-              onClick={() => pedirEliminar(medioMenu)}
-            >
+            </MenuItem>
+            <MenuSeparador />
+            <MenuItem tono="peligro" onClick={() => pedirEliminar(medioMenu)}>
               Eliminar
-            </button>
-          </div>,
-          document.body
+            </MenuItem>
+          </>
         )}
+      </MenuAccionesPortal>
 
-      <Modal
+      <ConfirmarModal
         open={eliminarId !== null}
-        onClose={() => !eliminando && setEliminarId(null)}
-        title="Eliminar medio de transferencia"
+        titulo="Eliminar medio de transferencia"
+        cargando={eliminando}
+        onCancelar={() => setEliminarId(null)}
+        onConfirmar={confirmarEliminar}
       >
-        <p className="mb-6 text-sm text-text-secondary">
-          ¿Eliminar permanentemente{' '}
-          <span className="font-medium capitalize text-text-primary">
-            {medioEliminar?.nombre}
-          </span>
-          ? Esta acción no se puede deshacer. Si el medio ya aparece en cierres,
-          no se podrá borrar (usa Desactivar en ese caso).
-        </p>
-        <div className="flex gap-3">
-          <Button
-            type="button"
-            variant="secondary"
-            className="flex-1"
-            disabled={eliminando}
-            onClick={() => setEliminarId(null)}
-          >
-            Cancelar
-          </Button>
-          <Button
-            type="button"
-            variant="danger"
-            className="flex-1"
-            loading={eliminando}
-            disabled={eliminando}
-            onClick={confirmarEliminar}
-          >
-            Eliminar
-          </Button>
-        </div>
-      </Modal>
+        ¿Eliminar permanentemente{' '}
+        <span className="text-text-primary font-medium capitalize">{medioEliminar?.nombre}</span>?
+        Esta acción no se puede deshacer. Si el medio ya aparece en cierres, no se podrá borrar (usa
+        Desactivar en ese caso).
+      </ConfirmarModal>
     </motion.div>
   )
 }

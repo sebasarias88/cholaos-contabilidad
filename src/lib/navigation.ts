@@ -3,6 +3,7 @@ import {
   BarChart2,
   BookOpen,
   ClipboardCheck,
+  Database,
   History,
   LayoutDashboard,
   Package,
@@ -60,6 +61,12 @@ export const NAV_LINKS: NavLinkConfig[] = [
     roles: ['admin'],
   },
   {
+    href: '/dashboard/almacenamiento',
+    label: 'Almacenamiento',
+    icon: Database,
+    roles: ['admin'],
+  },
+  {
     href: '/dashboard/configuracion',
     label: 'Configuración',
     icon: Settings,
@@ -67,13 +74,14 @@ export const NAV_LINKS: NavLinkConfig[] = [
   },
 ]
 
-export const PAGE_TITLES: Record<string, string> = {
+const PAGE_TITLES: Record<string, string> = {
   '/dashboard': 'Dashboard',
   '/dashboard/cierre': 'Cierre del día',
   '/dashboard/historial': 'Historial ventas',
   '/dashboard/cierre/historial': 'Historial cierres',
   '/dashboard/productos': 'Productos',
   '/dashboard/reportes': 'Reportes',
+  '/dashboard/almacenamiento': 'Almacenamiento',
   '/dashboard/configuracion': 'Configuración',
 }
 
