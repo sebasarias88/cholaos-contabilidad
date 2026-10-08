@@ -170,7 +170,9 @@ export function GestionMediosTransferencia() {
         className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"
       >
         <div>
-          <h2 className="font-display text-text-primary text-lg">Medios de transferencia</h2>
+          <h2 className="font-display text-text-primary text-xl font-bold">
+            Medios de transferencia
+          </h2>
           <p className="text-text-secondary mt-1 text-sm">
             Opciones del select en el cierre del día (Nequi, Daviplata, etc.).
           </p>

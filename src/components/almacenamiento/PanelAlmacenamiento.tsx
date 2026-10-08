@@ -18,7 +18,7 @@ import {
 function Bloque({ titulo, children }: { titulo: string; children: React.ReactNode }) {
   return (
     <motion.section variants={fadeUp} className="card space-y-4 p-5 sm:p-6">
-      <h2 className="font-display text-text-primary text-base font-semibold">{titulo}</h2>
+      <h2 className="font-display text-text-primary text-lg font-bold">{titulo}</h2>
       {children}
     </motion.section>
   )
@@ -38,11 +38,7 @@ export function PanelAlmacenamiento() {
   }
 
   if (!uso.data) {
-    return (
-      <p className="text-accent-red text-sm">
-        {uso.error ?? 'No se pudo cargar el almacenamiento'}
-      </p>
-    )
+    return <p className="text-bad text-sm">{uso.error ?? 'No se pudo cargar el almacenamiento'}</p>
   }
 
   const d = uso.data

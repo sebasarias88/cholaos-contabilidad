@@ -56,11 +56,11 @@ export function TabVasos({ cierre }: { cierre: CierreDia }) {
                 </div>
                 <div>
                   <p className="text-text-muted text-[10px] tracking-wide uppercase">Vendidos</p>
-                  <p className="text-accent-cyan text-sm font-medium tabular-nums">{vendidos}</p>
+                  <p className="text-brand text-sm font-medium tabular-nums">{vendidos}</p>
                 </div>
               </div>
               {totalNovedades > 0 && (
-                <p className="text-accent-amber mt-1.5 text-right text-xs tabular-nums">
+                <p className="text-warn mt-1.5 text-right text-xs tabular-nums">
                   {totalNovedades} novedades
                 </p>
               )}
@@ -80,9 +80,9 @@ export function TabVasos({ cierre }: { cierre: CierreDia }) {
                 +{conteo.cantidad_nuevos}
               </span>
               <div className="text-right">
-                <span className="text-accent-cyan tabular-nums">{vendidos} vendidos</span>
+                <span className="text-brand tabular-nums">{vendidos} vendidos</span>
                 {totalNovedades > 0 && (
-                  <span className="text-accent-amber block text-xs tabular-nums">
+                  <span className="text-warn block text-xs tabular-nums">
                     {totalNovedades} novedades
                   </span>
                 )}
@@ -102,7 +102,7 @@ export function TabVasos({ cierre }: { cierre: CierreDia }) {
                         ? n.motivo_custom || 'Otro'
                         : n.motivo?.descripcion}
                     </span>
-                    <span className="text-accent-amber shrink-0 tabular-nums">−{n.cantidad}</span>
+                    <span className="text-warn shrink-0 tabular-nums">−{n.cantidad}</span>
                   </div>
                 ))}
               </div>

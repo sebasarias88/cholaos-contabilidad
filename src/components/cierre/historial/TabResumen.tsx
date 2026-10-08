@@ -23,22 +23,22 @@ export function TabResumen({ cierre, esAdmin }: { cierre: CierreDia; esAdmin: bo
     {
       label: 'Ventas',
       value: formatPesos(cierre.total_ventas),
-      color: 'text-accent-cyan',
+      color: 'text-brand',
     },
     {
       label: 'Gastos',
       value: formatPesos(cierre.total_gastos),
-      color: 'text-accent-red',
+      color: 'text-bad',
     },
     {
       label: 'Transferencias',
       value: formatPesos(cierre.total_transferencias),
-      color: 'text-amber-400',
+      color: 'text-warn',
     },
     {
       label: 'Domicilios',
       value: formatPesos(cierre.total_domicilios ?? 0),
-      color: 'text-orange-400',
+      color: 'text-brand',
     },
   ]
 
@@ -49,8 +49,7 @@ export function TabResumen({ cierre, esAdmin }: { cierre: CierreDia; esAdmin: bo
         ? `Falta ${formatPesos(Math.abs(diferencia))}`
         : `Sobran ${formatPesos(diferencia)}`
 
-  const colorDiferencia =
-    diferencia === 0 ? 'text-emerald-400' : diferencia < 0 ? 'text-accent-red' : 'text-amber-400'
+  const colorDiferencia = diferencia === 0 ? 'text-ok' : diferencia < 0 ? 'text-bad' : 'text-warn'
 
   return (
     <div className="space-y-4">
@@ -133,10 +132,10 @@ export function TabResumen({ cierre, esAdmin }: { cierre: CierreDia; esAdmin: bo
           className={[
             'rounded-[var(--radius-md)] border px-4 py-3',
             diferencia === 0
-              ? 'border-emerald-400/30 bg-emerald-400/10'
+              ? 'border-ok/30 bg-ok/10'
               : diferencia < 0
-                ? 'border-accent-red/30 bg-accent-red-dim'
-                : 'border-amber-400/30 bg-amber-500/10',
+                ? 'border-bad/30 bg-bad-soft'
+                : 'border-warn-solid/40 bg-warn-soft',
           ].join(' ')}
         >
           <p className="text-text-muted text-[11px] font-medium tracking-wide uppercase">

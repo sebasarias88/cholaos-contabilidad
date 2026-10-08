@@ -35,32 +35,32 @@ export function GraficoCrecimiento({ historial }: { historial: PuntoUso[] }) {
         <AreaChart data={datos} margin={{ top: 8, right: 4, left: 0, bottom: 0 }}>
           <defs>
             <linearGradient id="usoGradient" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#00D4FF" stopOpacity={0.3} />
-              <stop offset="100%" stopColor="#00D4FF" stopOpacity={0} />
+              <stop offset="0%" stopColor="#D14A1F" stopOpacity={0.3} />
+              <stop offset="100%" stopColor="#D14A1F" stopOpacity={0} />
             </linearGradient>
           </defs>
-          <CartesianGrid stroke="#1E2D45" strokeDasharray="3 3" vertical={false} />
+          <CartesianGrid stroke="#F0E2D3" strokeDasharray="3 3" vertical={false} />
           <XAxis
             dataKey="fecha"
             tickFormatter={tickFecha}
-            tick={{ fontSize: 10, fill: '#7A8BA3' }}
-            axisLine={{ stroke: '#1E2D45' }}
+            tick={{ fontSize: 10, fill: '#85695A' }}
+            axisLine={{ stroke: '#F0E2D3' }}
             tickLine={false}
             minTickGap={28}
           />
           <YAxis
-            width={44}
-            tick={{ fontSize: 10, fill: '#7A8BA3' }}
+            width={56}
+            tick={{ fontSize: 11, fill: '#85695A' }}
             axisLine={false}
             tickLine={false}
             tickFormatter={(v) => `${Number(v).toFixed(0)} MB`}
           />
           <Tooltip
             contentStyle={{
-              background: '#0F1520',
-              border: '1px solid #1E2D45',
+              background: '#2A1A12',
+              border: '1px solid #3A2820',
               borderRadius: '10px',
-              color: '#E8EDF5',
+              color: '#F7EDE4',
             }}
             labelFormatter={(f) => tickFecha(String(f))}
             formatter={(v) => [formatBytes(Number(v) * 1024 * 1024), 'Tamaño']}
@@ -68,7 +68,7 @@ export function GraficoCrecimiento({ historial }: { historial: PuntoUso[] }) {
           <Area
             type="monotone"
             dataKey="mb"
-            stroke="#00D4FF"
+            stroke="#D14A1F"
             strokeWidth={2}
             fill="url(#usoGradient)"
           />

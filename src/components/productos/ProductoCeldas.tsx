@@ -70,7 +70,7 @@ export function ProductoPrecio({
     const max = Math.max(...precios)
     return (
       <span
-        className="text-accent-cyan inline-block text-sm font-medium whitespace-nowrap tabular-nums"
+        className="text-brand inline-block text-sm font-medium whitespace-nowrap tabular-nums"
         title={activas.map((v) => `${v.nombre}: ${formatPesos(v.precio)}`).join(' · ')}
       >
         {min === max ? formatPesos(min) : `${formatPesos(min)} – ${formatPesos(max)}`}
@@ -104,7 +104,7 @@ export function ProductoPrecio({
     <button
       type="button"
       onClick={onStartEdit}
-      className="text-accent-cyan font-medium tabular-nums underline-offset-2 hover:underline"
+      className="text-brand font-medium tabular-nums underline-offset-2 hover:underline"
       title="Click para editar precio"
     >
       {formatPesos(producto.precio ?? 0)}

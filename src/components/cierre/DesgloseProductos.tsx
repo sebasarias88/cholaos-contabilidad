@@ -1,6 +1,6 @@
 'use client'
 
-import { CeldaNumero } from '@/components/cierre/ConteoTabla'
+import { Stepper } from '@/components/ui/Stepper'
 import { sumaDesglose } from '@/lib/cierre/ventas-vasos'
 import { formatPesos } from '@/lib/utils'
 import type { ConteoVasoValor, Producto } from '@/types'
@@ -25,65 +25,53 @@ export function DesgloseProductos({
 }) {
   if (productos.length === 0) {
     return (
-      <p className="text-accent-red mt-2 text-xs">
+      <p className="badge-bad self-start">
         Sin productos ligados a este vaso. Asócialos en Productos.
       </p>
     )
   }
-
-  if (productos.length === 1) {
-    const p = productos[0]
-    return (
-      <p className="text-text-secondary mt-2 text-xs">
-        Todo lo vendido → <span className="text-text-primary font-medium">{p.nombre}</span>
-        {esAdmin && p.precio != null && p.precio > 0 && (
-          <span className="tabular-nums"> · {formatPesos(p.precio)}</span>
-        )}
-      </p>
-    )
-  }
+  if (productos.length === 1) return null
 
   const suma = sumaDesglose(desglose)
-  const ok = vendidos === 0 || suma === vendidos
+  const ok = suma === vendidos
+  const faltan = vendidos - suma
 
   return (
-    <div className="border-bg-border mt-3 space-y-2 border-t pt-3">
-      <div className="flex items-center justify-between gap-2">
-        <p className="text-text-secondary text-[10px] font-semibold tracking-wide uppercase">
-          Desglose por producto
-        </p>
-        <p
-          className={[
-            'text-[11px] font-medium tabular-nums',
-            ok ? 'text-text-secondary' : 'text-accent-red',
-          ].join(' ')}
-        >
-          {suma} / {vendidos}
-          {!ok && vendidos > 0 ? ' · debe cuadrar' : ''}
-        </p>
+    <div className="border-bg-border flex flex-col gap-2.5 border-t border-dashed pt-3.5">
+      <div className="flex items-center justify-between gap-2 text-sm font-bold">
+        <span className="text-text-secondary">¿Cuánto de cada uno?</span>
+        <span className={vendidos === 0 ? 'text-text-muted' : ok ? 'text-ok' : 'text-brand-strong'}>
+          {vendidos === 0
+            ? 'Sin ventas'
+            : ok
+              ? `${suma} de ${vendidos} ✓`
+              : faltan > 0
+                ? `Faltan ${faltan}`
+                : `Sobran ${-faltan}`}
+        </span>
       </div>
-      <ul className="space-y-1.5">
+      <ul className="grid gap-2 sm:grid-cols-2">
         {productos.map((p) => {
           const qty = desglose.find((d) => d.producto_id === p.id)?.cantidad ?? 0
           return (
-            <li key={p.id} className="grid grid-cols-[minmax(0,1fr)_4.5rem] items-center gap-2">
+            <li
+              key={p.id}
+              className="bg-bg-elevated/70 flex items-center justify-between gap-2 rounded-[14px] py-1.5 pr-1.5 pl-3"
+            >
               <div className="min-w-0">
-                <p className="text-text-primary truncate text-xs font-medium">{p.nombre}</p>
+                <p className="text-text-primary truncate text-sm font-bold">{p.nombre}</p>
                 {esAdmin && p.precio != null && (
-                  <p className="text-text-secondary text-[10px] tabular-nums">
+                  <p className="text-text-secondary text-xs tabular-nums">
                     {formatPesos(p.precio)}
                   </p>
                 )}
               </div>
-              <CeldaNumero
-                value={qty || ''}
-                placeholder="0"
+              <Stepper
+                tamano="sm"
+                etiqueta={p.nombre}
+                valor={qty}
                 disabled={disabled || vendidos === 0}
-                className="!h-9 !min-w-0 text-sm"
-                aria-label={`Cantidad ${p.nombre}`}
-                onChange={(e) =>
-                  onDesgloseChange(tallaId, p.id, Math.max(0, Number(e.target.value) || 0))
-                }
+                onChange={(n) => onDesgloseChange(tallaId, p.id, n)}
               />
             </li>
           )

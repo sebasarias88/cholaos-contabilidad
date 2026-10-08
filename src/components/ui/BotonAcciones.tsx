@@ -18,7 +18,7 @@ export function BotonAcciones({
       aria-haspopup="menu"
       aria-expanded={abierto}
       onClick={onClick}
-      className="focus-ring-cyan text-text-secondary hover:bg-bg-elevated hover:text-text-primary inline-flex min-h-10 min-w-10 shrink-0 items-center justify-center rounded-[var(--radius-md)]"
+      className="focus-ring text-text-secondary hover:bg-bg-elevated hover:text-text-primary inline-flex min-h-10 min-w-10 shrink-0 items-center justify-center rounded-[var(--radius-md)]"
     >
       <MoreHorizontal size={18} />
     </button>

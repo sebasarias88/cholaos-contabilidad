@@ -21,35 +21,35 @@ export function GraficoVasosBarras({ data }: GraficoVasosBarrasProps) {
   return (
     <ResponsiveContainer width="100%" height="100%">
       <BarChart data={data} margin={{ top: 8, right: 4, left: 0, bottom: 0 }}>
-        <CartesianGrid stroke="#1E2D45" strokeDasharray="3 3" vertical={false} />
+        <CartesianGrid stroke="#F0E2D3" strokeDasharray="3 3" vertical={false} />
         <XAxis
           dataKey="fecha"
           tickFormatter={tickFecha}
-          tick={{ fontSize: 10, fill: '#7A8BA3' }}
-          axisLine={{ stroke: '#1E2D45' }}
+          tick={{ fontSize: 10, fill: '#85695A' }}
+          axisLine={{ stroke: '#F0E2D3' }}
           tickLine={false}
           interval="preserveStartEnd"
           minTickGap={28}
         />
         <YAxis
           width={28}
-          tick={{ fontSize: 10, fill: '#7A8BA3' }}
+          tick={{ fontSize: 10, fill: '#85695A' }}
           axisLine={false}
           tickLine={false}
           allowDecimals={false}
         />
         <Tooltip
           contentStyle={{
-            background: '#0F1520',
-            border: '1px solid #1E2D45',
+            background: '#2A1A12',
+            border: '1px solid #3A2820',
             borderRadius: '10px',
-            color: '#E8EDF5',
+            color: '#F7EDE4',
           }}
           labelFormatter={(f) => tickFecha(String(f))}
           formatter={(value) => [typeof value === 'number' ? value : Number(value), 'Vasos']}
-          cursor={{ fill: '#00E5A010' }}
+          cursor={{ fill: '#2E8B5714' }}
         />
-        <Bar dataKey="total_vasos" fill="#00E5A0" radius={[6, 6, 0, 0]} maxBarSize={48} />
+        <Bar dataKey="total_vasos" fill="#2E8B57" radius={[6, 6, 0, 0]} maxBarSize={48} />
       </BarChart>
     </ResponsiveContainer>
   )

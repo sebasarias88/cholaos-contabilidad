@@ -1,5 +1,6 @@
 'use client'
 
+import { PildorasFiltro } from '@/components/ui/PildorasFiltro'
 import type { PresetRango, RangoFechasApi } from '@/hooks/useRangoFechas'
 
 const PRESETS: { id: PresetRango; label: string }[] = [
@@ -14,28 +15,18 @@ const PRESETS: { id: PresetRango; label: string }[] = [
 export function FiltroRango({ filtro, idPrefix }: { filtro: RangoFechasApi; idPrefix: string }) {
   return (
     <div className="flex flex-col gap-3">
-      <div className="-mx-1 overflow-x-auto px-1 pb-0.5">
-        <div className="flex w-max min-w-full flex-nowrap gap-2 sm:w-auto sm:flex-wrap">
-          {PRESETS.map((p) => (
-            <button
-              key={p.id}
-              type="button"
-              onClick={() => filtro.seleccionar(p.id)}
-              aria-pressed={filtro.preset === p.id}
-              className={`filter-pill shrink-0 ${
-                filtro.preset === p.id ? 'filter-pill-active' : 'filter-pill-inactive'
-              }`}
-            >
-              {p.label}
-            </button>
-          ))}
-        </div>
-      </div>
+      <PildorasFiltro
+        opciones={PRESETS}
+        valor={filtro.preset}
+        onChange={filtro.seleccionar}
+        id={idPrefix}
+        etiqueta="Período"
+      />
 
       {filtro.preset === 'custom' && (
         <div className="border-bg-border bg-bg-surface grid gap-3 rounded-[var(--radius-lg)] border p-4 sm:grid-cols-2">
           <div className="flex min-w-0 flex-col gap-1.5">
-            <label htmlFor={`${idPrefix}-desde`} className="text-text-secondary text-sm">
+            <label htmlFor={`${idPrefix}-desde`} className="text-text-primary text-sm font-bold">
               Desde
             </label>
             <input
@@ -48,7 +39,7 @@ export function FiltroRango({ filtro, idPrefix }: { filtro: RangoFechasApi; idPr
             />
           </div>
           <div className="flex min-w-0 flex-col gap-1.5">
-            <label htmlFor={`${idPrefix}-hasta`} className="text-text-secondary text-sm">
+            <label htmlFor={`${idPrefix}-hasta`} className="text-text-primary text-sm font-bold">
               Hasta
             </label>
             <input

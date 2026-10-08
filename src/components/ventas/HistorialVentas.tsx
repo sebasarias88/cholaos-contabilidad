@@ -2,8 +2,10 @@
 
 import { Fragment, useMemo, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
-import { ChevronDown, Search } from 'lucide-react'
+import { ChevronDown, Search, Receipt } from 'lucide-react'
+import { EstadoVacio } from '@/components/ui/EstadoVacio'
 import { FiltroRango } from '@/components/ui/FiltroRango'
+import { NumeroAnimado } from '@/components/ui/NumeroAnimado'
 import { SkeletonTabla } from '@/components/ui/Skeleton'
 import { useApiGet } from '@/hooks/useApiGet'
 import { useRangoFechas } from '@/hooks/useRangoFechas'
@@ -44,7 +46,7 @@ function medidaLinea(d: DetalleVenta) {
 
 function RolBadge({ rol }: { rol: Rol }) {
   return (
-    <span className={rol === 'admin' ? 'badge-cyan shrink-0' : 'badge-green shrink-0'}>
+    <span className={rol === 'admin' ? 'badge-brand shrink-0' : 'badge-green shrink-0'}>
       {rol === 'admin' ? 'Admin' : 'Empleado'}
     </span>
   )
@@ -72,7 +74,7 @@ function VentaDetallePanel({ venta }: { venta: Venta }) {
               {formatPesos(d.precio_unitario)}
             </dd>
             <dt className="text-text-muted">Subtotal</dt>
-            <dd className="text-accent-cyan text-right font-medium tabular-nums">
+            <dd className="text-brand text-right font-medium tabular-nums">
               {formatPesos(d.subtotal)}
             </dd>
           </dl>
@@ -97,7 +99,7 @@ function BotonExpandir({
       aria-label={abierta ? 'Ocultar detalle' : 'Ver detalle'}
       aria-expanded={abierta}
       className={[
-        'focus-ring-cyan text-text-secondary hover:bg-bg-elevated hover:text-text-primary inline-flex shrink-0 items-center justify-center rounded-[var(--radius-md)]',
+        'focus-ring text-text-secondary hover:bg-bg-elevated hover:text-text-primary inline-flex shrink-0 items-center justify-center rounded-[var(--radius-md)]',
         compacto ? 'p-1.5' : 'min-h-11 min-w-11',
       ].join(' ')}
       onClick={onToggle}
@@ -142,7 +144,7 @@ function VentaDetalleTabla({ venta }: { venta: Venta }) {
               <td className="col-compact text-text-secondary tabular-nums">
                 {formatPesos(d.precio_unitario)}
               </td>
-              <td className="col-compact text-accent-cyan text-right font-medium tabular-nums">
+              <td className="col-compact text-brand text-right font-medium tabular-nums">
                 {formatPesos(d.subtotal)}
               </td>
             </tr>
@@ -211,18 +213,37 @@ export function HistorialVentas() {
       {loading && !data ? (
         <SkeletonTabla filas={8} />
       ) : ventasFiltradas.length === 0 ? (
-        <p className="text-text-muted text-sm">No hay ventas en este período.</p>
+        <EstadoVacio
+          icono={<Receipt size={26} aria-hidden />}
+          titulo={busqueda ? 'Nada coincide con tu búsqueda' : 'No hay ventas en este período'}
+          descripcion={
+            busqueda ? 'Prueba con otro nombre o producto.' : 'Elige otro rango de fechas.'
+          }
+        />
       ) : (
         <>
+          <motion.div
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-cocoa text-cocoa-text flex flex-wrap items-center justify-between gap-3 rounded-[18px] px-5 py-4"
+          >
+            <span className="text-cocoa-muted text-sm font-semibold">
+              {ventasFiltradas.length} venta{ventasFiltradas.length !== 1 ? 's' : ''}
+              {busqueda ? ' encontradas' : ' en el período'}
+            </span>
+            <NumeroAnimado
+              valor={ventasFiltradas.reduce((acc, v) => acc + Number(v.total), 0)}
+              formato="pesos"
+              className="font-display text-2xl font-extrabold"
+            />
+          </motion.div>
+
           {/* Vista móvil: tarjetas */}
           <ul className="flex flex-col gap-3 md:hidden">
             {ventasFiltradas.map((venta) => {
               const abierta = expandedId === venta.id
               return (
-                <li
-                  key={venta.id}
-                  className="border-bg-border bg-bg-surface overflow-hidden rounded-[var(--radius-lg)] border"
-                >
+                <li key={venta.id} className="card overflow-hidden">
                   <div className="flex items-start gap-2 p-4">
                     <button
                       type="button"
@@ -233,7 +254,7 @@ export function HistorialVentas() {
                         <p className="text-text-primary text-sm leading-snug font-medium">
                           {formatFecha(venta.fecha)}
                         </p>
-                        <p className="text-accent-cyan shrink-0 text-base font-semibold tabular-nums">
+                        <p className="text-brand shrink-0 text-base font-semibold tabular-nums">
                           {formatPesos(venta.total)}
                         </p>
                       </div>
@@ -242,7 +263,9 @@ export function HistorialVentas() {
                           {venta.usuario?.nombre ?? '—'}
                         </span>
                         {venta.usuario?.rol && <RolBadge rol={venta.usuario.rol} />}
-                        <span className="badge-cyan tabular-nums">{etiquetaCantidades(venta)}</span>
+                        <span className="badge-brand tabular-nums">
+                          {etiquetaCantidades(venta)}
+                        </span>
                       </div>
                     </button>
                     <BotonExpandir
@@ -313,11 +336,11 @@ export function HistorialVentas() {
                           </span>
                         </td>
                         <td className="col-compact">
-                          <span className="badge-cyan tabular-nums">
+                          <span className="badge-brand tabular-nums">
                             {etiquetaCantidades(venta)}
                           </span>
                         </td>
-                        <td className="col-compact text-accent-cyan font-medium tabular-nums">
+                        <td className="col-compact text-brand font-medium tabular-nums">
                           {formatPesos(venta.total)}
                         </td>
                         <td className="col-compact text-right">

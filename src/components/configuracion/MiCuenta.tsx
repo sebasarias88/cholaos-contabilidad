@@ -112,7 +112,7 @@ export function MiCuenta({ usuario, email, onNombreActualizado }: MiCuentaProps)
       >
         <div className="flex min-w-0 items-center gap-4">
           <div
-            className="bg-accent-cyan-dim font-display text-accent-cyan flex h-16 w-16 shrink-0 items-center justify-center rounded-full text-xl font-bold sm:h-20 sm:w-20 sm:text-2xl"
+            className="bg-brand-soft font-display text-brand flex h-16 w-16 shrink-0 items-center justify-center rounded-full text-xl font-bold sm:h-20 sm:w-20 sm:text-2xl"
             aria-hidden
           >
             {getIniciales(usuario.nombre)}
@@ -124,7 +124,7 @@ export function MiCuenta({ usuario, email, onNombreActualizado }: MiCuentaProps)
             <p className="text-text-secondary mt-1 truncate text-sm">{email}</p>
           </div>
         </div>
-        <span className="bg-accent-cyan-dim text-accent-cyan w-fit shrink-0 rounded-full px-3 py-1 text-xs font-semibold capitalize">
+        <span className="bg-brand-soft text-brand w-fit shrink-0 rounded-full px-3 py-1 text-xs font-semibold capitalize">
           {usuario.rol}
         </span>
       </motion.section>
@@ -136,7 +136,7 @@ export function MiCuenta({ usuario, email, onNombreActualizado }: MiCuentaProps)
           className="border-bg-border bg-bg-surface flex min-w-0 flex-col rounded-[var(--radius-lg)] border"
         >
           <div className="border-bg-border flex items-start gap-3 border-b px-5 py-4 sm:px-6">
-            <div className="bg-accent-cyan-dim text-accent-cyan flex h-9 w-9 shrink-0 items-center justify-center rounded-[var(--radius-md)]">
+            <div className="bg-brand-soft text-brand flex h-9 w-9 shrink-0 items-center justify-center rounded-[var(--radius-md)]">
               <UserRound size={18} aria-hidden />
             </div>
             <div>
@@ -181,7 +181,7 @@ export function MiCuenta({ usuario, email, onNombreActualizado }: MiCuentaProps)
           className="border-bg-border bg-bg-surface flex min-w-0 flex-col rounded-[var(--radius-lg)] border"
         >
           <div className="border-bg-border flex items-start gap-3 border-b px-5 py-4 sm:px-6">
-            <div className="bg-accent-cyan-dim text-accent-cyan flex h-9 w-9 shrink-0 items-center justify-center rounded-[var(--radius-md)]">
+            <div className="bg-brand-soft text-brand flex h-9 w-9 shrink-0 items-center justify-center rounded-[var(--radius-md)]">
               <KeyRound size={18} aria-hidden />
             </div>
             <div>

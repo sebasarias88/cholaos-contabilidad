@@ -55,7 +55,7 @@ export function TabProductos({
                   <span className="text-text-muted ml-2">×{p.cantidad}</span>
                 </span>
                 {esAdmin && (
-                  <span className="text-accent-cyan shrink-0 font-medium tabular-nums">
+                  <span className="text-brand shrink-0 font-medium tabular-nums">
                     {formatPesos(p.subtotal)}
                   </span>
                 )}
@@ -83,9 +83,7 @@ export function TabProductos({
                       {v.variante?.nombre ?? 'Variante'} ×{v.cantidad}
                     </span>
                     {esAdmin && (
-                      <span className="text-accent-green shrink-0 tabular-nums">
-                        {formatPesos(subtotal)}
-                      </span>
+                      <span className="text-ok shrink-0 tabular-nums">{formatPesos(subtotal)}</span>
                     )}
                   </div>
                 )
@@ -102,9 +100,7 @@ export function TabProductos({
                   {v.producto?.nombre ?? 'Producto'} ×{v.cantidad}
                 </span>
                 {esAdmin && (
-                  <span className="text-accent-green shrink-0 tabular-nums">
-                    {formatPesos(subtotal)}
-                  </span>
+                  <span className="text-ok shrink-0 tabular-nums">{formatPesos(subtotal)}</span>
                 )}
               </div>
             )

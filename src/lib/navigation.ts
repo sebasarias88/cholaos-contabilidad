@@ -5,7 +5,7 @@ import {
   ClipboardCheck,
   Database,
   History,
-  LayoutDashboard,
+  House,
   Package,
   Settings,
 } from 'lucide-react'
@@ -23,8 +23,8 @@ export type NavLinkConfig = {
 export const NAV_LINKS: NavLinkConfig[] = [
   {
     href: '/dashboard',
-    label: 'Dashboard',
-    icon: LayoutDashboard,
+    label: 'Inicio',
+    icon: House,
     roles: ['admin'],
     exact: true,
   },
@@ -36,17 +36,17 @@ export const NAV_LINKS: NavLinkConfig[] = [
     exact: true,
   },
   {
-    href: '/dashboard/historial',
-    label: 'Historial ventas',
-    icon: History,
-    roles: ['admin'],
-  },
-  {
     href: '/dashboard/cierre/historial',
-    label: 'Historial cierres',
+    label: 'Historial de cierres',
     icon: BookOpen,
     roles: ['admin'],
     exact: true,
+  },
+  {
+    href: '/dashboard/historial',
+    label: 'Ventas',
+    icon: History,
+    roles: ['admin'],
   },
   {
     href: '/dashboard/productos',
@@ -75,7 +75,7 @@ export const NAV_LINKS: NavLinkConfig[] = [
 ]
 
 const PAGE_TITLES: Record<string, string> = {
-  '/dashboard': 'Dashboard',
+  '/dashboard': 'Inicio',
   '/dashboard/cierre': 'Cierre del día',
   '/dashboard/historial': 'Historial ventas',
   '/dashboard/cierre/historial': 'Historial cierres',

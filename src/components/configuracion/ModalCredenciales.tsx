@@ -63,11 +63,11 @@ Entra en: ${window.location.origin}/login`
             <div>
               <dt className="text-text-muted">Contraseña</dt>
               <dd className="flex items-center justify-between gap-2">
-                <span className="text-accent-cyan font-mono">{credenciales.password}</span>
+                <span className="text-brand font-mono">{credenciales.password}</span>
                 <button
                   type="button"
                   onClick={copiarPassword}
-                  className="focus-ring-cyan text-text-secondary hover:bg-bg-elevated hover:text-text-primary rounded-[var(--radius-md)] p-1.5"
+                  className="focus-ring text-text-secondary hover:bg-bg-elevated hover:text-text-primary rounded-[var(--radius-md)] p-1.5"
                   aria-label="Copiar contraseña"
                 >
                   <Copy size={14} />

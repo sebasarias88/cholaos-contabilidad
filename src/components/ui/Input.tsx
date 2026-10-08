@@ -3,39 +3,41 @@ import type { InputHTMLAttributes } from 'react'
 interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   label?: string
   error?: string
+  hint?: string
 }
 
-const fieldClass =
-  'w-full rounded-[var(--radius-md)] border border-bg-border bg-bg-elevated px-3 py-2 text-sm text-text-primary placeholder:text-text-muted transition-surface focus:border-accent-cyan focus:outline-none focus:ring-2 focus:ring-accent-cyan/20'
-
-export function Input({ className, label, error, id, ...props }: InputProps) {
+export function Input({ className, label, error, hint, id, ...props }: InputProps) {
   const inputId = id ?? props.name
 
   return (
     <div className="flex flex-col gap-1.5">
       {label && (
-        <label htmlFor={inputId} className="text-text-secondary text-sm font-medium">
+        <label htmlFor={inputId} className="text-text-primary text-sm font-bold">
           {label}
         </label>
       )}
       <input
         id={inputId}
         aria-invalid={error ? true : undefined}
-        aria-describedby={error ? `${inputId}-error` : undefined}
+        aria-describedby={error ? `${inputId}-error` : hint ? `${inputId}-hint` : undefined}
         className={[
-          fieldClass,
-          error && 'border-accent-red focus:ring-accent-red/20 focus:border-accent-red',
+          'input w-full',
+          error && 'border-bad focus:border-bad focus:ring-bad/15',
           className,
         ]
           .filter(Boolean)
           .join(' ')}
         {...props}
       />
-      {error && (
-        <span id={`${inputId}-error`} className="text-accent-red text-xs">
+      {error ? (
+        <span id={`${inputId}-error`} className="text-bad text-xs font-semibold">
           {error}
         </span>
-      )}
+      ) : hint ? (
+        <span id={`${inputId}-hint`} className="text-text-secondary text-xs">
+          {hint}
+        </span>
+      ) : null}
     </div>
   )
 }

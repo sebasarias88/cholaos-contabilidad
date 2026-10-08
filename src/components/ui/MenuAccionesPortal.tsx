@@ -29,8 +29,8 @@ export function MenuAccionesPortal({ open, position, menuRef, children }: MenuAc
 
 const TONOS = {
   normal: 'text-text-primary hover:bg-bg-elevated',
-  peligro: 'text-accent-red hover:bg-accent-red-dim',
-  exito: 'text-accent-green hover:bg-bg-elevated',
+  peligro: 'text-bad hover:bg-bad-soft',
+  exito: 'text-ok hover:bg-bg-elevated',
 }
 
 export function MenuItem({

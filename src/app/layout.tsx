@@ -1,18 +1,18 @@
 import type { Metadata, Viewport } from 'next'
-import { DM_Sans, Syne } from 'next/font/google'
-import { Toaster } from 'react-hot-toast'
+import { Bricolage_Grotesque, Manrope } from 'next/font/google'
+import { Providers } from '@/components/providers/Providers'
 import './globals.css'
 
-const syne = Syne({
-  variable: '--font-syne',
+const bricolage = Bricolage_Grotesque({
+  variable: '--font-bricolage',
   subsets: ['latin'],
   weight: ['600', '700', '800'],
 })
 
-const dmSans = DM_Sans({
-  variable: '--font-dm-sans',
+const manrope = Manrope({
+  variable: '--font-manrope',
   subsets: ['latin'],
-  weight: ['300', '400', '500'],
+  weight: ['400', '500', '600', '700', '800'],
 })
 
 export const metadata: Metadata = {
@@ -21,60 +21,23 @@ export const metadata: Metadata = {
     template: '%s — Cholao Oscar',
   },
   description: 'Sistema interno de gestión y contabilidad para Cholao Oscar Armenia, Quindío.',
-  robots: {
-    index: false,
-    follow: false,
-    googleBot: { index: false, follow: false },
-  },
+  robots: { index: false, follow: false, googleBot: { index: false, follow: false } },
   applicationName: 'Cholao Oscar',
-  authors: [{ name: 'Cholao Oscar' }],
-  icons: {
-    icon: '/favicon.ico',
-    apple: '/apple-touch-icon.png',
-  },
-  openGraph: {
-    title: 'Cholao Oscar — Sistema de Gestión',
-    description: 'Sistema interno de gestión para Cholao Oscar Armenia',
-    type: 'website',
-    locale: 'es_CO',
-    siteName: 'Cholao Oscar',
-  },
+  icons: { icon: '/favicon.ico', apple: '/apple-touch-icon.png' },
   manifest: '/manifest.json',
 }
 
 export const viewport: Viewport = {
-  themeColor: '#080C10',
+  themeColor: '#FFF8F1',
   width: 'device-width',
   initialScale: 1,
 }
 
-export default function RootLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode
-}>) {
+export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="es" className={`${syne.variable} ${dmSans.variable} h-full antialiased`}>
+    <html lang="es" className={`${bricolage.variable} ${manrope.variable} h-full antialiased`}>
       <body className="bg-bg-base text-text-primary min-h-full font-sans">
-        {children}
-        <Toaster
-          position="bottom-right"
-          toastOptions={{
-            style: {
-              background: '#0F1520',
-              color: '#E8EDF5',
-              border: '1px solid #1E2D45',
-              borderRadius: '10px',
-              fontSize: '14px',
-            },
-            success: {
-              iconTheme: { primary: '#00E5A0', secondary: '#0F1520' },
-            },
-            error: {
-              iconTheme: { primary: '#FF4566', secondary: '#0F1520' },
-            },
-          }}
-        />
+        <Providers>{children}</Providers>
       </body>
     </html>
   )

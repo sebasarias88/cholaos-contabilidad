@@ -86,7 +86,7 @@ export function NuevoMovimiento(props: Props) {
         value={monto}
         onChange={setMonto}
         placeholder="Monto $"
-        className="input placeholder:text-text-secondary w-[7.5rem] shrink-0 tabular-nums"
+        className="input placeholder:text-text-secondary w-28 shrink-0 tabular-nums sm:w-[7.5rem]"
         onKeyDown={onEnter}
       />
       <button
@@ -94,7 +94,7 @@ export function NuevoMovimiento(props: Props) {
         onClick={agregar}
         aria-label={ETIQUETA[props.tipo]}
         disabled={!valido}
-        className="bg-accent-cyan-dim text-accent-cyan hover:bg-accent-cyan/20 flex h-10 w-10 shrink-0 items-center justify-center rounded-[var(--radius-md)] transition-colors disabled:cursor-not-allowed disabled:opacity-40"
+        className="bg-brand-soft text-brand hover:bg-brand/20 flex h-10 w-10 shrink-0 items-center justify-center rounded-[var(--radius-md)] transition-colors disabled:cursor-not-allowed disabled:opacity-40"
       >
         <Plus size={18} aria-hidden />
       </button>

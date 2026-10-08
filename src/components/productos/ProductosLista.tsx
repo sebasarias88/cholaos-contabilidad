@@ -42,7 +42,7 @@ export function ProductosLista({
               <div className="p-4">
                 <div className="flex items-start gap-2">
                   <div className="min-w-0 flex-1">
-                    <p className="text-text-primary leading-snug font-medium">{p.nombre}</p>
+                    <p className="text-text-primary leading-snug font-bold">{p.nombre}</p>
                     <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
                       <BadgeTipo tipo={tipo} />
                       <span className="text-text-secondary text-xs tabular-nums">
@@ -107,7 +107,7 @@ export function ProductosLista({
               const tipo = tipoProducto(p)
               return (
                 <tr key={p.id}>
-                  <td className="col-name text-text-primary font-medium">{p.nombre}</td>
+                  <td className="col-name text-text-primary font-bold">{p.nombre}</td>
                   <td className="col-compact">
                     <BadgeTipo tipo={tipo} />
                   </td>

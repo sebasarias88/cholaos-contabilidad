@@ -1,8 +1,7 @@
 'use client'
 
-import { Fragment } from 'react'
-import { CeldaCantidadDesktop, CeldaCantidadMobile } from '@/components/cierre/ConteoTabla'
-import { SeccionHeader } from '@/components/cierre/SeccionHeader'
+import { motion } from 'framer-motion'
+import { Stepper } from '@/components/ui/Stepper'
 import { formatPesos } from '@/lib/utils'
 import type { Producto, VentaComidaInput, VentaVarianteInput } from '@/types'
 
@@ -16,6 +15,41 @@ interface SeccionComidaProps {
   onComidaChange: (productoId: string, cantidad: number) => void
 }
 
+function Fila({
+  nombre,
+  detalle,
+  precio,
+  cantidad,
+  esAdmin,
+  disabled,
+  onChange,
+}: {
+  nombre: string
+  detalle?: string | null
+  precio: number | null | undefined
+  cantidad: number
+  esAdmin: boolean
+  disabled: boolean
+  onChange: (n: number) => void
+}) {
+  return (
+    <div className="flex items-center justify-between gap-3 py-2.5">
+      <div className="min-w-0">
+        <p className="text-text-primary truncate text-[15px] font-bold">{nombre}</p>
+        <p className="text-text-secondary truncate text-xs font-semibold tabular-nums">
+          {precio != null ? formatPesos(precio) : '—'}
+          {detalle ? ` · ${detalle}` : ''}
+          {esAdmin && cantidad > 0 && precio != null && (
+            <span className="text-ok"> · {formatPesos(cantidad * precio)}</span>
+          )}
+        </p>
+      </div>
+      <Stepper etiqueta={nombre} valor={cantidad} disabled={disabled} onChange={onChange} />
+    </div>
+  )
+}
+
+/** Ventas de comida: productos con variantes (pizza mesa / llevar…) y productos simples */
 export function SeccionComida({
   productos,
   ventasVariantes,
@@ -25,241 +59,75 @@ export function SeccionComida({
   onVarianteChange,
   onComidaChange,
 }: SeccionComidaProps) {
-  const totalComida = [
-    ...ventasVariantes.map((v) => {
-      const variante = productos
-        .flatMap((p) => p.variantes ?? [])
-        .find((va) => va.id === v.variante_id)
-      return (v.cantidad || 0) * (variante?.precio ?? 0)
-    }),
-    ...ventasComida.map((v) => {
-      const producto = productos.find((p) => p.id === v.producto_id)
-      return (v.cantidad || 0) * (producto?.precio ?? 0)
-    }),
-  ].reduce((s, v) => s + v, 0)
-
-  const conVariantes = productos.filter(
-    (p) => p.tiene_variantes || (p.variantes?.some((v) => v.activo) ?? false)
-  )
-  const sinVariantes = productos.filter(
-    (p) => !p.tiene_variantes && !(p.variantes?.some((v) => v.activo) ?? false)
-  )
-
-  function variantesOrdenadas(producto: Producto) {
-    return (producto.variantes ?? [])
-      .filter((v) => v.activo)
-      .sort((a, b) => a.orden - b.orden || a.nombre.localeCompare(b.nombre))
-  }
-
-  const colCount = esAdmin ? 4 : 3
+  const conVariantes = productos.filter((p) => (p.variantes ?? []).some((v) => v.activo))
+  const simples = productos.filter((p) => !(p.variantes ?? []).some((v) => v.activo))
+  const cantidadVariante = (id: string) =>
+    ventasVariantes.find((v) => v.variante_id === id)?.cantidad ?? 0
+  const cantidadComida = (id: string) =>
+    ventasComida.find((v) => v.producto_id === id)?.cantidad ?? 0
 
   if (productos.length === 0) {
-    return (
-      <section>
-        <SeccionHeader emoji="🍕" titulo="Comida" cantidad={0} esAdmin={esAdmin} />
-        <p className="text-text-muted text-sm">No hay productos de comida activos.</p>
-      </section>
-    )
+    return <p className="text-text-secondary text-sm">No hay productos de comida activos.</p>
   }
 
   return (
-    <section>
-      <SeccionHeader
-        emoji="🍕"
-        titulo="Comida"
-        cantidad={productos.length}
-        totalVendido={totalComida}
-        esAdmin={esAdmin}
-      />
+    <div className="grid items-start gap-4 md:grid-cols-2 2xl:grid-cols-3">
+      {conVariantes.map((producto) => (
+        <motion.section
+          key={producto.id}
+          layout
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="card px-4 py-3 sm:px-5"
+        >
+          <h3 className="font-display text-text-primary pt-1 text-lg font-bold">
+            {producto.nombre}
+          </h3>
+          <div className="divide-bg-border divide-y">
+            {(producto.variantes ?? [])
+              .filter((v) => v.activo)
+              .sort((a, b) => a.orden - b.orden || a.nombre.localeCompare(b.nombre))
+              .map((v) => (
+                <Fila
+                  key={v.id}
+                  nombre={v.nombre}
+                  precio={v.precio}
+                  cantidad={cantidadVariante(v.id)}
+                  esAdmin={esAdmin}
+                  disabled={disabled}
+                  onChange={(n) => onVarianteChange(v.id, n)}
+                />
+              ))}
+          </div>
+        </motion.section>
+      ))}
 
-      {/* Mobile: filas compactas */}
-      <ul className="flex flex-col gap-2.5 md:hidden">
-        {conVariantes.map((producto) => (
-          <li
-            key={producto.id}
-            className="border-bg-border bg-bg-surface rounded-[var(--radius-md)] border p-3"
-          >
-            <p className="text-text-primary mb-2 text-sm font-semibold">{producto.nombre}</p>
-            <ul className="divide-bg-border divide-y">
-              {variantesOrdenadas(producto).map((variante) => {
-                const cantidad =
-                  ventasVariantes.find((v) => v.variante_id === variante.id)?.cantidad ?? 0
-                const subtotal = cantidad * variante.precio
-                return (
-                  <li
-                    key={variante.id}
-                    className="grid grid-cols-[minmax(0,1fr)_4rem] items-center gap-x-3 py-2.5 first:pt-0 last:pb-0"
-                  >
-                    <div className="min-w-0">
-                      <p className="text-text-primary truncate text-sm">{variante.nombre}</p>
-                      <p className="text-text-secondary truncate text-xs tabular-nums">
-                        {formatPesos(variante.precio)}
-                        {esAdmin && subtotal > 0 && (
-                          <span className="text-accent-green ml-1.5 font-medium">
-                            · {formatPesos(subtotal)}
-                          </span>
-                        )}
-                      </p>
-                    </div>
-                    <CeldaCantidadMobile
-                      value={cantidad || ''}
-                      placeholder="0"
-                      disabled={disabled}
-                      aria-label={`Cantidad ${producto.nombre} ${variante.nombre}`}
-                      onChange={(e) =>
-                        onVarianteChange(variante.id, Math.max(0, Number(e.target.value) || 0))
-                      }
-                    />
-                  </li>
-                )
-              })}
-            </ul>
-          </li>
-        ))}
-
-        {sinVariantes.map((producto) => {
-          const cantidad = ventasComida.find((v) => v.producto_id === producto.id)?.cantidad ?? 0
-          const subtotal = cantidad * (producto.precio ?? 0)
-          return (
-            <li
-              key={producto.id}
-              className="border-bg-border bg-bg-surface grid grid-cols-[minmax(0,1fr)_4rem] items-center gap-x-3 rounded-[var(--radius-md)] border p-3"
-            >
-              <div className="min-w-0">
-                <p className="text-text-primary truncate text-sm font-semibold">
-                  {producto.nombre}
-                </p>
-                {producto.descripcion && (
-                  <p className="text-text-muted mt-0.5 truncate text-xs">{producto.descripcion}</p>
-                )}
-                <p className="text-text-secondary mt-0.5 truncate text-xs tabular-nums">
-                  {producto.precio != null ? formatPesos(producto.precio) : '—'}
-                  {esAdmin && subtotal > 0 && (
-                    <span className="text-accent-green ml-1.5 font-medium">
-                      · {formatPesos(subtotal)}
-                    </span>
-                  )}
-                </p>
-              </div>
-              <CeldaCantidadMobile
-                value={cantidad || ''}
-                placeholder="0"
+      {simples.length > 0 && (
+        <motion.section
+          layout
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="card px-4 py-3 sm:px-5"
+        >
+          <h3 className="font-display text-text-primary pt-1 text-lg font-bold">
+            Bebidas y adiciones
+          </h3>
+          <div className="divide-bg-border divide-y">
+            {simples.map((p) => (
+              <Fila
+                key={p.id}
+                nombre={p.nombre}
+                detalle={p.descripcion}
+                precio={p.precio}
+                cantidad={cantidadComida(p.id)}
+                esAdmin={esAdmin}
                 disabled={disabled}
-                aria-label={`Cantidad ${producto.nombre}`}
-                onChange={(e) =>
-                  onComidaChange(producto.id, Math.max(0, Number(e.target.value) || 0))
-                }
+                onChange={(n) => onComidaChange(p.id, n)}
               />
-            </li>
-          )
-        })}
-      </ul>
-
-      {/* Desktop: tabla */}
-      <div className="table-scroll-wrap border-bg-border hidden max-w-full min-w-0 overflow-x-auto rounded-[var(--radius-md)] border md:block">
-        <table className="data-table">
-          <thead>
-            <tr>
-              <th className="col-name">Producto / Variante</th>
-              <th className="col-compact min-w-[5rem] text-center">Precio</th>
-              <th className="col-compact min-w-[4rem] text-center">Cantidad</th>
-              {esAdmin && <th className="col-compact min-w-[5.5rem] text-right">Total</th>}
-            </tr>
-          </thead>
-          <tbody>
-            {conVariantes.map((producto) => {
-              const variantes = variantesOrdenadas(producto)
-              return (
-                <Fragment key={producto.id}>
-                  <tr className="border-bg-border bg-bg-elevated/40 border-t">
-                    <td
-                      colSpan={colCount}
-                      className="col-name text-text-secondary text-xs font-semibold"
-                    >
-                      {producto.nombre}
-                    </td>
-                  </tr>
-                  {variantes.map((variante) => {
-                    const cantidad =
-                      ventasVariantes.find((v) => v.variante_id === variante.id)?.cantidad ?? 0
-                    const subtotal = cantidad * variante.precio
-                    return (
-                      <tr key={variante.id}>
-                        <td className="col-name text-text-primary pl-8 text-sm">
-                          {variante.nombre}
-                        </td>
-                        <td className="col-compact text-text-secondary text-center text-xs tabular-nums">
-                          {formatPesos(variante.precio)}
-                        </td>
-                        <td className="col-compact text-center">
-                          <CeldaCantidadDesktop
-                            value={cantidad || ''}
-                            placeholder="0"
-                            disabled={disabled}
-                            onChange={(e) =>
-                              onVarianteChange(
-                                variante.id,
-                                Math.max(0, Number(e.target.value) || 0)
-                              )
-                            }
-                          />
-                        </td>
-                        {esAdmin && (
-                          <td className="col-compact text-right text-xs font-semibold tabular-nums">
-                            {subtotal > 0 ? (
-                              <span className="text-accent-green">{formatPesos(subtotal)}</span>
-                            ) : (
-                              <span className="text-text-muted">—</span>
-                            )}
-                          </td>
-                        )}
-                      </tr>
-                    )
-                  })}
-                </Fragment>
-              )
-            })}
-
-            {sinVariantes.map((producto) => {
-              const cantidad =
-                ventasComida.find((v) => v.producto_id === producto.id)?.cantidad ?? 0
-              const subtotal = cantidad * (producto.precio ?? 0)
-              return (
-                <tr key={producto.id}>
-                  <td className="col-name">
-                    <p className="text-text-primary text-sm font-semibold">{producto.nombre}</p>
-                    {producto.descripcion && (
-                      <p className="text-text-muted text-xs">{producto.descripcion}</p>
-                    )}
-                  </td>
-                  <td className="col-compact text-text-secondary text-center text-xs tabular-nums">
-                    {producto.precio != null ? formatPesos(producto.precio) : '—'}
-                  </td>
-                  <td className="col-compact text-center">
-                    <CeldaCantidadDesktop
-                      value={cantidad || ''}
-                      placeholder="0"
-                      disabled={disabled}
-                      onChange={(e) =>
-                        onComidaChange(producto.id, Math.max(0, Number(e.target.value) || 0))
-                      }
-                    />
-                  </td>
-                  {esAdmin && (
-                    <td className="col-compact text-right text-xs font-semibold tabular-nums">
-                      {subtotal > 0 ? (
-                        <span className="text-accent-green">{formatPesos(subtotal)}</span>
-                      ) : (
-                        <span className="text-text-muted">—</span>
-                      )}
-                    </td>
-                  )}
-                </tr>
-              )
-            })}
-          </tbody>
-        </table>
-      </div>
-    </section>
+            ))}
+          </div>
+        </motion.section>
+      )}
+    </div>
   )
 }

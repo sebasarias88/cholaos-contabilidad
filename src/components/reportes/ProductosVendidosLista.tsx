@@ -19,7 +19,7 @@ export function ProductosVendidosLista({ productos }: { productos: ProductoVendi
                   <span className="text-text-secondary text-[10px] font-semibold tracking-wide uppercase">
                     #{i + 1}
                   </span>
-                  {p.medida && <span className="badge-cyan tabular-nums">{p.medida}</span>}
+                  {p.medida && <span className="badge-brand tabular-nums">{p.medida}</span>}
                 </div>
                 <p className="text-text-primary mt-1 text-sm leading-snug font-semibold">
                   {p.nombre}
@@ -29,7 +29,7 @@ export function ProductosVendidosLista({ productos }: { productos: ProductoVendi
                   {p.medida ? ` · ${p.medida}` : ''}
                 </p>
               </div>
-              <p className="text-accent-cyan shrink-0 text-base font-semibold tabular-nums">
+              <p className="text-brand shrink-0 text-base font-semibold tabular-nums">
                 {formatPesos(p.ingresos)}
               </p>
             </div>
@@ -68,9 +68,9 @@ export function ProductosVendidosLista({ productos }: { productos: ProductoVendi
                   ) : null}
                 </td>
                 <td className="col-compact">
-                  <span className="badge-cyan tabular-nums">{p.cantidad}</span>
+                  <span className="badge-brand tabular-nums">{p.cantidad}</span>
                 </td>
-                <td className="col-compact text-accent-cyan text-right font-medium tabular-nums">
+                <td className="col-compact text-brand text-right font-medium tabular-nums">
                   {formatPesos(p.ingresos)}
                 </td>
               </tr>
