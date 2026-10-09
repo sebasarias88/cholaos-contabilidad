@@ -17,7 +17,13 @@ export const TIPOS_PRODUCTO = [
     value: 'insumo' as const,
     label: 'Insumo',
     emoji: '🧂',
-    desc: 'Barquillo, Masa, ingrediente...',
+    desc: 'Barquillo, ingrediente...',
+  },
+  {
+    value: 'masa' as const,
+    label: 'Masa de pizza',
+    emoji: '🥣',
+    desc: 'Porción, Pizzeta, Mediana...',
   },
 ]
 
@@ -34,9 +40,18 @@ export const BADGE_TIPO: Record<TipoProducto, { label: string; className: string
     label: '🧂 Insumo',
     className: 'border border-bg-border bg-bg-elevated text-text-secondary',
   },
+  masa: {
+    label: '🥣 Masa',
+    className: 'bg-warn-soft text-warn',
+  },
 }
 
-/** Etiqueta de medida: onzas para vaso, unidad para comida/insumo */
+/** Insumos y masas solo llevan conteo: no tienen precio ni generan venta */
+export function esSoloConteo(tipo: TipoProducto | string | null | undefined): boolean {
+  return tipo === 'insumo' || tipo === 'masa'
+}
+
+/** Etiqueta de medida: onzas para vaso, unidad para comida/insumo/masa */
 export function medidaProducto(p: {
   tipo?: TipoProducto | string | null
   onzas?: number | null
@@ -59,7 +74,7 @@ export function medidaProducto(p: {
 }
 
 export function tipoProducto(p: { tipo?: TipoProducto | string | null }): TipoProducto {
-  if (p.tipo === 'comida' || p.tipo === 'insumo' || p.tipo === 'vaso') {
+  if (p.tipo === 'comida' || p.tipo === 'insumo' || p.tipo === 'masa' || p.tipo === 'vaso') {
     return p.tipo
   }
   return 'vaso'

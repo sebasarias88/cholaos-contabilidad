@@ -12,6 +12,7 @@ import {
   validarCierre,
   type EstadoCierreForm,
   type FilaInsumo,
+  type FilaMasa,
   type FilaVaso,
 } from '@/lib/cierre/estado'
 import { vendidosReales } from '@/lib/cierre/ventas-vasos'
@@ -140,6 +141,19 @@ export function useCierreDia({ fecha, rol }: { fecha: string; rol: Rol }) {
         insumos: e.insumos.map((f) =>
           f.producto_id === productoId ? { ...f, [campo]: valor } : f
         ),
+      })),
+    []
+  )
+
+  const actualizarMasa = useCallback(
+    (
+      productoId: string,
+      campo: 'cantidad_inicio' | 'cantidad_final',
+      valor: FilaMasa[typeof campo]
+    ) =>
+      setEstado((e) => ({
+        ...e,
+        masas: e.masas.map((f) => (f.producto_id === productoId ? { ...f, [campo]: valor } : f)),
       })),
     []
   )
@@ -295,6 +309,7 @@ export function useCierreDia({ fecha, rol }: { fecha: string; rol: Rol }) {
     actualizarVaso,
     actualizarDesglose,
     actualizarInsumo,
+    actualizarMasa,
     cambiarVariante,
     cambiarComida,
     movimientos,

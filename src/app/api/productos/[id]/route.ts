@@ -3,7 +3,7 @@ import { ensureTallaProducto } from '@/lib/ensure-talla-producto'
 import { NextResponse } from 'next/server'
 import type { ProductoUpdateInput, TipoProducto } from '@/types'
 
-const TIPOS: TipoProducto[] = ['vaso', 'comida', 'insumo']
+const TIPOS: TipoProducto[] = ['vaso', 'comida', 'insumo', 'masa']
 
 function normalizarUpdate(body: ProductoUpdateInput) {
   const patch: Record<string, unknown> = {}
@@ -62,14 +62,14 @@ function normalizarUpdate(body: ProductoUpdateInput) {
     patch.talla_id = typeof body.talla_id === 'string' && body.talla_id ? body.talla_id : null
   }
 
-  // Si se cambia a insumo vía payload completo, forzar precio null
-  if (body.tipo === 'insumo' && body.precio === undefined) {
+  // Si se cambia a insumo o masa vía payload completo, forzar precio null
+  if ((body.tipo === 'insumo' || body.tipo === 'masa') && body.precio === undefined) {
     patch.precio = null
   }
   if (body.tipo === 'vaso' && body.unidad === undefined) {
     patch.unidad = null
   }
-  if ((body.tipo === 'comida' || body.tipo === 'insumo') && body.onzas === undefined) {
+  if (body.tipo !== undefined && body.tipo !== 'vaso' && body.onzas === undefined) {
     patch.onzas = null
   }
 

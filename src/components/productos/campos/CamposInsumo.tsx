@@ -18,17 +18,22 @@ export function CamposInsumo({
   form: ProductoFormState
   onChange: (form: ProductoFormState) => void
 }) {
+  const esMasa = form.tipo === 'masa'
   return (
-    <motion.div key="insumo-fields" {...fieldsMotion} className="space-y-3">
-      <Input
-        label="Unidad"
-        placeholder="caja, kg, unidad..."
-        value={form.unidad}
-        onChange={(e) => onChange({ ...form, unidad: e.target.value })}
-        required
-      />
+    <motion.div key={`${form.tipo}-fields`} {...fieldsMotion} className="space-y-3">
+      {!esMasa && (
+        <Input
+          label="Unidad"
+          placeholder="caja, kg, unidad..."
+          value={form.unidad}
+          onChange={(e) => onChange({ ...form, unidad: e.target.value })}
+          required
+        />
+      )}
       <p className="border-bg-border bg-bg-elevated/50 text-text-secondary rounded-[var(--radius-md)] border px-3 py-2 text-xs leading-relaxed">
-        Los insumos no generan venta — solo se lleva conteo de inventario.
+        {esMasa
+          ? 'Las masas de pizza no generan venta. En el cierre se anota con cuántas empezó y con cuántas terminó el día.'
+          : 'Los insumos no generan venta — solo se lleva conteo de inventario.'}
       </p>
     </motion.div>
   )

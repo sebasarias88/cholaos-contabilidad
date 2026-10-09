@@ -27,7 +27,7 @@ function parsear(raw: string): number | null {
   return Math.max(0, Math.floor(Number(t)) || 0)
 }
 
-function CampoNumero({
+export function CampoNumero({
   etiqueta,
   valor,
   onChange,

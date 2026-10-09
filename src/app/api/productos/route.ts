@@ -1,9 +1,10 @@
 import { requireAdminApi, requireAuthApi } from '@/lib/api-auth'
 import { ensureTallaProducto } from '@/lib/ensure-talla-producto'
 import { NextResponse } from 'next/server'
+import { esSoloConteo } from '@/lib/productos-ui'
 import type { TipoProducto } from '@/types'
 
-const TIPOS: TipoProducto[] = ['vaso', 'comida', 'insumo']
+const TIPOS: TipoProducto[] = ['vaso', 'comida', 'insumo', 'masa']
 
 export async function GET(request: Request) {
   const auth = await requireAuthApi()
@@ -62,7 +63,9 @@ export async function POST(request: Request) {
   const nombre = typeof body.nombre === 'string' ? body.nombre : ''
   const tipo = body.tipo as TipoProducto | undefined
   const onzas = body.onzas
-  const unidad = typeof body.unidad === 'string' ? body.unidad : null
+  const unidadRaw = typeof body.unidad === 'string' ? body.unidad : null
+  // Las masas de pizza no necesitan unidad (siempre son "masa")
+  const unidad = tipo === 'masa' && !unidadRaw?.trim() ? 'masa' : unidadRaw
   const precio = body.precio
   const descripcion = typeof body.descripcion === 'string' ? body.descripcion : null
   const talla_id = typeof body.talla_id === 'string' && body.talla_id ? body.talla_id : null
@@ -78,7 +81,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Las onzas son requeridas para vasos' }, { status: 400 })
   }
   if (
-    tipo !== 'insumo' &&
+    !esSoloConteo(tipo) &&
     !tiene_variantes &&
     (precio === undefined || precio === null || precio === '')
   ) {
@@ -98,7 +101,7 @@ export async function POST(request: Request) {
       tipo,
       onzas: tipo === 'vaso' ? Number(onzas) : null,
       unidad: tipo !== 'vaso' ? unidad!.trim() : null,
-      precio: tipo === 'insumo' || tiene_variantes ? null : Number(precio),
+      precio: esSoloConteo(tipo) || tiene_variantes ? null : Number(precio),
       descripcion: descripcion?.trim() || null,
       talla_id: null,
       tiene_variantes: tipo === 'comida' ? tiene_variantes : false,

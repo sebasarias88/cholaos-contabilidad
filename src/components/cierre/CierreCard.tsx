@@ -18,7 +18,7 @@ import toast from 'react-hot-toast'
 import { TabMovimientos } from '@/components/cierre/historial/TabMovimientos'
 import { TabProductos } from '@/components/cierre/historial/TabProductos'
 import { TabResumen } from '@/components/cierre/historial/TabResumen'
-import { TabVasos } from '@/components/cierre/historial/TabVasos'
+import { TabInventario } from '@/components/cierre/historial/TabInventario'
 import type { CierreDia, Venta } from '@/types'
 
 type TabHistorial = 'resumen' | 'productos' | 'vasos' | 'gastos'
@@ -26,7 +26,7 @@ type TabHistorial = 'resumen' | 'productos' | 'vasos' | 'gastos'
 const TABS: { id: TabHistorial; label: string }[] = [
   { id: 'resumen', label: 'Resumen' },
   { id: 'productos', label: 'Productos' },
-  { id: 'vasos', label: 'Vasos' },
+  { id: 'vasos', label: 'Inventario' },
   { id: 'gastos', label: 'Movimientos' },
 ]
 
@@ -216,7 +216,7 @@ export function CierreCard({ cierre, esAdmin = true }: CierreCardProps) {
                       esAdmin={esAdmin}
                     />
                   )}
-                  {tab === 'vasos' && <TabVasos cierre={cierre} />}
+                  {tab === 'vasos' && <TabInventario cierre={cierre} />}
                   {tab === 'gastos' && <TabMovimientos cierre={cierre} />}
                 </motion.div>
               </AnimatePresence>

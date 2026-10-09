@@ -2,10 +2,9 @@
 
 import { motion } from 'framer-motion'
 import { formatTalla } from '@/lib/utils'
-import type { CierreDia, ConteoVaso } from '@/types'
+import type { ConteoVaso } from '@/types'
 
-export function TabVasos({ cierre }: { cierre: CierreDia }) {
-  const rows = cierre.conteo_vasos ?? []
+export function TabVasos({ rows }: { rows: ConteoVaso[] }) {
   if (rows.length === 0) {
     return <p className="text-text-muted text-sm">Sin conteo de vasos.</p>
   }
