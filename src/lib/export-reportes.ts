@@ -3,7 +3,8 @@ import { es } from 'date-fns/locale'
 import { retiroBase } from '@/lib/cierre/base'
 import { masasUsadas } from '@/lib/cierre/estado'
 import { tipoProducto } from '@/lib/productos-ui'
-import type { CierreDia, ResumenDia } from '@/types'
+import { textosCuenta } from '@/lib/descuentos'
+import type { CierreDia, ResumenDia, TipoPersonaDescuento } from '@/types'
 import { fechaComoDate } from '@/lib/fechas'
 
 export type FormatoExport = 'excel' | 'pdf'
@@ -139,6 +140,13 @@ function gastosDetalle(cierres: CierreDia[]) {
     .sort((a, b) => a.fecha.localeCompare(b.fecha))
 }
 
+/** "Descontado" / "Por cobrar" / "No se cobra" según el tipo de persona */
+function estadoDescuento(tipo: TipoPersonaDescuento | undefined, saldado: boolean) {
+  const textos = textosCuenta(tipo)
+  if (!textos) return 'No se cobra'
+  return saldado ? textos.saldado : textos.pendiente
+}
+
 /** Fiados, consumos y préstamos de cada día cerrado */
 export function descuentosDetalle(cierres: CierreDia[]) {
   return cierres
@@ -149,7 +157,7 @@ export function descuentosDetalle(cierres: CierreDia[]) {
         persona: d.persona?.nombre ?? '',
         descripcion: d.descripcion ?? '',
         monto: Number(d.monto),
-        estado: d.liquidacion_id ? 'Descontado' : 'Pendiente',
+        estado: estadoDescuento(d.persona?.tipo, Boolean(d.liquidacion_id)),
       }))
     )
     .sort((a, b) => a.fecha.localeCompare(b.fecha) || a.persona.localeCompare(b.persona, 'es'))
@@ -320,7 +328,7 @@ async function exportarExcel(data: ExportReportesInput) {
       { header: 'Persona', key: 'persona', width: 22 },
       { header: 'Concepto', key: 'descripcion', width: 30 },
       { header: 'Monto', key: 'monto', width: 14 },
-      { header: 'Sueldo', key: 'estado', width: 13 },
+      { header: 'Estado', key: 'estado', width: 16 },
     ]
     estilizarEncabezado(ds.getRow(1))
     for (const d of descuentos) ds.addRow({ ...d, fecha: fechaCorta(d.fecha) })
@@ -536,7 +544,7 @@ async function exportarPdf(data: ExportReportesInput) {
       headStyles: { fillColor: marca },
       styles: { fontSize: 8 },
       columnStyles: { 3: { halign: 'right' } },
-      head: [['Fecha', 'Persona', 'Concepto', 'Monto', 'Sueldo']],
+      head: [['Fecha', 'Persona', 'Concepto', 'Monto', 'Estado']],
       body: descuentosPdf.map((d) => [
         fechaCorta(d.fecha),
         d.persona,

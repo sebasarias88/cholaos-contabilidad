@@ -8,6 +8,7 @@ import {
   Clock,
   FileSpreadsheet,
   FileText,
+  Gift,
   HandCoins,
   Undo2,
   Wallet,
@@ -25,6 +26,7 @@ import {
   PRESETS_NOMINA,
   rangoNomina,
   resumirPorPersona,
+  textosCuenta,
   totalesResumen,
   type PresetNomina,
   type ResumenPersona,
@@ -52,9 +54,12 @@ export function ReporteDescuentos({ nombreNegocio }: { nombreNegocio: string }) 
   const [abierta, setAbierta] = useState<string | null>(null)
   const [liquidar, setLiquidar] = useState<ResumenPersona | null>(null)
   const [incluirAnterior, setIncluirAnterior] = useState(true)
-  const [deshacer, setDeshacer] = useState<{ id: string; persona: string; total: number } | null>(
-    null
-  )
+  const [deshacer, setDeshacer] = useState<{
+    id: string
+    persona: string
+    total: number
+    tipo: TipoPersonaDescuento
+  } | null>(null)
   const [ocupado, setOcupado] = useState(false)
   const [exportando, setExportando] = useState<FormatoExport | null>(null)
 
@@ -107,8 +112,10 @@ export function ReporteDescuentos({ nombreNegocio }: { nombreNegocio: string }) 
       incluirAnterior && liquidar.pendienteAnteriorDesde
         ? liquidar.pendienteAnteriorDesde
         : rango.desde
+    const textos = textosCuenta(liquidar.persona.tipo)
+    if (!textos) return
     setOcupado(true)
-    const id = toastLoading('Marcando como descontado...')
+    const id = toastLoading('Guardando...')
     try {
       const res = await fetch('/api/liquidaciones', {
         method: 'POST',
@@ -117,7 +124,10 @@ export function ReporteDescuentos({ nombreNegocio }: { nombreNegocio: string }) 
       })
       const body = await res.json().catch(() => ({}))
       if (!res.ok) throw new Error(body.error ?? 'No se pudo marcar')
-      toastSuccess(`${liquidar.persona.nombre}: ${formatPesos(body.total)} descontado`, id)
+      toastSuccess(
+        `${liquidar.persona.nombre}: ${formatPesos(body.total)} ${textos.saldado.toLowerCase()}`,
+        id
+      )
       setLiquidar(null)
       api.recargar()
     } catch (e) {
@@ -145,6 +155,8 @@ export function ReporteDescuentos({ nombreNegocio }: { nombreNegocio: string }) 
     }
   }
 
+  const textosLiquidar = textosCuenta(liquidar?.persona.tipo)
+  const textosDeshacer = textosCuenta(deshacer?.tipo)
   const montoLiquidar = liquidar
     ? liquidar.pendiente + (incluirAnterior ? liquidar.pendienteAnterior : 0)
     : 0
@@ -225,15 +237,24 @@ export function ReporteDescuentos({ nombreNegocio }: { nombreNegocio: string }) 
           className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4"
           variants={staggerContainer}
         >
-          <TarjetaKpi titulo="Total del periodo" valor={totales.total} icono={Wallet} />
           <TarjetaKpi
-            titulo="Pendiente por descontar"
+            titulo="Total del periodo"
+            valor={totales.total}
+            icono={Wallet}
+            detalle={
+              totales.familia > 0
+                ? `Incluye ${formatPesos(totales.familia)} de familia (no se cobra)`
+                : undefined
+            }
+          />
+          <TarjetaKpi
+            titulo="Pendiente (sueldo y cobros)"
             valor={totales.pendiente}
             icono={Clock}
             tono="warn"
           />
           <TarjetaKpi
-            titulo="Ya descontado"
+            titulo="Ya descontado o cobrado"
             valor={totales.descontado}
             icono={BadgeCheck}
             tono="ok"
@@ -268,7 +289,9 @@ export function ReporteDescuentos({ nombreNegocio }: { nombreNegocio: string }) 
                 setIncluirAnterior(true)
                 setLiquidar(r)
               }}
-              onDeshacer={(id, total) => setDeshacer({ id, persona: r.persona.nombre, total })}
+              onDeshacer={(id, total) =>
+                setDeshacer({ id, persona: r.persona.nombre, total, tipo: r.persona.tipo })
+              }
             />
           ))}
         </motion.ul>
@@ -276,8 +299,8 @@ export function ReporteDescuentos({ nombreNegocio }: { nombreNegocio: string }) 
 
       <ConfirmarModal
         open={liquidar !== null}
-        titulo={`Descontar del sueldo a ${liquidar?.persona.nombre ?? ''}`}
-        textoConfirmar="Marcar como descontado"
+        titulo={textosLiquidar?.tituloAccion(liquidar?.persona.nombre ?? '') ?? ''}
+        textoConfirmar={textosLiquidar?.accion ?? ''}
         variante="primary"
         cargando={ocupado}
         onCancelar={() => setLiquidar(null)}
@@ -287,10 +310,11 @@ export function ReporteDescuentos({ nombreNegocio }: { nombreNegocio: string }) 
           {formatPesos(montoLiquidar)}
         </p>
         <p>
-          Se marcan como descontados los{' '}
-          <b className="text-text-primary">{formatPesos(liquidar?.pendiente ?? 0)}</b> pendientes
-          del {formatFecha(rango.desde)} al {formatFecha(rango.hasta)}. Después ya no se pueden
-          cambiar en el cierre (se puede deshacer aquí si fue un error).
+          Se marcan como {textosLiquidar?.participio} los{' '}
+          <b className="text-text-primary">{formatPesos(liquidar?.pendiente ?? 0)}</b>{' '}
+          {textosLiquidar?.pendiente.toLowerCase()} del {formatFecha(rango.desde)} al{' '}
+          {formatFecha(rango.hasta)}. Después ya no se pueden cambiar en el cierre (se puede
+          deshacer aquí si fue un error).
         </p>
         {liquidar && liquidar.pendienteAnterior > 0 && (
           <label className="bg-warn-soft mt-3 flex cursor-pointer items-start gap-2.5 rounded-[12px] p-3">
@@ -311,14 +335,15 @@ export function ReporteDescuentos({ nombreNegocio }: { nombreNegocio: string }) 
 
       <ConfirmarModal
         open={deshacer !== null}
-        titulo="Deshacer descuento del sueldo"
+        titulo={`Deshacer: ${textosDeshacer?.saldadoLargo.toLowerCase() ?? ''}`}
         textoConfirmar="Deshacer"
         cargando={ocupado}
         onCancelar={() => setDeshacer(null)}
         onConfirmar={confirmarDeshacer}
       >
         Los {formatPesos(deshacer?.total ?? 0)} de{' '}
-        <b className="text-text-primary">{deshacer?.persona}</b> vuelven a quedar pendientes.
+        <b className="text-text-primary">{deshacer?.persona}</b> vuelven a quedar{' '}
+        {textosDeshacer?.pendiente.toLowerCase()}.
       </ConfirmarModal>
     </motion.div>
   )
@@ -343,6 +368,8 @@ function TarjetaPersona({
     if (d.liquidacion) liquidaciones.set(d.liquidacion.id, d.liquidacion)
   }
   const porLiquidar = r.pendiente + r.pendienteAnterior
+  const textos = textosCuenta(r.persona.tipo)
+  const n = r.descuentos.length
 
   return (
     <motion.li variants={fadeUp} className="card min-w-0 overflow-hidden">
@@ -366,34 +393,56 @@ function TarjetaPersona({
               <BadgeTipoPersona tipo={r.persona.tipo} />
             </span>
             <span className="text-text-secondary text-xs">
-              {r.descuentos.length} descuento{r.descuentos.length === 1 ? '' : 's'} · total{' '}
-              {formatPesos(r.total)}
+              {textos
+                ? `${n} descuento${n === 1 ? '' : 's'} · total ${formatPesos(r.total)}`
+                : `${n} consumo${n === 1 ? '' : 's'} · no se cobra`}
             </span>
           </span>
         </button>
 
         <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
-          <Cifra label="Pendiente" valor={r.pendiente} tono={r.pendiente > 0 ? 'warn' : 'muted'} />
-          <Cifra label="Descontado" valor={r.descontado} tono={r.descontado > 0 ? 'ok' : 'muted'} />
-          {porLiquidar > 0 ? (
-            <Button type="button" size="sm" onClick={onLiquidar}>
-              <BadgeCheck size={16} aria-hidden />
-              Descontar del sueldo
-            </Button>
+          {textos ? (
+            <>
+              <Cifra
+                label={textos.pendiente}
+                valor={r.pendiente}
+                tono={r.pendiente > 0 ? 'warn' : 'muted'}
+              />
+              <Cifra
+                label={textos.saldado}
+                valor={r.descontado}
+                tono={r.descontado > 0 ? 'ok' : 'muted'}
+              />
+              {porLiquidar > 0 ? (
+                <Button type="button" size="sm" onClick={onLiquidar}>
+                  <BadgeCheck size={16} aria-hidden />
+                  {textos.accion}
+                </Button>
+              ) : (
+                r.total > 0 && (
+                  <span className="badge-green inline-flex items-center gap-1">
+                    <BadgeCheck size={13} aria-hidden />
+                    Al día
+                  </span>
+                )
+              )}
+            </>
           ) : (
-            r.total > 0 && (
-              <span className="badge-green inline-flex items-center gap-1">
-                <BadgeCheck size={13} aria-hidden />
-                Al día
+            <>
+              <Cifra label="Total" valor={r.total} tono="neutro" />
+              <span className="bg-ok-soft text-ok inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold">
+                <Gift size={14} aria-hidden />
+                No se cobra
               </span>
-            )
+            </>
           )}
         </div>
       </div>
 
       {r.pendienteAnterior > 0 && (
         <p className="bg-warn-soft text-text-primary mx-4 mb-4 rounded-[12px] px-3 py-2 text-xs sm:mx-5">
-          Además tiene <b>{formatPesos(r.pendienteAnterior)}</b> pendiente de antes de este periodo.
+          Además tiene <b>{formatPesos(r.pendienteAnterior)}</b> {textos?.pendiente.toLowerCase()}{' '}
+          de antes de este periodo.
         </p>
       )}
 
@@ -415,12 +464,13 @@ function TarjetaPersona({
                   <span className="text-text-primary min-w-0 flex-1 truncate">
                     {d.descripcion.trim() || <span className="text-text-muted">Sin concepto</span>}
                   </span>
-                  {d.liquidacion ? (
+                  {!textos ? null : d.liquidacion ? (
                     <span className="badge-green shrink-0">
-                      Descontado {fechaCortaUi(fechaColombia(new Date(d.liquidacion.created_at)))}
+                      {textos.saldado}{' '}
+                      {fechaCortaUi(fechaColombia(new Date(d.liquidacion.created_at)))}
                     </span>
                   ) : (
-                    <span className="badge-warn shrink-0">Pendiente</span>
+                    <span className="badge-warn shrink-0">{textos.pendiente}</span>
                   )}
                   <span className="text-text-primary w-24 shrink-0 text-right font-bold tabular-nums">
                     {formatPesos(d.monto)}
@@ -428,7 +478,7 @@ function TarjetaPersona({
                 </li>
               ))}
             </ul>
-            {liquidaciones.size > 0 && (
+            {textos && liquidaciones.size > 0 && (
               <div className="bg-bg-elevated/50 flex flex-col gap-2 px-4 py-3 sm:px-5">
                 {[...liquidaciones.values()].map((info) => (
                   <div
@@ -436,7 +486,7 @@ function TarjetaPersona({
                     className="flex flex-wrap items-center justify-between gap-2 text-xs"
                   >
                     <span className="text-text-secondary">
-                      Descontado del sueldo el{' '}
+                      {textos.saldadoLargo} el{' '}
                       {formatFecha(fechaColombia(new Date(info.created_at)))} (
                       {fechaCortaUi(info.desde)} al {fechaCortaUi(info.hasta)})
                       {` · ${formatPesos(info.total)}`}
@@ -467,9 +517,14 @@ function Cifra({
 }: {
   label: string
   valor: number
-  tono: 'warn' | 'ok' | 'muted'
+  tono: 'warn' | 'ok' | 'muted' | 'neutro'
 }) {
-  const color = tono === 'warn' ? 'text-warn' : tono === 'ok' ? 'text-ok' : 'text-text-muted'
+  const color = {
+    warn: 'text-warn',
+    ok: 'text-ok',
+    muted: 'text-text-muted',
+    neutro: 'text-text-primary',
+  }[tono]
   return (
     <div className="flex flex-col items-start leading-tight">
       <span className="text-text-secondary text-[11px] font-bold tracking-wide uppercase">

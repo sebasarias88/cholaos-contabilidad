@@ -18,6 +18,12 @@ import { etiquetaTipoPersona, TIPOS_PERSONA } from '@/lib/descuentos'
 import { toastError, toastLoading, toastSuccess } from '@/lib/toast'
 import type { PersonaDescuento, TipoPersonaDescuento } from '@/types'
 
+const AYUDA_TIPO: Record<TipoPersonaDescuento, string> = {
+  empleado: 'Lo que saque se le descuenta del sueldo (semana, quincena o mes).',
+  cliente: 'Fiado: queda por cobrar hasta que se marque como cobrado.',
+  familia: 'No se cobra ni se descuenta: solo queda el registro de lo que se le dio.',
+}
+
 async function pedir(url: string, init?: RequestInit) {
   const res = await fetch(url, init)
   const body = await res.json().catch(() => ({}))
@@ -249,6 +255,7 @@ export function GestionPersonas() {
                 </button>
               ))}
             </div>
+            <p className="text-text-secondary text-xs">{AYUDA_TIPO[tipo]}</p>
           </div>
           <div className="flex justify-end gap-2">
             <Button type="button" variant="secondary" onClick={() => setModal(null)}>

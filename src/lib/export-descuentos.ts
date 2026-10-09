@@ -1,5 +1,10 @@
 import { format } from 'date-fns'
-import { etiquetaTipoPersona, totalesResumen, type ResumenPersona } from '@/lib/descuentos'
+import {
+  etiquetaTipoPersona,
+  textosCuenta,
+  totalesResumen,
+  type ResumenPersona,
+} from '@/lib/descuentos'
 import { descargar, fechaCorta, fechaLarga, pesos } from '@/lib/export-reportes'
 import type { FormatoExport } from '@/lib/export-reportes'
 import { fechaColombia } from '@/lib/fechas'
@@ -11,10 +16,17 @@ export type ExportDescuentosInput = {
   resumen: ResumenPersona[]
 }
 
-function estadoFila(d: ResumenPersona['descuentos'][number]) {
+function estadoFila(r: ResumenPersona, d: ResumenPersona['descuentos'][number]) {
+  const textos = textosCuenta(r.persona.tipo)
+  if (!textos) return 'No se cobra'
   return d.liquidacion
-    ? `Descontado ${fechaCorta(fechaColombia(new Date(d.liquidacion.created_at)))}`
-    : 'Pendiente'
+    ? `${textos.saldado} ${fechaCorta(fechaColombia(new Date(d.liquidacion.created_at)))}`
+    : textos.pendiente
+}
+
+/** A la familia no se le cobra: en vez de $0 se muestra una raya */
+function cifraCobro(r: ResumenPersona, valor: number) {
+  return textosCuenta(r.persona.tipo) ? valor : '—'
 }
 
 function concepto(texto: string) {
@@ -62,8 +74,8 @@ async function exportarExcel(data: ExportDescuentosInput) {
     'Persona',
     'Tipo',
     'Total del periodo',
-    'Pendiente',
-    'Ya descontado',
+    'Pendiente (sueldo o cobro)',
+    'Ya descontado o cobrado',
     'Pendiente de antes',
   ])
   encabezado(cab)
@@ -72,14 +84,14 @@ async function exportarExcel(data: ExportDescuentosInput) {
       r.persona.nombre,
       etiquetaTipoPersona(r.persona.tipo),
       r.total,
-      r.pendiente,
-      r.descontado,
-      r.pendienteAnterior,
+      cifraCobro(r, r.pendiente),
+      cifraCobro(r, r.descontado),
+      cifraCobro(r, r.pendienteAnterior),
     ])
   }
   const tot = rs.addRow(['TOTAL', '', totales.total, totales.pendiente, totales.descontado, ''])
   tot.font = { bold: true }
-  const anchos = [24, 12, 18, 14, 16, 18]
+  const anchos = [24, 12, 18, 24, 24, 18]
   for (let i = 0; i < anchos.length; i++) {
     const col = rs.getColumn(i + 1)
     col.width = anchos[i]
@@ -104,7 +116,7 @@ async function exportarExcel(data: ExportDescuentosInput) {
         tipo: etiquetaTipoPersona(r.persona.tipo),
         concepto: concepto(d.descripcion),
         monto: d.monto,
-        estado: estadoFila(d),
+        estado: estadoFila(r, d),
       })
     }
   }
@@ -122,7 +134,7 @@ async function exportarExcel(data: ExportDescuentosInput) {
   return nombre
 }
 
-/** PDF: resumen + un comprobante por persona (para mostrárselo al empleado) */
+/** PDF: resumen + una hoja por persona (comprobante del empleado, cuenta de cobro del cliente) */
 async function exportarPdf(data: ExportDescuentosInput) {
   const [{ jsPDF }, { default: autoTable }] = await Promise.all([
     import('jspdf'),
@@ -153,14 +165,17 @@ async function exportarPdf(data: ExportDescuentosInput) {
     styles: { fontSize: 9 },
     columnStyles: { 2: { halign: 'right' }, 3: { halign: 'right' }, 4: { halign: 'right' } },
     didParseCell: alinearDerecha([2, 3, 4]),
-    head: [['Persona', 'Tipo', 'Total', 'Pendiente', 'Ya descontado']],
-    body: data.resumen.map((r) => [
-      r.persona.nombre,
-      etiquetaTipoPersona(r.persona.tipo),
-      pesos(r.total),
-      pesos(r.pendiente),
-      pesos(r.descontado),
-    ]),
+    head: [['Persona', 'Tipo', 'Total', 'Pendiente', 'Descontado o cobrado']],
+    body: data.resumen.map((r) => {
+      const cobra = textosCuenta(r.persona.tipo) !== null
+      return [
+        r.persona.nombre,
+        etiquetaTipoPersona(r.persona.tipo),
+        pesos(r.total),
+        cobra ? pesos(r.pendiente) : 'No se cobra',
+        cobra ? pesos(r.descontado) : '—',
+      ]
+    }),
     foot: [
       ['TOTAL', '', pesos(totales.total), pesos(totales.pendiente), pesos(totales.descontado)],
     ],
@@ -169,10 +184,11 @@ async function exportarPdf(data: ExportDescuentosInput) {
 
   for (const r of data.resumen) {
     if (r.descuentos.length === 0) continue
+    const textos = textosCuenta(r.persona.tipo)
     doc.addPage()
     doc.setFont('helvetica', 'bold')
     doc.setFontSize(14)
-    doc.text('Comprobante de descuentos', margen, 52)
+    doc.text(textos?.comprobante ?? 'Registro de consumos', margen, 52)
     doc.setFontSize(12)
     doc.text(r.persona.nombre, margen, 74)
     doc.setFont('helvetica', 'normal')
@@ -193,7 +209,7 @@ async function exportarPdf(data: ExportDescuentosInput) {
         fechaCorta(d.fecha),
         concepto(d.descripcion),
         pesos(d.monto),
-        estadoFila(d),
+        estadoFila(r, d),
       ]),
       foot: [['TOTAL', '', pesos(r.total), '']],
       footStyles: { fillColor: [230, 230, 230], textColor: 20, fontStyle: 'bold' },
@@ -201,13 +217,18 @@ async function exportarPdf(data: ExportDescuentosInput) {
 
     let y = finTabla() + 22
     doc.setFontSize(10)
-    doc.text(`Ya descontado del sueldo: ${pesos(r.descontado)}`, margen, y)
+    if (!textos) {
+      // Familia: solo el registro de lo que se le dio, sin cobros ni firmas
+      doc.text('Lo que se le dio a la familia no se cobra: es solo el registro.', margen, y)
+      continue
+    }
+    doc.text(`${textos.saldadoLargo}: ${pesos(r.descontado)}`, margen, y)
     doc.setFont('helvetica', 'bold')
-    doc.text(`Pendiente por descontar: ${pesos(r.pendiente)}`, margen, y + 16)
+    doc.text(`${textos.pendiente}: ${pesos(r.pendiente)}`, margen, y + 16)
     doc.setFont('helvetica', 'normal')
     if (r.pendienteAnterior > 0) {
       doc.text(
-        `Además tiene ${pesos(r.pendienteAnterior)} pendiente de antes de este periodo.`,
+        `Además tiene ${pesos(r.pendienteAnterior)} ${textos.pendiente.toLowerCase()} de antes de este periodo.`,
         margen,
         y + 32
       )
