@@ -1,7 +1,7 @@
 'use client'
 
 import { ProductoSwitch } from '@/components/productos/ProductoSwitch'
-import { BADGE_TIPO, tipoProducto } from '@/lib/productos-ui'
+import { BADGE_TIPO, tipoProducto, esSoloConteo } from '@/lib/productos-ui'
 import { formatPesos } from '@/lib/utils'
 import type { Producto, TipoProducto } from '@/types'
 
@@ -56,7 +56,7 @@ export function ProductoPrecio({
 }) {
   const tipo = tipoProducto(producto)
 
-  if (tipo === 'insumo') {
+  if (esSoloConteo(tipo)) {
     return <span className="text-text-muted tabular-nums">—</span>
   }
 

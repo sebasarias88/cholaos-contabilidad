@@ -92,9 +92,10 @@ export function construirPayloadProducto(form: ProductoFormState) {
     }
   }
 
+  // Insumo o masa de pizza: solo conteo, sin precio
   return {
     ...base,
-    unidad: form.unidad.trim(),
+    unidad: form.unidad.trim() || (form.tipo === 'masa' ? 'masa' : ''),
     precio: null,
     onzas: null,
     tiene_variantes: false,

@@ -12,6 +12,7 @@ import { PasoRevisar } from '@/components/cierre/PasoRevisar'
 import { PasosCierre } from '@/components/cierre/PasosCierre'
 import { SeccionComida } from '@/components/cierre/SeccionComida'
 import { TablaInsumos } from '@/components/cierre/TablaInsumos'
+import { TablaMasas } from '@/components/cierre/TablaMasas'
 import { TablaVasos } from '@/components/cierre/TablaVasos'
 import { Celebracion } from '@/components/ui/Celebracion'
 import { Skeleton } from '@/components/ui/Skeleton'
@@ -27,6 +28,8 @@ const AYUDA: Record<IdPaso, string> = {
   vasos:
     'Cuenta cuántos vasos llegaron y cuántos quedan. Presiona Enter para pasar a la siguiente casilla.',
   comida: 'Suma lo que se vendió de comida, bebidas y adiciones.',
+  masas:
+    'Anota con cuántas masas de pizza empezó y con cuántas terminó cada tamaño (no suman a las ventas).',
   insumos: 'Cuenta los insumos que quedan (no suman a las ventas).',
   caja: 'Registra gastos, transferencias y domicilios, y cuenta el dinero de la caja.',
   revisar: 'Revisa el resumen. Si todo está bien, finaliza el cierre.',
@@ -184,6 +187,13 @@ export function FormCierreDia({ rol, fecha }: FormCierreDiaProps) {
                   disabled={bloqueado}
                   onVarianteChange={cierre.cambiarVariante}
                   onComidaChange={cierre.cambiarComida}
+                />
+              )}
+              {paso === 'masas' && (
+                <TablaMasas
+                  filas={estado.masas}
+                  disabled={bloqueado}
+                  onChange={cierre.actualizarMasa}
                 />
               )}
               {paso === 'insumos' && (

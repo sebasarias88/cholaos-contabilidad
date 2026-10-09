@@ -2,7 +2,7 @@ import type { EstadoCierreForm } from '@/lib/cierre/estado'
 import { desgloseCuadra } from '@/lib/cierre/ventas-vasos'
 import type { Producto } from '@/types'
 
-export type IdPaso = 'vasos' | 'comida' | 'insumos' | 'caja' | 'revisar'
+export type IdPaso = 'vasos' | 'comida' | 'masas' | 'insumos' | 'caja' | 'revisar'
 export type EstadoPaso = 'completo' | 'parcial' | 'pendiente' | 'neutral'
 
 export interface Paso {
@@ -13,7 +13,7 @@ export interface Paso {
 }
 
 /**
- * Pasos del cierre con su avance. Comida e insumos solo aparecen si el
+ * Pasos del cierre con su avance. Comida, masas e insumos solo aparecen si el
  * negocio tiene productos de ese tipo.
  */
 export function calcularPasos(
@@ -50,6 +50,29 @@ export function calcularPasos(
       titulo: 'Comida',
       detalle: unidades > 0 ? `${unidades} vendidas` : 'Opcional',
       estado: unidades > 0 ? 'completo' : 'neutral',
+    })
+  }
+
+  if (estado.masas.length > 0) {
+    const anotadas = estado.masas.filter(
+      (m) => m.cantidad_inicio !== null && m.cantidad_final !== null
+    ).length
+    const conError = estado.masas.some(
+      (m) =>
+        m.cantidad_inicio !== null &&
+        m.cantidad_final !== null &&
+        m.cantidad_final > m.cantidad_inicio
+    )
+    pasos.push({
+      id: 'masas',
+      titulo: 'Masas',
+      detalle: `${anotadas} de ${estado.masas.length}`,
+      estado:
+        anotadas === estado.masas.length && !conError
+          ? 'completo'
+          : anotadas > 0
+            ? 'parcial'
+            : 'pendiente',
     })
   }
 
@@ -93,6 +116,7 @@ export function calcularPasos(
 /** Paso al que lleva un mensaje de error de validación */
 export function pasoDeError(error: string): IdPaso {
   const e = error.toLowerCase()
+  if (e.startsWith('masas de pizza')) return 'masas'
   if (
     e.includes('dinero') ||
     e.includes('gasto') ||

@@ -29,7 +29,8 @@ export interface ConfiguracionNegocioInput {
 // ============================================================
 // PRODUCTO — generalizado
 // ============================================================
-export type TipoProducto = 'vaso' | 'comida' | 'insumo'
+/** masa = masas de pizza: solo se cuenta con cuántas empezó y terminó (sin precio) */
+export type TipoProducto = 'vaso' | 'comida' | 'insumo' | 'masa'
 
 export type TipoVaso = 'normal' | 'ancho' | 'angosto'
 
@@ -396,6 +397,13 @@ export interface ConteoInsumoPayload {
   cantidad_final: number | null
 }
 
+/** Masas de pizza: el usuario escribe con cuántas empezó y con cuántas terminó */
+export interface ConteoMasaPayload {
+  producto_id: string
+  cantidad_inicio: number | null
+  cantidad_final: number | null
+}
+
 export interface GuardarCierrePayload {
   fecha: string // 'YYYY-MM-DD'
   /** false = guardar avance (borrador); true = cierre definitivo */
@@ -409,6 +417,7 @@ export interface GuardarCierrePayload {
   domicilios: NuevoDomicilio[]
   vasos: ConteoVasoPayload[]
   insumos: ConteoInsumoPayload[]
+  masas: ConteoMasaPayload[]
   ventas_comida: VentaComidaInput[]
   ventas_variantes: VentaVarianteInput[]
 }

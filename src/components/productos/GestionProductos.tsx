@@ -13,7 +13,7 @@ import { useMenuAcciones } from '@/hooks/useMenuAcciones'
 import { ProductoSlideOver } from '@/components/productos/ProductoSlideOver'
 import type { ProductoFormState } from '@/lib/productos/formulario'
 import { fadeUp } from '@/lib/animations'
-import { medidaProducto, tipoProducto } from '@/lib/productos-ui'
+import { esSoloConteo, medidaProducto, tipoProducto } from '@/lib/productos-ui'
 import toast from 'react-hot-toast'
 import { toastError, toastLoading, toastSuccess } from '@/lib/toast'
 import type { Producto, TallaVaso, TipoProducto } from '@/types'
@@ -185,7 +185,7 @@ export function GestionProductos() {
   }
 
   function iniciarEdicionPrecio(p: Producto) {
-    if (tipoProducto(p) === 'insumo') return
+    if (esSoloConteo(tipoProducto(p))) return
     if (p.tiene_variantes) return
     setEditingPrecioId(p.id)
     setPrecioDraft(String(p.precio ?? 0))
@@ -255,6 +255,7 @@ export function GestionProductos() {
     { id: 'vaso', label: '🥤 Vasos' },
     { id: 'comida', label: '🍕 Comida' },
     { id: 'insumo', label: '🧂 Insumos' },
+    { id: 'masa', label: '🥣 Masas' },
   ]
 
   return (

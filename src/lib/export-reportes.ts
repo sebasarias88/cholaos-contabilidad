@@ -1,5 +1,7 @@
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
+import { masasUsadas } from '@/lib/cierre/estado'
+import { tipoProducto } from '@/lib/productos-ui'
 import type { CierreDia, ResumenDia } from '@/types'
 import { fechaComoDate } from '@/lib/fechas'
 
@@ -120,6 +122,28 @@ function gastosDetalle(cierres: CierreDia[]) {
     .sort((a, b) => a.fecha.localeCompare(b.fecha))
 }
 
+/** Masas de pizza de cada día cerrado: con cuántas empezó, terminó y usó */
+export function masasDetalle(cierres: CierreDia[]) {
+  return cierres
+    .filter((c) => c.estado === 'cerrado')
+    .flatMap((c) =>
+      (c.conteo_vasos ?? [])
+        .filter((cv) => !cv.talla_id && cv.producto && tipoProducto(cv.producto) === 'masa')
+        .sort((a, b) => (a.producto?.orden ?? 0) - (b.producto?.orden ?? 0))
+        .map((cv) => ({
+          fecha: c.fecha,
+          masa: cv.producto?.nombre ?? 'Masa',
+          empezo: cv.cantidad_inicio,
+          termino: cv.cantidad_final ?? 0,
+          usadas: masasUsadas({
+            cantidad_inicio: cv.cantidad_inicio,
+            cantidad_final: cv.cantidad_final,
+          }),
+        }))
+    )
+    .sort((a, b) => a.fecha.localeCompare(b.fecha))
+}
+
 function nombreArchivo(data: ExportReportesInput, ext: string) {
   return `reporte-ventas_${data.desde}_${data.hasta}.${ext}`
 }
@@ -147,7 +171,7 @@ async function exportarExcel(data: ExportReportesInput) {
   wb.created = new Date()
 
   const FMT_PESOS = '"$"#,##0;[Red]-"$"#,##0'
-  const COLOR_HEADER = 'FF0E7490'
+  const COLOR_HEADER = 'FFD14A1F'
 
   function estilizarEncabezado(row: import('exceljs').Row) {
     row.font = { bold: true, color: { argb: 'FFFFFFFF' } }
@@ -247,6 +271,22 @@ async function exportarExcel(data: ExportReportesInput) {
   for (const g of gastosDetalle(data.cierres)) gs.addRow({ ...g, fecha: fechaCorta(g.fecha) })
   gs.getColumn('monto').numFmt = FMT_PESOS
 
+  // Masas de pizza (solo conteo, sin dinero)
+  const masas = masasDetalle(data.cierres)
+  if (masas.length > 0) {
+    const ms = wb.addWorksheet('Masas de pizza')
+    ms.columns = [
+      { header: 'Fecha', key: 'fecha', width: 12 },
+      { header: 'Masa', key: 'masa', width: 24 },
+      { header: 'Empezó con', key: 'empezo', width: 12 },
+      { header: 'Terminó con', key: 'termino', width: 12 },
+      { header: 'Usadas', key: 'usadas', width: 10 },
+    ]
+    estilizarEncabezado(ms.getRow(1))
+    for (const m of masas) ms.addRow({ ...m, fecha: fechaCorta(m.fecha) })
+    ms.views = [{ state: 'frozen', ySplit: 1 }]
+  }
+
   const buffer = await wb.xlsx.writeBuffer()
   const nombre = nombreArchivo(data, 'xlsx')
   descargar(
@@ -269,7 +309,7 @@ async function exportarPdf(data: ExportReportesInput) {
   const { dias, totales } = construirFilas(data)
   const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'letter' })
   const margen = 36
-  const azul: [number, number, number] = [14, 116, 144]
+  const marca: [number, number, number] = [209, 74, 31]
 
   doc.setFontSize(16)
   doc.setFont('helvetica', 'bold')
@@ -283,7 +323,7 @@ async function exportarPdf(data: ExportReportesInput) {
     startY: 92,
     margin: { left: margen, right: margen },
     theme: 'grid',
-    headStyles: { fillColor: azul },
+    headStyles: { fillColor: marca },
     styles: { fontSize: 9 },
     head: [
       [
@@ -322,7 +362,7 @@ async function exportarPdf(data: ExportReportesInput) {
     startY: y + 8,
     margin: { left: margen, right: margen },
     theme: 'striped',
-    headStyles: { fillColor: azul },
+    headStyles: { fillColor: marca },
     styles: { fontSize: 8 },
     columnStyles: {
       1: { halign: 'right' },
@@ -386,7 +426,7 @@ async function exportarPdf(data: ExportReportesInput) {
       startY: y + 8,
       margin: { left: margen, right: margen },
       theme: 'striped',
-      headStyles: { fillColor: azul },
+      headStyles: { fillColor: marca },
       styles: { fontSize: 8 },
       columnStyles: { 3: { halign: 'right' }, 4: { halign: 'right' } },
       head: [['Producto', 'Tipo', 'Medida', 'Cantidad', 'Ingresos']],
@@ -410,11 +450,39 @@ async function exportarPdf(data: ExportReportesInput) {
       startY: y + 8,
       margin: { left: margen, right: margen },
       theme: 'striped',
-      headStyles: { fillColor: azul },
+      headStyles: { fillColor: marca },
       styles: { fontSize: 8 },
       columnStyles: { 2: { halign: 'right' } },
       head: [['Fecha', 'Descripción', 'Monto']],
       body: gastos.map((g) => [fechaCorta(g.fecha), g.descripcion, pesos(g.monto)]),
+    })
+  }
+
+  const masas = masasDetalle(data.cierres)
+  if (masas.length > 0) {
+    y = siguienteY()
+    if (y > doc.internal.pageSize.getHeight() - 90) {
+      doc.addPage()
+      y = 50
+    }
+    doc.setFont('helvetica', 'bold')
+    doc.setFontSize(11)
+    doc.text('Masas de pizza', margen, y)
+    autoTable(doc, {
+      startY: y + 8,
+      margin: { left: margen, right: margen },
+      theme: 'striped',
+      headStyles: { fillColor: marca },
+      styles: { fontSize: 8 },
+      columnStyles: { 2: { halign: 'right' }, 3: { halign: 'right' }, 4: { halign: 'right' } },
+      head: [['Fecha', 'Masa', 'Empezó con', 'Terminó con', 'Usadas']],
+      body: masas.map((m) => [
+        fechaCorta(m.fecha),
+        m.masa,
+        String(m.empezo),
+        String(m.termino),
+        String(m.usadas),
+      ]),
     })
   }
 

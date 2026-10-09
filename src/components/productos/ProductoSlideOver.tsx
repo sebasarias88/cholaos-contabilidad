@@ -6,7 +6,7 @@ import { X } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { modalOverlay } from '@/lib/animations'
-import { TIPOS_PRODUCTO } from '@/lib/productos-ui'
+import { TIPOS_PRODUCTO, esSoloConteo } from '@/lib/productos-ui'
 import type { Producto, TallaVaso, TipoProducto } from '@/types'
 import { CamposComida } from '@/components/productos/campos/CamposComida'
 import { CamposInsumo } from '@/components/productos/campos/CamposInsumo'
@@ -40,7 +40,7 @@ export function ProductoSlideOver({
       tipo,
       onzas: tipo === 'vaso' ? form.onzas || '' : '',
       unidad: tipo === 'vaso' ? '' : form.unidad,
-      precio: tipo === 'insumo' ? '' : form.precio,
+      precio: esSoloConteo(tipo) ? '' : form.precio,
       tiene_variantes: tipo === 'comida' ? form.tiene_variantes : false,
       variantes: tipo === 'comida' ? form.variantes : [],
       talla_id: tipo === 'vaso' ? form.talla_id : '',
@@ -114,7 +114,7 @@ export function ProductoSlideOver({
 
                   <fieldset className="space-y-2">
                     <legend className="text-text-secondary text-sm font-medium">Tipo</legend>
-                    <div className="grid grid-cols-3 gap-2">
+                    <div className="grid grid-cols-2 gap-2">
                       {TIPOS_PRODUCTO.map((t) => {
                         const activo = form.tipo === t.value
                         return (
@@ -150,7 +150,9 @@ export function ProductoSlideOver({
                       <CamposVaso form={form} tallas={tallas} onChange={onChange} />
                     )}
                     {form.tipo === 'comida' && <CamposComida form={form} onChange={onChange} />}
-                    {form.tipo === 'insumo' && <CamposInsumo form={form} onChange={onChange} />}
+                    {esSoloConteo(form.tipo) && (
+                      <CamposInsumo key={form.tipo} form={form} onChange={onChange} />
+                    )}
                   </AnimatePresence>
 
                   <div className="flex flex-col gap-1.5">

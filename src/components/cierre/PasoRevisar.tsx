@@ -5,6 +5,7 @@ import { AlertTriangle, ArrowRight, PartyPopper } from 'lucide-react'
 import { NumeroAnimado } from '@/components/ui/NumeroAnimado'
 import { etiquetaCuadre } from '@/components/cierre/caja/etiquetaCuadre'
 import type { CierreDiaApi } from '@/hooks/useCierreDia'
+import { masasUsadas } from '@/lib/cierre/estado'
 import { pasoDeError, type IdPaso } from '@/lib/cierre/pasos'
 
 function Dato({
@@ -91,6 +92,13 @@ export function PasoRevisar({
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
         <Dato label="Vasos vendidos" valor={vasosVendidos} />
         <Dato label="Comida vendida" valor={comida} />
+        {estado.masas.length > 0 && (
+          <Dato
+            label="Masas de pizza usadas"
+            valor={estado.masas.reduce((s, m) => s + masasUsadas(m), 0)}
+            tono="text-warn"
+          />
+        )}
         {esAdmin && (
           <Dato label="Total vendido" valor={cuadre.totalVentas} pesos tono="text-brand-strong" />
         )}
