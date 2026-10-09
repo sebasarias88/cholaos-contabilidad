@@ -1,4 +1,4 @@
-import type { EstadoCierreForm } from '@/lib/cierre/estado'
+import { masaIncompleta, type EstadoCierreForm } from '@/lib/cierre/estado'
 import { desgloseCuadra } from '@/lib/cierre/ventas-vasos'
 import type { Producto } from '@/types'
 
@@ -73,9 +73,7 @@ export function calcularPasos(
   }
 
   if (estado.masas.length > 0) {
-    const anotadas = estado.masas.filter(
-      (m) => m.cantidad_inicio !== null && m.cantidad_final !== null
-    ).length
+    const anotadas = estado.masas.filter((m) => !masaIncompleta(m)).length
     const conError = estado.masas.some(
       (m) =>
         m.cantidad_inicio !== null &&
@@ -84,7 +82,7 @@ export function calcularPasos(
     )
     pasos.push({
       id: 'masas',
-      titulo: 'Masas',
+      titulo: 'Masas y unidades',
       detalle: `${anotadas} de ${estado.masas.length}`,
       estado:
         anotadas === estado.masas.length && !conError
@@ -135,7 +133,7 @@ export function calcularPasos(
 /** Paso al que lleva un mensaje de error de validación */
 export function pasoDeError(error: string): IdPaso {
   const e = error.toLowerCase()
-  if (e.startsWith('masas de pizza')) return 'masas'
+  if (e.startsWith('masas')) return 'masas'
   if (e.startsWith('bebidas')) return 'bebidas'
   if (
     e.includes('dinero') ||

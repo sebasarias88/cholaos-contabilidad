@@ -2,6 +2,7 @@
  * Estado editable del formulario de cierre y sus transformaciones puras
  * (datos del servidor → formulario → payload). Sin React: se prueba con Vitest.
  */
+import { formatCajas } from '@/lib/cajas'
 import { esBebidaContada, tipoProducto } from '@/lib/productos-ui'
 import {
   calcularItemsVendidos,
@@ -36,6 +37,17 @@ export type FilaMasa = {
   producto: Producto
   cantidad_inicio: number | null
   cantidad_final: number | null
+  /** Solo si el producto lleva_masas (Pizzeta, Mediana, Familiar) */
+  numero_masas: number | null
+}
+
+/** true si a la fila le falta algún dato por anotar */
+export function masaIncompleta(f: FilaMasa) {
+  return (
+    f.cantidad_inicio === null ||
+    f.cantidad_final === null ||
+    (Boolean(f.producto.lleva_masas) && f.numero_masas === null)
+  )
 }
 
 /** Masas usadas en el día (empezó − terminó); 0 si falta un dato */
@@ -57,7 +69,10 @@ export interface EstadoCierreForm {
   gastos: LineaMovimiento[]
   transferencias: LineaTransferencia[]
   domicilios: LineaMovimiento[]
+  /** Base con la que cerró el día anterior */
   dineroBase: number
+  /** Base nueva si el dueño sacó o metió plata (null = sigue la de anoche) */
+  baseNueva: number | null
   dineroFinal: number
   observaciones: string
 }
@@ -73,6 +88,7 @@ export const ESTADO_VACIO: EstadoCierreForm = {
   transferencias: [],
   domicilios: [],
   dineroBase: 0,
+  baseNueva: null,
   dineroFinal: 0,
   observaciones: '',
 }
@@ -158,6 +174,7 @@ function filasDesdeCatalogo(datos: DatosCierre) {
         producto: p,
         cantidad_inicio: anterior ? anterior.cantidad_final : null,
         cantidad_final: null,
+        numero_masas: null,
       })
     }
   }
@@ -218,6 +235,7 @@ function filasDesdeCierreCerrado(cierre: CierreDia | CierreDiaEmpleado, producto
         producto,
         cantidad_inicio: c.cantidad_inicio,
         cantidad_final: c.cantidad_final,
+        numero_masas: c.numero_masas ?? null,
       })
       continue
     }
@@ -263,7 +281,12 @@ export function estadoDesdeDatos(datos: DatosCierre): EstadoCierreForm {
       masas: filas.masas.map((f) => {
         const g = guardados.find((c) => !c.talla_id && c.producto_id === f.producto_id)
         return g
-          ? { ...f, cantidad_inicio: g.cantidad_inicio, cantidad_final: g.cantidad_final }
+          ? {
+              ...f,
+              cantidad_inicio: g.cantidad_inicio,
+              cantidad_final: g.cantidad_final,
+              numero_masas: g.numero_masas ?? null,
+            }
           : f
       }),
     }
@@ -303,7 +326,11 @@ export function estadoDesdeDatos(datos: DatosCierre): EstadoCierreForm {
       descripcion: d.descripcion?.trim() ?? '',
       monto: Number(d.monto),
     })),
-    dineroBase: cierre ? cierre.dinero_base_inicio : datos.dinero_base_inicio,
+    // Cierres antiguos no tienen base_anterior: su base de inicio es la de anoche
+    dineroBase: cierre
+      ? (cierre.base_anterior ?? cierre.dinero_base_inicio)
+      : datos.dinero_base_inicio,
+    baseNueva: cierre?.base_nueva ?? null,
     dineroFinal: cierre?.dinero_final ?? 0,
     observaciones: cierre?.observaciones ?? '',
   }
@@ -317,6 +344,7 @@ export function construirPayload(
     fecha: opciones.fecha,
     finalizar: opciones.finalizar,
     ...(opciones.esAdmin ? { dinero_base_inicio: estado.dineroBase } : {}),
+    base_nueva: estado.baseNueva,
     dinero_final: estado.dineroFinal,
     observaciones: estado.observaciones.trim() || undefined,
     gastos: estado.gastos.map(({ descripcion, monto }) => ({ descripcion, monto })),
@@ -349,6 +377,7 @@ export function construirPayload(
       producto_id: f.producto_id,
       cantidad_inicio: f.cantidad_inicio,
       cantidad_final: f.cantidad_final,
+      numero_masas: f.producto.lleva_masas ? f.numero_masas : null,
     })),
     ventas_variantes: estado.ventasVariantes
       .filter((v) => v.cantidad > 0)
@@ -412,8 +441,9 @@ export function validarCierre(
     if (f.cantidad_final === null) continue
     const disponible = f.cantidad_inicio + (f.cantidad_nuevos ?? 0)
     if (f.cantidad_final > disponible) {
+      const fmt = (n: number) => formatCajas(n, f.producto.unidades_por_caja)
       errores.push(
-        `${f.producto.nombre}: el final (${f.cantidad_final}) es mayor que lo disponible (${disponible})`
+        `${f.producto.nombre}: el final (${fmt(f.cantidad_final)}) es mayor que lo disponible (${fmt(disponible)})`
       )
     }
   }
@@ -441,18 +471,16 @@ export function validarCierre(
   }
 
   if (finalizar) {
-    const sinAnotar = estado.masas
-      .filter((f) => f.cantidad_inicio === null || f.cantidad_final === null)
-      .map((f) => f.producto.nombre)
+    const sinAnotar = estado.masas.filter(masaIncompleta).map((f) => f.producto.nombre)
     if (sinAnotar.length > 0) {
-      errores.push(`Masas de pizza: falta anotar ${listar(sinAnotar)}`)
+      errores.push(`Masas y unidades: falta anotar ${listar(sinAnotar)}`)
     }
   }
   for (const f of estado.masas) {
     if (f.cantidad_inicio === null || f.cantidad_final === null) continue
     if (f.cantidad_final > f.cantidad_inicio) {
       errores.push(
-        `Masas de pizza — ${f.producto.nombre}: terminó con ${f.cantidad_final} y empezó con ${f.cantidad_inicio}`
+        `Masas y unidades — ${f.producto.nombre}: terminó con ${f.cantidad_final} y empezó con ${f.cantidad_inicio}`
       )
     }
   }

@@ -4,12 +4,13 @@ import type { ReactNode } from 'react'
 import { Button } from '@/components/ui/Button'
 import { Modal } from '@/components/ui/Modal'
 
-/** Confirmación de una acción destructiva (eliminar, borrar datos…) */
+/** Confirmación de una acción importante (eliminar, borrar datos, guardar algo definitivo…) */
 export function ConfirmarModal({
   open,
   titulo,
   children,
   textoConfirmar = 'Eliminar',
+  variante = 'danger',
   cargando = false,
   deshabilitado = false,
   onCancelar,
@@ -19,6 +20,8 @@ export function ConfirmarModal({
   titulo: string
   children: ReactNode
   textoConfirmar?: string
+  /** danger para borrar; primary para confirmar algo que no se puede deshacer */
+  variante?: 'danger' | 'primary'
   cargando?: boolean
   deshabilitado?: boolean
   onCancelar: () => void
@@ -39,7 +42,7 @@ export function ConfirmarModal({
         </Button>
         <Button
           type="button"
-          variant="danger"
+          variant={variante}
           className="flex-1"
           loading={cargando}
           disabled={cargando || deshabilitado}

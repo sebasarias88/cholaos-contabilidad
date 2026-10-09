@@ -68,7 +68,14 @@ export function CajaEnVivo({
       </div>
 
       <div className="flex flex-col gap-2.5">
-        <Fila label="Base de inicio" valor={estado.dineroBase} />
+        {estado.baseNueva !== null && estado.baseNueva !== estado.dineroBase ? (
+          <>
+            <Fila label="Base de anoche" valor={estado.dineroBase} />
+            <Fila label="Base nueva" valor={estado.baseNueva} resaltar />
+          </>
+        ) : (
+          <Fila label="Base de inicio" valor={estado.dineroBase} />
+        )}
         {esAdmin && <Fila label="Vendido" valor={cuadre.totalVentas} signo="+" resaltar />}
         <Fila label="Transferencias" valor={cuadre.totalTransferencias} signo="−" />
         <Fila label="Gastos" valor={cuadre.totalGastos} signo="−" />

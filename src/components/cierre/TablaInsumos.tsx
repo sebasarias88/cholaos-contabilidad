@@ -1,5 +1,6 @@
 'use client'
 
+import { TarjetaCajas } from '@/components/cierre/TarjetaCajas'
 import { TarjetaConteo } from '@/components/cierre/TarjetaConteo'
 import type { FilaInsumo } from '@/lib/cierre/estado'
 
@@ -19,22 +20,36 @@ export function TablaInsumos({
 }) {
   return (
     <ul className="grid gap-4 md:grid-cols-2 2xl:grid-cols-3">
-      {filas.map((fila) => (
-        <TarjetaConteo
-          key={fila.producto_id}
-          titulo={fila.producto.nombre}
-          subtitulo={fila.producto.unidad ?? undefined}
-          inicio={fila.cantidad_inicio}
-          nuevos={fila.cantidad_nuevos}
-          final={fila.cantidad_final}
-          disabled={disabled}
-          etiquetaResultado="Usados"
-          resultado={consumidos(fila)}
-          tonoResultado="neutral"
-          onNuevos={(n) => onChange(fila.producto_id, 'cantidad_nuevos', n)}
-          onFinal={(n) => onChange(fila.producto_id, 'cantidad_final', n)}
-        />
-      ))}
+      {filas.map((fila) =>
+        fila.producto.unidades_por_caja ? (
+          <TarjetaCajas
+            key={fila.producto_id}
+            titulo={fila.producto.nombre}
+            porCaja={fila.producto.unidades_por_caja}
+            inicio={fila.cantidad_inicio}
+            nuevos={fila.cantidad_nuevos}
+            final={fila.cantidad_final}
+            disabled={disabled}
+            onNuevos={(n) => onChange(fila.producto_id, 'cantidad_nuevos', n)}
+            onFinal={(n) => onChange(fila.producto_id, 'cantidad_final', n)}
+          />
+        ) : (
+          <TarjetaConteo
+            key={fila.producto_id}
+            titulo={fila.producto.nombre}
+            subtitulo={fila.producto.unidad ?? undefined}
+            inicio={fila.cantidad_inicio}
+            nuevos={fila.cantidad_nuevos}
+            final={fila.cantidad_final}
+            disabled={disabled}
+            etiquetaResultado="Usados"
+            resultado={consumidos(fila)}
+            tonoResultado="neutral"
+            onNuevos={(n) => onChange(fila.producto_id, 'cantidad_nuevos', n)}
+            onFinal={(n) => onChange(fila.producto_id, 'cantidad_final', n)}
+          />
+        )
+      )}
     </ul>
   )
 }

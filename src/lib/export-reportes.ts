@@ -1,5 +1,6 @@
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
+import { retiroBase } from '@/lib/cierre/base'
 import { masasUsadas } from '@/lib/cierre/estado'
 import { tipoProducto } from '@/lib/productos-ui'
 import type { CierreDia, ResumenDia } from '@/types'
@@ -32,6 +33,8 @@ type FilaDia = {
   transferencias: number
   domicilios: number
   base: number
+  /** Plata sacada de la base ese día (negativo = se metió) */
+  retiro: number
   esperado: number
   contado: number
   diferencia: number
@@ -45,6 +48,7 @@ type Totales = {
   transferencias: number
   domicilios: number
   diferencia: number
+  retiroBase: number
   diasConCierre: number
   diasPeriodo: number
   promedioDiario: number
@@ -83,6 +87,7 @@ export function construirFilas(data: ExportReportesInput): { dias: FilaDia[]; to
         transferencias: c.total_transferencias,
         domicilios,
         base: c.dinero_base_inicio,
+        retiro: retiroBase(c),
         esperado,
         contado: c.dinero_final,
         diferencia: c.dinero_final - esperado,
@@ -106,6 +111,7 @@ export function construirFilas(data: ExportReportesInput): { dias: FilaDia[]; to
       transferencias: suma('transferencias'),
       domicilios: suma('domicilios'),
       diferencia: suma('diferencia'),
+      retiroBase: suma('retiro'),
       diasConCierre: dias.length,
       diasPeriodo,
       promedioDiario: dias.length > 0 ? Math.round(ingresos / dias.length) : 0,
@@ -122,7 +128,7 @@ function gastosDetalle(cierres: CierreDia[]) {
     .sort((a, b) => a.fecha.localeCompare(b.fecha))
 }
 
-/** Masas de pizza de cada día cerrado: con cuántas empezó, terminó y usó */
+/** Masas y unidades de pizza de cada día cerrado: empezó, terminó, masas y usadas */
 export function masasDetalle(cierres: CierreDia[]) {
   return cierres
     .filter((c) => c.estado === 'cerrado')
@@ -135,6 +141,7 @@ export function masasDetalle(cierres: CierreDia[]) {
           masa: cv.producto?.nombre ?? 'Masa',
           empezo: cv.cantidad_inicio,
           termino: cv.cantidad_final ?? 0,
+          masas: cv.numero_masas ?? null,
           usadas: masasUsadas({
             cantidad_inicio: cv.cantidad_inicio,
             cantidad_final: cv.cantidad_final,
@@ -215,6 +222,7 @@ async function exportarExcel(data: ExportReportesInput) {
     { header: 'Transferencias', key: 'transferencias', width: 15 },
     { header: 'Domicilios', key: 'domicilios', width: 13 },
     { header: 'Base inicio', key: 'base', width: 13 },
+    { header: 'Retiro base', key: 'retiro', width: 13 },
     { header: 'Esperado', key: 'esperado', width: 13 },
     { header: 'Contado', key: 'contado', width: 13 },
     { header: 'Diferencia', key: 'diferencia', width: 13 },
@@ -229,6 +237,7 @@ async function exportarExcel(data: ExportReportesInput) {
     gastos: totales.gastos,
     transferencias: totales.transferencias,
     domicilios: totales.domicilios,
+    retiro: totales.retiroBase,
     diferencia: totales.diferencia,
   })
   total.font = { bold: true }
@@ -238,6 +247,7 @@ async function exportarExcel(data: ExportReportesInput) {
     'transferencias',
     'domicilios',
     'base',
+    'retiro',
     'esperado',
     'contado',
     'diferencia',
@@ -274,12 +284,13 @@ async function exportarExcel(data: ExportReportesInput) {
   // Masas de pizza (solo conteo, sin dinero)
   const masas = masasDetalle(data.cierres)
   if (masas.length > 0) {
-    const ms = wb.addWorksheet('Masas de pizza')
+    const ms = wb.addWorksheet('Masas y unidades')
     ms.columns = [
       { header: 'Fecha', key: 'fecha', width: 12 },
-      { header: 'Masa', key: 'masa', width: 24 },
+      { header: 'Producto', key: 'masa', width: 24 },
       { header: 'Empezó con', key: 'empezo', width: 12 },
       { header: 'Terminó con', key: 'termino', width: 12 },
+      { header: 'Masas', key: 'masas', width: 10 },
       { header: 'Usadas', key: 'usadas', width: 10 },
     ]
     estilizarEncabezado(ms.getRow(1))
@@ -334,6 +345,7 @@ async function exportarPdf(data: ExportReportesInput) {
         'Gastos',
         'Transferencias',
         'Domicilios',
+        'Retiro de base',
         'Diferencia caja',
       ],
     ],
@@ -346,6 +358,7 @@ async function exportarPdf(data: ExportReportesInput) {
         pesos(totales.gastos),
         pesos(totales.transferencias),
         pesos(totales.domicilios),
+        pesos(totales.retiroBase),
         pesos(totales.diferencia),
       ],
     ],
@@ -467,20 +480,26 @@ async function exportarPdf(data: ExportReportesInput) {
     }
     doc.setFont('helvetica', 'bold')
     doc.setFontSize(11)
-    doc.text('Masas de pizza', margen, y)
+    doc.text('Masas y unidades', margen, y)
     autoTable(doc, {
       startY: y + 8,
       margin: { left: margen, right: margen },
       theme: 'striped',
       headStyles: { fillColor: marca },
       styles: { fontSize: 8 },
-      columnStyles: { 2: { halign: 'right' }, 3: { halign: 'right' }, 4: { halign: 'right' } },
-      head: [['Fecha', 'Masa', 'Empezó con', 'Terminó con', 'Usadas']],
+      columnStyles: {
+        2: { halign: 'right' },
+        3: { halign: 'right' },
+        4: { halign: 'right' },
+        5: { halign: 'right' },
+      },
+      head: [['Fecha', 'Producto', 'Empezó con', 'Terminó con', 'Masas', 'Usadas']],
       body: masas.map((m) => [
         fechaCorta(m.fecha),
         m.masa,
         String(m.empezo),
         String(m.termino),
+        m.masas === null ? '—' : String(m.masas),
         String(m.usadas),
       ]),
     })

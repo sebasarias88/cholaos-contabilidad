@@ -26,7 +26,7 @@ import {
 } from '@/lib/productos/formulario'
 import { sincronizarVariantes } from '@/lib/productos/variantes-api'
 
-type FiltroTipo = 'todos' | TipoProducto
+type FiltroTipo = 'todos' | TipoProducto | 'adicion'
 
 export function GestionProductos() {
   const [productos, setProductos] = useState<Producto[]>([])
@@ -77,7 +77,9 @@ export function GestionProductos() {
     const q = busqueda.trim().toLowerCase()
     return productos.filter((p) => {
       const tipo = tipoProducto(p)
-      if (filtroTipo !== 'todos' && tipo !== filtroTipo) return false
+      if (filtroTipo === 'adicion') {
+        if (!p.es_adicion) return false
+      } else if (filtroTipo !== 'todos' && tipo !== filtroTipo) return false
       if (!q) return true
       return p.nombre.toLowerCase().includes(q)
     })
@@ -254,6 +256,7 @@ export function GestionProductos() {
     { id: 'todos', label: 'Todos' },
     { id: 'vaso', label: '🥤 Vasos' },
     { id: 'comida', label: '🍕 Comida' },
+    { id: 'adicion', label: '➕ Adiciones' },
     { id: 'insumo', label: '🧂 Insumos' },
     { id: 'masa', label: '🥣 Masas' },
   ]

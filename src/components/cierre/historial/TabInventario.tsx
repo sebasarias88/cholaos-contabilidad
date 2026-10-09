@@ -2,6 +2,7 @@
 
 import type { ReactNode } from 'react'
 import { TabVasos } from '@/components/cierre/historial/TabVasos'
+import { formatCajas } from '@/lib/cajas'
 import { masasUsadas } from '@/lib/cierre/estado'
 import { tipoProducto } from '@/lib/productos-ui'
 import type { CierreDia, ConteoVaso } from '@/types'
@@ -34,11 +35,17 @@ function TablaConteos({
   columnas,
 }: {
   filas: { id: string; nombre: string; valores: (number | string)[]; resaltado: number | string }[]
-  columnas: [string, string, string]
+  columnas: string[]
 }) {
+  const plantilla = {
+    gridTemplateColumns: `minmax(0,1.6fr) repeat(${columnas.length}, minmax(0,1fr))`,
+  }
   return (
     <div className="border-bg-border overflow-hidden rounded-[var(--radius-md)] border">
-      <div className="bg-bg-elevated text-text-secondary grid grid-cols-[minmax(0,1.6fr)_repeat(3,minmax(0,1fr))] gap-2 px-3 py-2 text-[11px] font-bold tracking-wide uppercase">
+      <div
+        style={plantilla}
+        className="bg-bg-elevated text-text-secondary grid gap-2 px-3 py-2 text-[11px] font-bold tracking-wide uppercase"
+      >
         <span>Producto</span>
         {columnas.map((c) => (
           <span key={c} className="text-center last:text-right">
@@ -48,10 +55,7 @@ function TablaConteos({
       </div>
       <ul className="divide-bg-border divide-y">
         {filas.map((f) => (
-          <li
-            key={f.id}
-            className="grid grid-cols-[minmax(0,1.6fr)_repeat(3,minmax(0,1fr))] items-center gap-2 px-3 py-2.5 text-sm"
-          >
+          <li key={f.id} style={plantilla} className="grid items-center gap-2 px-3 py-2.5 text-sm">
             <span className="text-text-primary truncate font-semibold">{f.nombre}</span>
             {f.valores.map((v, i) => (
               <span key={i} className="text-text-secondary text-center tabular-nums">
@@ -99,7 +103,7 @@ export function TabInventario({ cierre }: { cierre: CierreDia }) {
 
       {masas.length > 0 && (
         <Seccion
-          titulo="Masas de pizza"
+          titulo="Masas y unidades"
           extra={
             <span className="badge-warn tabular-nums">
               {totalMasas} usada{totalMasas === 1 ? '' : 's'}
@@ -107,11 +111,11 @@ export function TabInventario({ cierre }: { cierre: CierreDia }) {
           }
         >
           <TablaConteos
-            columnas={['Empezó', 'Terminó', 'Usadas']}
+            columnas={['Empezó', 'Terminó', 'Masas', 'Usadas']}
             filas={masas.map((m) => ({
               id: m.id,
               nombre: m.producto?.nombre ?? 'Masa',
-              valores: [m.cantidad_inicio, m.cantidad_final ?? '—'],
+              valores: [m.cantidad_inicio, m.cantidad_final ?? '—', m.numero_masas ?? '—'],
               resaltado: masasUsadas({
                 cantidad_inicio: m.cantidad_inicio,
                 cantidad_final: m.cantidad_final,
@@ -125,15 +129,23 @@ export function TabInventario({ cierre }: { cierre: CierreDia }) {
         <Seccion titulo="Insumos">
           <TablaConteos
             columnas={['Inicio', 'Quedan', 'Usados']}
-            filas={insumos.map((c) => ({
-              id: c.id,
-              nombre: c.producto?.nombre ?? 'Insumo',
-              valores: [c.cantidad_inicio + c.cantidad_nuevos, c.cantidad_final ?? '—'],
-              resaltado: Math.max(
+            filas={insumos.map((c) => {
+              const porCaja = c.producto?.unidades_por_caja
+              const fmt = (n: number) => formatCajas(n, porCaja)
+              const usados = Math.max(
                 0,
                 c.cantidad_inicio + c.cantidad_nuevos - (c.cantidad_final ?? 0)
-              ),
-            }))}
+              )
+              return {
+                id: c.id,
+                nombre: c.producto?.nombre ?? 'Insumo',
+                valores: [
+                  fmt(c.cantidad_inicio + c.cantidad_nuevos),
+                  c.cantidad_final === null ? '—' : fmt(c.cantidad_final),
+                ],
+                resaltado: porCaja ? `${usados} und` : usados,
+              }
+            })}
           />
         </Seccion>
       )}

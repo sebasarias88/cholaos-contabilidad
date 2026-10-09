@@ -32,13 +32,13 @@ export function PasosCierre({
         {pasos.map((paso, i) => {
           const activo = paso.id === actual
           return (
-            <li key={paso.id} className="relative">
+            <li key={paso.id} className="relative flex">
               <button
                 type="button"
                 onClick={() => onCambiar(paso.id)}
                 aria-current={activo ? 'step' : undefined}
                 className={[
-                  'focus-ring bg-bg-surface relative flex w-full min-w-[150px] items-center gap-3 rounded-[16px] border px-3 py-2.5 text-left transition-colors',
+                  'focus-ring bg-bg-surface relative flex h-full w-full min-w-[150px] items-center gap-3 rounded-[16px] border px-3 py-2.5 text-left transition-colors',
                   activo ? 'border-transparent' : 'border-bg-border hover:border-brand/30',
                 ].join(' ')}
               >
@@ -66,7 +66,7 @@ export function PasosCierre({
                   )}
                 </span>
                 <span className="relative min-w-0">
-                  <span className="text-text-primary block text-[15px] font-extrabold">
+                  <span className="text-text-primary block text-[15px] leading-tight font-extrabold">
                     {paso.titulo}
                   </span>
                   <span className={`block truncate text-xs font-bold ${TONO[paso.estado]}`}>

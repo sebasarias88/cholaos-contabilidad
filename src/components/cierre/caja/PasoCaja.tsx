@@ -6,6 +6,7 @@ import { InputPeso } from '@/components/ui/InputPeso'
 import { NumeroAnimado } from '@/components/ui/NumeroAnimado'
 import { ListaMovimientos } from '@/components/cierre/caja/ListaMovimientos'
 import { NuevoMovimiento } from '@/components/cierre/caja/NuevoMovimiento'
+import { BaseCaja } from '@/components/cierre/caja/BaseCaja'
 import type { CierreDiaApi } from '@/hooks/useCierreDia'
 
 function Bloque({
@@ -45,7 +46,7 @@ function Bloque({
 
 /** Paso Caja: gastos, transferencias, domicilios, dinero contado y notas */
 export function PasoCaja({ cierre }: { cierre: CierreDiaApi }) {
-  const { estado, cuadre, bloqueado, esAdmin, movimientos, actualizar } = cierre
+  const { estado, cuadre, bloqueado, movimientos, actualizar } = cierre
   const medios = cierre.datos?.medios ?? []
 
   return (
@@ -110,27 +111,17 @@ export function PasoCaja({ cierre }: { cierre: CierreDiaApi }) {
       </Bloque>
 
       <Bloque icono={<Wallet size={18} />} titulo="Efectivo en caja">
-        <div className="grid grid-cols-2 gap-3">
-          <label className="flex flex-col gap-1.5">
-            <span className="text-text-secondary text-xs font-bold">Base de inicio</span>
-            <InputPeso
-              value={estado.dineroBase}
-              onChange={(n) => actualizar({ dineroBase: n })}
-              disabled={bloqueado || !esAdmin}
-              className="input w-full text-lg font-bold tabular-nums"
-            />
-          </label>
-          <label className="flex flex-col gap-1.5">
-            <span className="text-brand-strong text-xs font-bold">Dinero contado</span>
-            <InputPeso
-              value={estado.dineroFinal}
-              onChange={(n) => actualizar({ dineroFinal: n })}
-              disabled={bloqueado}
-              placeholder="$0"
-              className="input border-brand/50 w-full text-lg font-extrabold tabular-nums"
-            />
-          </label>
-        </div>
+        <BaseCaja cierre={cierre} />
+        <label className="flex flex-col gap-1.5">
+          <span className="text-brand-strong text-xs font-bold">Dinero contado al cerrar</span>
+          <InputPeso
+            value={estado.dineroFinal}
+            onChange={(n) => actualizar({ dineroFinal: n })}
+            disabled={bloqueado}
+            placeholder="$0"
+            className="input border-brand/50 w-full text-lg font-extrabold tabular-nums"
+          />
+        </label>
         <label className="flex flex-col gap-1.5">
           <span className="text-text-secondary text-xs font-bold">Notas del día (opcional)</span>
           <textarea

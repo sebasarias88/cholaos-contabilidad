@@ -69,6 +69,12 @@ export interface Producto {
   tiene_variantes: boolean
   /** Comida que se cuenta como los vasos (inicio, llegaron, quedan): ej. gaseosas, agua */
   conteo_inventario?: boolean
+  /** Comida sin variantes que va en la sección Adiciones del cierre */
+  es_adicion?: boolean
+  /** Insumo que se cuenta en cajas + unidades (ej. barquillos: 24 por caja) */
+  unidades_por_caja?: number | null
+  /** Masa de pizza que además lleva el número de masas */
+  lleva_masas?: boolean
   talla?: TallaVaso
   variantes?: VarianteProducto[] // join opcional
   created_at: string
@@ -92,6 +98,9 @@ export interface ProductoUpdateInput {
   tiene_variantes?: boolean
   /** Solo comida sin variantes: se cuenta como los vasos en el cierre */
   conteo_inventario?: boolean
+  es_adicion?: boolean
+  unidades_por_caja?: number | null
+  lleva_masas?: boolean
 }
 
 /** Join en GET /api/ventas */
@@ -162,6 +171,10 @@ export interface CierreDia {
   total_ventas: number // SOLO visible para admin
   efectivo_esperado: number // campo generado por Postgres
   diferencia: number // campo generado por Postgres
+  /** Base con la que cerró el día anterior (null en cierres antiguos) */
+  base_anterior?: number | null
+  /** Base nueva escrita ese día; dinero_base_inicio es la base usada en el cuadre */
+  base_nueva?: number | null
   observaciones?: string
   estado: EstadoCierre
   created_at: string
@@ -188,6 +201,8 @@ export interface CierreDiaEmpleado {
   total_domicilios: number
   observaciones?: string
   // NO incluye: total_ventas, efectivo_esperado, diferencia
+  base_anterior?: number | null
+  base_nueva?: number | null
   efectivo_final_esperado: number // calculado en API
   cuadre_ok: boolean
   diferencia_caja: number // cuánto falta o sobra
@@ -339,6 +354,8 @@ export interface ConteoVaso {
   cantidad_gastada: number | null // generado: inicio + nuevos - final
   /** Reparto de vendidos por producto (vasos compartidos) */
   desglose?: DesgloseVasoProducto[] | null
+  /** Masas de pizza: número de masas anotado ese día */
+  numero_masas?: number | null
   observacion?: string
   // join
   talla?: TallaVaso
@@ -414,14 +431,18 @@ export interface ConteoMasaPayload {
   producto_id: string
   cantidad_inicio: number | null
   cantidad_final: number | null
+  /** Solo masas con lleva_masas */
+  numero_masas: number | null
 }
 
 export interface GuardarCierrePayload {
   fecha: string // 'YYYY-MM-DD'
   /** false = guardar avance (borrador); true = cierre definitivo */
   finalizar: boolean
-  /** Solo admin puede fijarlo; si no, se toma del último cierre */
+  /** Base con la que cerró el día anterior. Solo admin puede fijarla; si no, se toma del último cierre */
   dinero_base_inicio?: number
+  /** Base nueva si el dueño sacó o metió plata (null = sigue la de anoche) */
+  base_nueva: number | null
   dinero_final: number | null
   observaciones?: string
   gastos: NuevoGasto[]

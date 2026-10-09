@@ -117,6 +117,10 @@ Siempre `hoyColombia()` / `fechaColombia()` de `@/lib/fechas` (America/Bogota). 
 - Reglas del cierre: un cierre nuevo (o un borrador que se finaliza) debe ser **posterior al último cierre cerrado**; corregir un día cerrado no cambia su fecha ni recalcula los días siguientes; un cierre cerrado no vuelve a borrador.
 - `limpiar_datos` siempre conserva el último cierre (es la base del inventario).
 - Tipos de producto: `vaso`, `comida`, `insumo`, `masa`. Insumo y masa son solo conteo (sin precio, `esSoloConteo()`).
+- Adiciones: comida sin variantes con `productos.es_adicion` → sección Adiciones del paso Comida.
+- Insumos por cajas: `productos.unidades_por_caja` (ej. Barquillo = 24). En el cierre se escribe cajas + unidades; en la BD todo se guarda en unidades (`lib/cajas.ts`).
+- Masas y unidades: `productos.lleva_masas` agrega el campo "Masas" (`conteo_vasos.numero_masas`), obligatorio al finalizar.
+- Base de caja: `cierres_dia.base_anterior` (la de anoche) y `base_nueva` (si el dueño sacó o metió plata). `dinero_base_inicio` es la base usada en el cuadre = `coalesce(base_nueva, base_anterior)`. Retiro = anterior − nueva (`lib/cierre/base.ts`). El empleado escribe la base nueva una sola vez; después solo el admin la cambia.
 - Bebidas contadas (`productos.conteo_inventario`, solo comida sin variantes; ej. agua y gaseosas): en el cierre se cuentan igual que los vasos (inicio = final del cierre anterior, llegaron, quedan, novedades) en el paso Bebidas. `guardar_cierre` (`p->'bebidas'`) guarda el conteo en `conteo_vasos` y la venta (vendidas × precio) en `ventas_comida`; no se pueden sumar a mano en Comida.
 - Masas de pizza: en el cierre se escribe con cuántas **empezó** y con cuántas **terminó** cada masa (el inicio se sugiere con el final del cierre anterior y se puede cambiar). Se guardan en `conteo_vasos` (con `producto_id`, sin talla) vía `guardar_cierre` (`p->'masas'`). No suman a ventas ni a la caja.
 - `ventas_comida` y `ventas_variantes` guardan `precio_unitario` del día (precio histórico).
@@ -140,7 +144,7 @@ Siempre `hoyColombia()` / `fechaColombia()` de `@/lib/fechas` (America/Bogota). 
 - `src/hooks/useCierreDia.ts` — estado y acciones del cierre (guardar avance / finalizar)
 - `src/hooks/useApiGet.ts`, `useRangoFechas.ts`, `useMenuAcciones.ts` — datos, filtros de período y menús
 - `src/components/cierre/` — `FormCierreDia` compone `CierreEncabezado`, `TablaVasos`, `SeccionComida`, `TablaInsumos`, `caja/PasoCaja`, `PasoRevisar`; historial en `historial/`
-- `src/components/cierre/` — el cierre es un asistente por pasos (`lib/cierre/pasos.ts` + `PasosCierre`): Vasos, Bebidas, Comida, Masas, Insumos, Caja, Revisar; a un lado `caja/CajaEnVivo` y en celular `caja/BarraMovil`
+- `src/components/cierre/` — el cierre es un asistente por pasos (`lib/cierre/pasos.ts` + `PasosCierre`): Vasos, Bebidas, Comida, Masas y unidades, Insumos, Caja, Revisar; a un lado `caja/CajaEnVivo` y en celular `caja/BarraMovil`
 - `src/components/dashboard/` — Inicio (estado del cierre de hoy, KPIs, barras de 7 días)
 - `src/components/ui/` — componentes base (ver arriba) y `MenuAccionesPortal` (+ `MenuItem`), `BotonAcciones`
 

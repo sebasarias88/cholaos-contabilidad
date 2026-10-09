@@ -79,13 +79,34 @@ export function CamposComida({
           <input
             type="checkbox"
             checked={form.conteo_inventario}
-            onChange={(e) => onChange({ ...form, conteo_inventario: e.target.checked })}
+            onChange={(e) =>
+              onChange({
+                ...form,
+                conteo_inventario: e.target.checked,
+                es_adicion: e.target.checked ? false : form.es_adicion,
+              })
+            }
             className="border-bg-border mt-0.5 h-4 w-4 rounded accent-[var(--brand)]"
           />
           <span className="text-text-secondary text-sm leading-snug">
             <span className="text-text-primary font-bold">Contar como los vasos</span> — en el
             cierre se anota cuántas había, cuántas llegaron y cuántas quedan; lo vendido se calcula
             solo (ej. gaseosas, agua).
+          </span>
+        </label>
+      )}
+
+      {!form.tiene_variantes && !form.conteo_inventario && (
+        <label className="border-bg-border bg-bg-elevated/40 flex cursor-pointer items-start gap-2.5 rounded-[var(--radius-md)] border px-3 py-3">
+          <input
+            type="checkbox"
+            checked={form.es_adicion}
+            onChange={(e) => onChange({ ...form, es_adicion: e.target.checked })}
+            className="border-bg-border mt-0.5 h-4 w-4 rounded accent-[var(--brand)]"
+          />
+          <span className="text-text-secondary text-sm leading-snug">
+            <span className="text-text-primary font-bold">Es una adición</span> — en el cierre
+            aparece en la sección Adiciones (ej. adición de queso, crema, fruta).
           </span>
         </label>
       )}
