@@ -13,7 +13,8 @@ export function TabResumen({ cierre, esAdmin }: { cierre: CierreDia; esAdmin: bo
       cierre.total_ventas -
       cierre.total_transferencias -
       cierre.total_gastos -
-      (cierre.total_domicilios ?? 0)
+      (cierre.total_domicilios ?? 0) -
+      (cierre.total_descuentos ?? 0)
 
   const retiro = retiroBase(cierre)
   const huboBaseNueva = cierre.base_nueva != null && cierre.base_anterior != null
@@ -65,6 +66,15 @@ export function TabResumen({ cierre, esAdmin }: { cierre: CierreDia; esAdmin: bo
       value: formatPesos(cierre.total_domicilios ?? 0),
       color: 'text-brand',
     },
+    ...(Number(cierre.total_descuentos ?? 0) > 0
+      ? [
+          {
+            label: 'Descuentos',
+            value: formatPesos(Number(cierre.total_descuentos)),
+            color: 'text-warn',
+          },
+        ]
+      : []),
   ]
 
   const textoDiferencia =

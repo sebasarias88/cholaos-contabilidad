@@ -8,7 +8,7 @@ import type { MedioTransferencia } from '@/types'
 
 type Props =
   | {
-      tipo: 'gasto' | 'domicilio'
+      tipo: 'gasto' | 'domicilio' | 'descuento'
       onAgregar: (descripcion: string, monto: number) => void
     }
   | {
@@ -20,15 +20,17 @@ type Props =
 const PLACEHOLDER = {
   gasto: 'Ej. gasolina, mercado…',
   domicilio: 'Detalle (opcional)',
+  descuento: 'Ej. Eliana fió una gaseosa',
 }
 
 const ETIQUETA = {
   gasto: 'Agregar gasto',
   domicilio: 'Agregar domicilio',
   transferencia: 'Agregar transferencia',
+  descuento: 'Agregar descuento',
 }
 
-/** Fila para agregar un gasto, transferencia o domicilio */
+/** Fila para agregar un gasto, transferencia, domicilio o descuento */
 export function NuevoMovimiento(props: Props) {
   const [texto, setTexto] = useState('')
   const [monto, setMonto] = useState(0)

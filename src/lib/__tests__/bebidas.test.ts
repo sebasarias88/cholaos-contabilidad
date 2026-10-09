@@ -162,7 +162,7 @@ describe('bebidas contadas como los vasos', () => {
     const e = estadoDesdeDatos(datos())
     const faltan = validarCierre(e, CATALOGO, true).filter((x) => x.startsWith('Bebidas'))
     expect(faltan).toEqual(['Bebidas: falta el conteo final de Botella Con Agua, Gaseosa 1.5L'])
-    expect(pasoDeError(faltan[0])).toBe('bebidas')
+    expect(pasoDeError(faltan[0])).toBe('comida')
 
     e.bebidas[0] = { ...e.bebidas[0], cantidad_final: 13 }
     e.bebidas[1] = {
@@ -177,14 +177,15 @@ describe('bebidas contadas como los vasos', () => {
     ])
   })
 
-  it('el paso Bebidas va justo después de Vasos', () => {
+  it('las bebidas van dentro del paso Comida (no hay paso aparte)', () => {
     const pasos = calcularPasos(estadoDesdeDatos(datos()), {
       hayComida: true,
       porTalla: {},
       errores: 0,
     })
-    expect(pasos.map((p) => p.id).slice(0, 3)).toEqual(['vasos', 'bebidas', 'comida'])
-    expect(pasos[1].detalle).toBe('0 de 2 contadas')
+    expect(pasos.map((p) => p.id)).toEqual(['vasos', 'comida', 'caja', 'revisar'])
+    // 2 bebidas + 1 insumo (Barquillo del catálogo de prueba) por contar
+    expect(pasos[1].detalle).toBe('0 de 3 contados')
   })
 
   it('la API solo acepta conteo y novedades (nunca precio)', () => {

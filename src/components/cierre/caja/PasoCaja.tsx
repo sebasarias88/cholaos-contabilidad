@@ -1,6 +1,6 @@
 'use client'
 
-import { ArrowLeftRight, Bike, Receipt, Wallet } from 'lucide-react'
+import { ArrowLeftRight, Bike, Receipt, Wallet, HandCoins } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { InputPeso } from '@/components/ui/InputPeso'
 import { NumeroAnimado } from '@/components/ui/NumeroAnimado'
@@ -50,7 +50,7 @@ export function PasoCaja({ cierre }: { cierre: CierreDiaApi }) {
   const medios = cierre.datos?.medios ?? []
 
   return (
-    <div className="grid grid-cols-1 items-start gap-4 xl:grid-cols-2">
+    <div className="grid grid-cols-1 items-start gap-4 @4xl:grid-cols-2">
       <Bloque icono={<Receipt size={18} />} titulo="Gastos del día" total={cuadre.totalGastos}>
         {!bloqueado && <NuevoMovimiento tipo="gasto" onAgregar={movimientos.agregarGasto} />}
         <ListaMovimientos
@@ -107,6 +107,35 @@ export function PasoCaja({ cierre }: { cierre: CierreDiaApi }) {
             onChange: movimientos.editarDomicilio,
           }}
           onEliminar={movimientos.quitarDomicilio}
+        />
+      </Bloque>
+
+      <Bloque
+        icono={<HandCoins size={18} />}
+        titulo="Descuentos"
+        total={cuadre.totalDescuentos}
+        className="@4xl:col-span-2"
+      >
+        <p className="text-text-secondary -mt-1 text-xs">
+          Lo que se registró pero no se pagó: fiados, lo que se comió el personal o plata prestada.
+          Se descuenta de lo que debe haber en caja.
+        </p>
+        {!bloqueado && (
+          <NuevoMovimiento tipo="descuento" onAgregar={movimientos.agregarDescuento} />
+        )}
+        <ListaMovimientos
+          items={estado.descuentos.map((d) => ({
+            id: d.id,
+            etiqueta: d.descripcion,
+            monto: d.monto,
+          }))}
+          bloqueado={bloqueado}
+          edicion={{
+            tipo: 'texto',
+            placeholder: 'Quién o qué',
+            onChange: movimientos.editarDescuento,
+          }}
+          onEliminar={movimientos.quitarDescuento}
         />
       </Bloque>
 

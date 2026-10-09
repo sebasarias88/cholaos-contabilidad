@@ -23,7 +23,7 @@ export function TablaMasas({
   ) => void
 }) {
   return (
-    <ul className="grid gap-4 sm:grid-cols-2 2xl:grid-cols-4">
+    <ul className="grid gap-4 @3xl:grid-cols-2 @[96rem]:grid-cols-4">
       {filas.map((fila, i) => {
         const conMasas = Boolean(fila.producto.lleva_masas)
         const completa = !masaIncompleta(fila)

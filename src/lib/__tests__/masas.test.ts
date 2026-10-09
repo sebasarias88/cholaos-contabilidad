@@ -133,17 +133,10 @@ describe('masas de pizza', () => {
     expect(validarCierre(e, CATALOGO, false).some((x) => x.includes('falta anotar'))).toBe(false)
   })
 
-  it('aparece el paso Masas después de Comida y antes de Insumos', () => {
+  it('pasos: Vasos, Comida, Masas y unidades, Caja y Revisar', () => {
     const e = estadoDesdeDatos(datos())
     const pasos = calcularPasos(e, { hayComida: true, porTalla: {}, errores: 1 })
-    expect(pasos.map((p) => p.id)).toEqual([
-      'vasos',
-      'comida',
-      'masas',
-      'insumos',
-      'caja',
-      'revisar',
-    ])
+    expect(pasos.map((p) => p.id)).toEqual(['vasos', 'comida', 'masas', 'caja', 'revisar'])
     expect(pasos.find((p) => p.id === 'masas')?.detalle).toBe('0 de 2')
   })
 

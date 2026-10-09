@@ -49,7 +49,7 @@ export function CajaEnVivo({
   const badge = etiquetaCuadre(estado.dineroFinal, cuadre.diferencia)
 
   return (
-    <aside className="bg-cocoa text-cocoa-text shadow-pop sticky top-6 flex w-full flex-col gap-5 rounded-[24px] p-5">
+    <aside className="bg-cocoa text-cocoa-text shadow-pop scroll-thin sticky top-6 flex max-h-[calc(100dvh-3rem)] w-full flex-col gap-5 overflow-y-auto rounded-[24px] p-5">
       <div className="flex items-center justify-between">
         <h2 className="font-display text-lg font-bold">Caja en vivo</h2>
         <AnimatePresence>
@@ -80,13 +80,18 @@ export function CajaEnVivo({
         <Fila label="Transferencias" valor={cuadre.totalTransferencias} signo="−" />
         <Fila label="Gastos" valor={cuadre.totalGastos} signo="−" />
         <Fila label="Domicilios" valor={cuadre.totalDomicilios} signo="−" />
+        {cuadre.totalDescuentos > 0 && (
+          <Fila label="Descuentos" valor={cuadre.totalDescuentos} signo="−" />
+        )}
         <div className="bg-cocoa-3 my-1 h-px" />
         <div className="flex items-baseline justify-between gap-3">
-          <span className="font-bold">Debe haber en caja</span>
+          <span className="text-sm font-bold whitespace-nowrap xl:text-base">
+            Debe haber en caja
+          </span>
           <NumeroAnimado
             valor={cuadre.efectivoEsperado}
             formato="pesos"
-            className="font-display text-2xl font-extrabold"
+            className="font-display text-xl font-extrabold whitespace-nowrap xl:text-2xl"
           />
         </div>
       </div>

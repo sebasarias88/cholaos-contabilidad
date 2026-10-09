@@ -50,7 +50,7 @@ export function DesgloseProductos({
                 : `Sobran ${-faltan}`}
         </span>
       </div>
-      <ul className="grid gap-2 sm:grid-cols-2">
+      <ul className="grid gap-2 @xl:grid-cols-2">
         {productos.map((p) => {
           const qty = desglose.find((d) => d.producto_id === p.id)?.cantidad ?? 0
           return (

@@ -2,7 +2,7 @@ import { masaIncompleta, type EstadoCierreForm } from '@/lib/cierre/estado'
 import { desgloseCuadra } from '@/lib/cierre/ventas-vasos'
 import type { Producto } from '@/types'
 
-export type IdPaso = 'vasos' | 'bebidas' | 'comida' | 'masas' | 'insumos' | 'caja' | 'revisar'
+export type IdPaso = 'vasos' | 'comida' | 'masas' | 'caja' | 'revisar'
 export type EstadoPaso = 'completo' | 'parcial' | 'pendiente' | 'neutral'
 
 export interface Paso {
@@ -13,8 +13,9 @@ export interface Paso {
 }
 
 /**
- * Pasos del cierre con su avance. Comida, masas e insumos solo aparecen si el
- * negocio tiene productos de ese tipo.
+ * Pasos del cierre con su avance: Vasos, Comida (bebidas contadas, ventas de comida y
+ * adiciones, insumos), Masas y unidades, Caja y Revisar. Comida y masas solo aparecen
+ * si el negocio tiene productos de ese tipo.
  */
 export function calcularPasos(
   estado: EstadoCierreForm,
@@ -41,34 +42,37 @@ export function calcularPasos(
           : 'pendiente',
   })
 
-  if (estado.bebidas.length > 0) {
-    const contadas = estado.bebidas.filter((b) => b.cantidad_final !== null).length
-    const conError = estado.bebidas.some(
-      (b) =>
-        b.cantidad_final !== null && b.cantidad_final > b.cantidad_inicio + (b.cantidad_nuevos ?? 0)
-    )
-    pasos.push({
-      id: 'bebidas',
-      titulo: 'Bebidas',
-      detalle: `${contadas} de ${estado.bebidas.length} contadas`,
-      estado:
-        contadas === estado.bebidas.length && !conError
-          ? 'completo'
-          : contadas > 0
-            ? 'parcial'
-            : 'pendiente',
-    })
-  }
-
-  if (opciones.hayComida) {
+  // Comida: bebidas contadas + ventas de comida/adiciones + insumos, en un solo paso
+  if (opciones.hayComida || estado.bebidas.length > 0 || estado.insumos.length > 0) {
     const unidades =
       estado.ventasVariantes.reduce((s, v) => s + (v.cantidad || 0), 0) +
       estado.ventasComida.reduce((s, v) => s + (v.cantidad || 0), 0)
+    const porContar = [...estado.bebidas, ...estado.insumos]
+    const contados = porContar.filter((c) => c.cantidad_final !== null).length
+    const conError = porContar.some(
+      (c) =>
+        c.cantidad_final !== null && c.cantidad_final > c.cantidad_inicio + (c.cantidad_nuevos ?? 0)
+    )
+    const detalle =
+      porContar.length > 0
+        ? `${contados} de ${porContar.length} contados`
+        : unidades > 0
+          ? `${unidades} vendidas`
+          : 'Opcional'
     pasos.push({
       id: 'comida',
       titulo: 'Comida',
-      detalle: unidades > 0 ? `${unidades} vendidas` : 'Opcional',
-      estado: unidades > 0 ? 'completo' : 'neutral',
+      detalle,
+      estado:
+        porContar.length === 0
+          ? unidades > 0
+            ? 'completo'
+            : 'neutral'
+          : contados === porContar.length && !conError
+            ? 'completo'
+            : contados > 0
+              ? 'parcial'
+              : 'pendiente',
     })
   }
 
@@ -93,18 +97,11 @@ export function calcularPasos(
     })
   }
 
-  if (estado.insumos.length > 0) {
-    const contados = estado.insumos.filter((i) => i.cantidad_final !== null).length
-    pasos.push({
-      id: 'insumos',
-      titulo: 'Insumos',
-      detalle: `${contados} de ${estado.insumos.length}`,
-      estado:
-        contados === estado.insumos.length ? 'completo' : contados > 0 ? 'parcial' : 'pendiente',
-    })
-  }
-
-  const movimientos = estado.gastos.length + estado.transferencias.length + estado.domicilios.length
+  const movimientos =
+    estado.gastos.length +
+    estado.transferencias.length +
+    estado.domicilios.length +
+    estado.descuentos.length
   pasos.push({
     id: 'caja',
     titulo: 'Caja',
@@ -134,12 +131,13 @@ export function calcularPasos(
 export function pasoDeError(error: string): IdPaso {
   const e = error.toLowerCase()
   if (e.startsWith('masas')) return 'masas'
-  if (e.startsWith('bebidas')) return 'bebidas'
+  if (e.startsWith('bebidas') || e.startsWith('insumos')) return 'comida'
   if (
     e.includes('dinero') ||
     e.includes('gasto') ||
     e.includes('transferencia') ||
-    e.includes('movimiento')
+    e.includes('movimiento') ||
+    e.includes('descuento')
   ) {
     return 'caja'
   }

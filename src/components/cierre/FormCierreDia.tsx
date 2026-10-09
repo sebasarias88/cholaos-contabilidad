@@ -8,12 +8,10 @@ import { CajaEnVivo } from '@/components/cierre/caja/CajaEnVivo'
 import { PasoCaja } from '@/components/cierre/caja/PasoCaja'
 import { CierreEncabezado } from '@/components/cierre/CierreEncabezado'
 import { NovedadesDrawer } from '@/components/cierre/NovedadesDrawer'
+import { PasoComida } from '@/components/cierre/PasoComida'
 import { PasoRevisar } from '@/components/cierre/PasoRevisar'
 import { PasosCierre } from '@/components/cierre/PasosCierre'
-import { SeccionComida } from '@/components/cierre/SeccionComida'
-import { TablaInsumos } from '@/components/cierre/TablaInsumos'
 import { TablaMasas } from '@/components/cierre/TablaMasas'
-import { TablaBebidas } from '@/components/cierre/TablaBebidas'
 import { TablaVasos } from '@/components/cierre/TablaVasos'
 import { Celebracion } from '@/components/ui/Celebracion'
 import { Skeleton } from '@/components/ui/Skeleton'
@@ -28,13 +26,10 @@ import type { Rol } from '@/types'
 const AYUDA: Record<IdPaso, string> = {
   vasos:
     'Cuenta cuántos vasos llegaron y cuántos quedan. Presiona Enter para pasar a la siguiente casilla.',
-  bebidas:
-    'Igual que los vasos: cuántas llegaron y cuántas quedan. Las vendidas se calculan solas.',
-  comida: 'Suma lo que se vendió de pizzas, otros productos y adiciones.',
+  comida: 'Bebidas, ventas de comida y adiciones, e insumos del día.',
   masas:
     'Anota con cuántas unidades empezó y terminó cada tamaño y, en Pizzeta, Mediana y Familiar, el número de masas (no suman a las ventas).',
-  insumos: 'Cuenta los insumos que quedan (no suman a las ventas).',
-  caja: 'Registra gastos, transferencias y domicilios, y cuenta el dinero de la caja.',
+  caja: 'Gastos, transferencias, domicilios, descuentos (fiados, consumos, préstamos) y el dinero de la caja.',
   revisar: 'Revisa el resumen. Si todo está bien, finaliza el cierre.',
 }
 
@@ -153,8 +148,8 @@ export function FormCierreDia({ rol, fecha }: FormCierreDiaProps) {
       <CierreEncabezado cierre={cierre} fecha={fecha} />
       <PasosCierre pasos={pasos} actual={paso} onCambiar={irA} />
 
-      <div className="flex items-start gap-6">
-        <div className="min-w-0 flex-1">
+      <div className="flex items-start gap-5 xl:gap-6">
+        <div className="@container min-w-0 flex-1">
           <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
             <p className="text-text-secondary max-w-2xl text-[15px]">{AYUDA[paso]}</p>
             {indice > 0 && (
@@ -192,24 +187,10 @@ export function FormCierreDia({ rol, fecha }: FormCierreDiaProps) {
                     onAbrirNovedades={(id) => setNovedadesDe({ tipo: 'vaso', id })}
                   />
                 ))}
-              {paso === 'bebidas' && (
-                <TablaBebidas
-                  filas={estado.bebidas}
-                  esAdmin={esAdmin}
-                  disabled={bloqueado}
-                  onChange={cierre.actualizarBebida}
-                  onAbrirNovedades={(id) => setNovedadesDe({ tipo: 'bebida', id })}
-                />
-              )}
               {paso === 'comida' && (
-                <SeccionComida
-                  productos={cierre.productosComida}
-                  ventasVariantes={estado.ventasVariantes}
-                  ventasComida={estado.ventasComida}
-                  esAdmin={esAdmin}
-                  disabled={bloqueado}
-                  onVarianteChange={cierre.cambiarVariante}
-                  onComidaChange={cierre.cambiarComida}
+                <PasoComida
+                  cierre={cierre}
+                  onAbrirNovedadesBebida={(id) => setNovedadesDe({ tipo: 'bebida', id })}
                 />
               )}
               {paso === 'masas' && (
@@ -219,20 +200,14 @@ export function FormCierreDia({ rol, fecha }: FormCierreDiaProps) {
                   onChange={cierre.actualizarMasa}
                 />
               )}
-              {paso === 'insumos' && (
-                <TablaInsumos
-                  filas={estado.insumos}
-                  disabled={bloqueado}
-                  onChange={cierre.actualizarInsumo}
-                />
-              )}
               {paso === 'caja' && <PasoCaja cierre={cierre} />}
               {paso === 'revisar' && <PasoRevisar cierre={cierre} errores={errores} onIrA={irA} />}
             </motion.div>
           </AnimatePresence>
         </div>
 
-        <div className="hidden w-[340px] shrink-0 lg:block">
+        {/* Se estira a lo alto de la fila para que la caja baje con el scroll (sticky) */}
+        <div className="hidden w-[300px] shrink-0 self-stretch lg:block xl:w-[340px]">
           <CajaEnVivo
             cierre={cierre}
             textoSiguiente={siguiente?.titulo ?? null}

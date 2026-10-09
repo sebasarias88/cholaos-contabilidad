@@ -114,7 +114,7 @@ describe('barquillos en cajas y unidades', () => {
     )
     e.insumos[0] = { ...e.insumos[0], cantidad_final: 80 }
     expect(validarCierre(e, [barquillo], false)).toContain(
-      'Barquillo: el final (3 cajas y 8 und) es mayor que lo disponible (2 cajas y 23 und)'
+      'Insumos — Barquillo: el final (3 cajas y 8 und) es mayor que lo disponible (2 cajas y 23 und)'
     )
   })
 })

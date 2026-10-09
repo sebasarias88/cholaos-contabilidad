@@ -71,7 +71,7 @@ export function SeccionComida({
   }
 
   return (
-    <div className="grid items-start gap-4 md:grid-cols-2 2xl:grid-cols-3">
+    <div className="grid items-start gap-4 @2xl:grid-cols-2 @6xl:grid-cols-3">
       {conVariantes.map((producto) => (
         <motion.section
           key={producto.id}
