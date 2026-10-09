@@ -6,6 +6,7 @@ import { Lock, Plus, X } from 'lucide-react'
 import { InputPeso } from '@/components/ui/InputPeso'
 import { SelectorPersona, type PersonaElegida } from '@/components/descuentos/SelectorPersona'
 import { usePersonasDescuento } from '@/hooks/usePersonasDescuento'
+import { textosCuenta } from '@/lib/descuentos'
 import { formatPesos } from '@/lib/utils'
 import type { CierreDiaApi } from '@/hooks/useCierreDia'
 import type { LineaDescuento } from '@/lib/cierre/estado'
@@ -164,10 +165,10 @@ function FilaDescuentoLectura({ descuento: d }: { descuento: LineaDescuento }) {
       {d.liquidado && (
         <span
           className="badge-green inline-flex shrink-0 items-center gap-1"
-          title="Ya se descontó del sueldo: no se puede cambiar"
+          title={`${textosCuenta(d.persona_tipo)?.saldadoLargo ?? 'Saldado'}: no se puede cambiar`}
         >
           <Lock size={11} aria-hidden />
-          Descontado
+          {textosCuenta(d.persona_tipo)?.saldado ?? 'Saldado'}
         </span>
       )}
       <span className="text-text-primary shrink-0 text-sm font-semibold tabular-nums">

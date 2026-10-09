@@ -20,6 +20,7 @@ import type {
   GuardarCierrePayload,
   Producto,
   TallaVaso,
+  TipoPersonaDescuento,
   VentaComidaInput,
   VentaVarianteInput,
 } from '@/types'
@@ -59,10 +60,11 @@ export function masasUsadas(fila: Pick<FilaMasa, 'cantidad_inicio' | 'cantidad_f
 export type LineaMovimiento = { id: string; descripcion: string; monto: number }
 export type LineaTransferencia = LineaMovimiento & { medio_id: string }
 
-/** Descuento de una persona; si ya se descontó del sueldo no se puede cambiar */
+/** Descuento de una persona; si ya se descontó del sueldo (o se cobró) no se puede cambiar */
 export type LineaDescuento = LineaMovimiento & {
   persona_id: string
   persona_nombre: string
+  persona_tipo?: TipoPersonaDescuento
   liquidado: boolean
 }
 
@@ -335,6 +337,7 @@ export function estadoDesdeDatos(datos: DatosCierre): EstadoCierreForm {
       id: d.id,
       persona_id: d.persona_id ?? '',
       persona_nombre: d.persona?.nombre ?? '',
+      persona_tipo: d.persona?.tipo,
       descripcion: d.descripcion ?? '',
       monto: Number(d.monto),
       liquidado: Boolean(d.liquidacion_id),

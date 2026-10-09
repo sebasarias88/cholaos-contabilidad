@@ -4,6 +4,8 @@ import {
   coincideNombre,
   rangoNomina,
   resumirPorPersona,
+  seCobra,
+  textosCuenta,
   totalesResumen,
 } from '@/lib/descuentos'
 import type { DescuentoReporte, PersonaDescuento } from '@/types'
@@ -57,15 +59,47 @@ describe('descuentos por persona', () => {
     expect(camila.descuentos.map((x) => x.fecha)).toEqual(['2026-10-03', '2026-10-08'])
     const eliana = r.find((x) => x.persona.nombre === 'Eliana')!
     expect(eliana).toMatchObject({ total: 7400, pendiente: 7400, descontado: 0 })
-    // Primero quien más debe; quien no tiene nada no aparece
-    expect(r.map((x) => x.persona.nombre)).toEqual(['Papá', 'Camila', 'Leo', 'Eliana'])
+    // Empleados primero (quien más debe arriba), familia al final; quien no tiene nada no aparece
+    expect(r.map((x) => x.persona.nombre)).toEqual(['Camila', 'Leo', 'Eliana', 'Papá'])
   })
 
   it('filtra por tipo y suma los totales', () => {
     const empleados = resumirPorPersona(PERSONAS, DESCUENTOS, {}, 'empleado')
     expect(empleados.map((x) => x.persona.nombre)).not.toContain('Papá')
-    expect(totalesResumen(empleados)).toEqual({ total: 41400, pendiente: 32400, descontado: 9000 })
-    expect(totalesResumen(resumirPorPersona(PERSONAS, DESCUENTOS)).total).toBe(122400)
+    expect(totalesResumen(empleados)).toEqual({
+      total: 41400,
+      pendiente: 32400,
+      descontado: 9000,
+      familia: 0,
+    })
+    // La familia suma al total pero nunca queda pendiente
+    expect(totalesResumen(resumirPorPersona(PERSONAS, DESCUENTOS))).toEqual({
+      total: 122400,
+      pendiente: 32400,
+      descontado: 9000,
+      familia: 81000,
+    })
+  })
+
+  it('a la familia no se le cobra: sin pendientes ni deudas de antes', () => {
+    const r = resumirPorPersona(PERSONAS, DESCUENTOS, { pe4: { monto: 5000, desde: '2026-09-01' } })
+    const papa = r.find((x) => x.persona.nombre === 'Papá')!
+    expect(papa).toMatchObject({ total: 81000, pendiente: 0, descontado: 0, pendienteAnterior: 0 })
+    expect(textosCuenta('familia')).toBeNull()
+    expect(seCobra('familia')).toBe(false)
+  })
+
+  it('al cliente se le cobra y al empleado se le descuenta del sueldo', () => {
+    expect(textosCuenta('cliente')).toMatchObject({
+      pendiente: 'Por cobrar',
+      saldado: 'Cobrado',
+      accion: 'Marcar como cobrado',
+    })
+    expect(textosCuenta('empleado')).toMatchObject({
+      pendiente: 'Pendiente',
+      saldado: 'Descontado',
+      accion: 'Descontar del sueldo',
+    })
   })
 
   it('muestra lo pendiente de antes del periodo aunque no tenga descuentos nuevos', () => {

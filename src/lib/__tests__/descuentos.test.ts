@@ -163,10 +163,12 @@ describe('descuentos (fiados, consumos, préstamos)', () => {
     const detalle = descuentosDetalle([c])
     expect(detalle.map((d) => d.persona)).toEqual(['Camila', 'Eliana', 'Eliana', 'Leo', 'Papá'])
     expect(detalle.find((d) => d.persona === 'Camila')?.estado).toBe('Descontado')
+    expect(detalle.find((d) => d.persona === 'Leo')?.estado).toBe('Pendiente')
+    // A la familia no se le cobra
     expect(detalle.find((d) => d.persona === 'Papá')).toMatchObject({
       descripcion: 'Pizza',
       monto: 81000,
-      estado: 'Pendiente',
+      estado: 'No se cobra',
     })
   })
 })

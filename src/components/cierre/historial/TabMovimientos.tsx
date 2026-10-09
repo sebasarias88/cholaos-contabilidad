@@ -1,5 +1,6 @@
 'use client'
 
+import { textosCuenta } from '@/lib/descuentos'
 import { formatPesos } from '@/lib/utils'
 import type { CierreDia } from '@/types'
 
@@ -50,7 +51,9 @@ export function TabMovimientos({ cierre }: { cierre: CierreDia }) {
             Descuento — <b>{d.persona?.nombre ?? 'Sin persona'}</b>
             {d.descripcion?.trim() ? ` · ${d.descripcion.trim()}` : ''}
             {d.liquidacion_id && (
-              <span className="badge-green ml-2 align-middle">Descontado del sueldo</span>
+              <span className="badge-green ml-2 align-middle">
+                {textosCuenta(d.persona?.tipo)?.saldadoLargo ?? 'Saldado'}
+              </span>
             )}
           </span>
           <span className="text-warn shrink-0 font-semibold tabular-nums">
