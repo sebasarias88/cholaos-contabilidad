@@ -46,7 +46,13 @@ export function TabMovimientos({ cierre }: { cierre: CierreDia }) {
       ))}
       {descuentos.map((d) => (
         <li key={d.id} className="flex justify-between gap-3 py-2.5 text-sm">
-          <span className="text-text-primary">Descuento — {d.descripcion}</span>
+          <span className="text-text-primary min-w-0">
+            Descuento — <b>{d.persona?.nombre ?? 'Sin persona'}</b>
+            {d.descripcion?.trim() ? ` · ${d.descripcion.trim()}` : ''}
+            {d.liquidacion_id && (
+              <span className="badge-green ml-2 align-middle">Descontado del sueldo</span>
+            )}
+          </span>
           <span className="text-warn shrink-0 font-semibold tabular-nums">
             −{formatPesos(d.monto)}
           </span>

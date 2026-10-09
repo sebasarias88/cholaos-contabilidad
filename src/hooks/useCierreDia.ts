@@ -236,18 +236,46 @@ export function useCierreDia({ fecha, rol }: { fecha: string; rol: Rol }) {
       quitarTransferencia: (id: string) =>
         setEstado((e) => ({ ...e, transferencias: e.transferencias.filter((t) => t.id !== id) })),
 
-      agregarDescuento: (descripcion: string, monto: number) =>
+      agregarDescuento: (
+        persona: { id: string; nombre: string },
+        descripcion: string,
+        monto: number
+      ) =>
         setEstado((e) => ({
           ...e,
-          descuentos: [...e.descuentos, { id: idTemporal(), descripcion, monto }],
+          descuentos: [
+            ...e.descuentos,
+            {
+              id: idTemporal(),
+              persona_id: persona.id,
+              persona_nombre: persona.nombre,
+              descripcion,
+              monto,
+              liquidado: false,
+            },
+          ],
         })),
-      editarDescuento: (id: string, descripcion: string, monto: number) =>
+      editarDescuento: (
+        id: string,
+        cambios: Partial<{
+          persona_id: string
+          persona_nombre: string
+          descripcion: string
+          monto: number
+        }>
+      ) =>
         setEstado((e) => ({
           ...e,
-          descuentos: e.descuentos.map((d) => (d.id === id ? { ...d, descripcion, monto } : d)),
+          // Los ya descontados del sueldo no se cambian
+          descuentos: e.descuentos.map((d) =>
+            d.id === id && !d.liquidado ? { ...d, ...cambios } : d
+          ),
         })),
       quitarDescuento: (id: string) =>
-        setEstado((e) => ({ ...e, descuentos: e.descuentos.filter((d) => d.id !== id) })),
+        setEstado((e) => ({
+          ...e,
+          descuentos: e.descuentos.filter((d) => d.id !== id || d.liquidado),
+        })),
 
       agregarDomicilio: (descripcion: string, monto: number) =>
         setEstado((e) => ({

@@ -7,13 +7,30 @@ import { construirFilas, descuentosDetalle } from '@/lib/export-reportes'
 import type { CierreDia } from '@/types'
 import { datosCierre, PRODUCTOS } from './fixtures'
 
+const PERSONAS = {
+  eliana: { id: 'pe1', nombre: 'Eliana', tipo: 'empleado' as const },
+  leo: { id: 'pe2', nombre: 'Leo', tipo: 'empleado' as const },
+  camila: { id: 'pe3', nombre: 'Camila', tipo: 'empleado' as const },
+  papa: { id: 'pe4', nombre: 'Papá', tipo: 'familia' as const },
+}
+
 const DESCUENTOS_AYER = [
-  { descripcion: 'Eliana', monto: 2900 },
-  { descripcion: 'Jugo Leo', monto: 8000 },
-  { descripcion: 'Coca-Cola Eliana', monto: 4500 },
-  { descripcion: 'Camila', monto: 17000 },
-  { descripcion: 'Pizza papá', monto: 81000 },
+  { persona: PERSONAS.eliana, descripcion: '', monto: 2900 },
+  { persona: PERSONAS.leo, descripcion: 'Jugo', monto: 8000 },
+  { persona: PERSONAS.eliana, descripcion: 'Coca-Cola', monto: 4500 },
+  { persona: PERSONAS.camila, descripcion: '', monto: 17000 },
+  { persona: PERSONAS.papa, descripcion: 'Pizza', monto: 81000 },
 ]
+
+const descuentosGuardados = (liquidado?: number) =>
+  DESCUENTOS_AYER.map((d, i) => ({
+    ...d,
+    id: `d${i}`,
+    cierre_id: 'c1',
+    persona_id: d.persona.id,
+    liquidacion_id: i === liquidado ? 'li1' : null,
+    created_at: '',
+  }))
 
 const cierre = (extra: Partial<CierreDia>): CierreDia => ({
   id: 'c1',
@@ -53,38 +70,73 @@ describe('descuentos (fiados, consumos, préstamos)', () => {
       datosCierre({
         cierre: cierre({
           estado: 'borrador',
-          descuentos: DESCUENTOS_AYER.map((d, i) => ({
-            ...d,
-            id: `d${i}`,
-            cierre_id: 'c1',
-            created_at: '',
-          })),
+          descuentos: descuentosGuardados(3),
         }),
       })
     )
     expect(e.descuentos).toHaveLength(5)
+    expect(e.descuentos[1]).toMatchObject({
+      persona_id: 'pe2',
+      persona_nombre: 'Leo',
+      descripcion: 'Jugo',
+      liquidado: false,
+    })
+    expect(e.descuentos[3].liquidado).toBe(true)
     const p = construirPayload(e, { fecha: '2026-10-08', esAdmin: true, finalizar: false })
-    expect(p.descuentos).toEqual(DESCUENTOS_AYER)
+    expect(p.descuentos).toEqual(
+      DESCUENTOS_AYER.map((d, i) => ({
+        id: `d${i}`,
+        persona_id: d.persona.id,
+        descripcion: d.descripcion,
+        monto: d.monto,
+      }))
+    )
   })
 
-  it('cada descuento necesita descripción y monto', () => {
+  it('los descuentos nuevos no mandan id temporal', () => {
     const e = estadoDesdeDatos(datosCierre())
     e.descuentos = [
-      { id: 'a', descripcion: '  ', monto: 5000 },
-      { id: 'b', descripcion: 'Camila', monto: 0 },
+      {
+        id: 'tmp-1',
+        persona_id: 'pe1',
+        persona_nombre: 'Eliana',
+        descripcion: ' Gaseosa ',
+        monto: 4500,
+        liquidado: false,
+      },
+    ]
+    const p = construirPayload(e, { fecha: '2026-10-09', esAdmin: false, finalizar: false })
+    expect(p.descuentos).toEqual([{ persona_id: 'pe1', descripcion: 'Gaseosa', monto: 4500 }])
+  })
+
+  it('cada descuento necesita persona y monto (el concepto es opcional)', () => {
+    const e = estadoDesdeDatos(datosCierre())
+    const base = { persona_nombre: '', descripcion: '', liquidado: false }
+    e.descuentos = [
+      { ...base, id: 'a', persona_id: '', monto: 5000 },
+      { ...base, id: 'b', persona_id: 'pe3', monto: 0 },
+      { ...base, id: 'c', persona_id: 'pe3', monto: 3000 },
     ]
     const errores = validarCierre(e, PRODUCTOS, false)
-    expect(errores).toContain('Hay un descuento sin descripción (ej. quién o qué)')
+    const sinPersona = 'Hay un descuento sin persona (elige a quién se le descuenta)'
+    expect(errores).toContain(sinPersona)
     expect(errores).toContain('Hay movimientos de caja con monto en 0')
-    expect(pasoDeError('Hay un descuento sin descripción (ej. quién o qué)')).toBe('caja')
+    expect(errores.filter((x) => x.includes('descuento'))).toHaveLength(1)
+    expect(pasoDeError(sinPersona)).toBe('caja')
   })
 
   it('la API normaliza los descuentos', () => {
     const p = normalizarPayloadCierre({
       fecha: '2026-10-08',
-      descuentos: [{ descripcion: 'Camila', monto: '17000', cierre_id: 'x' }],
+      descuentos: [
+        { persona_id: 'pe3', descripcion: '', monto: '17000', cierre_id: 'x' },
+        { id: 'd9', persona_id: 'pe1', descripcion: 'Coca-Cola', monto: 4500 },
+      ],
     })
-    expect(p.descuentos).toEqual([{ descripcion: 'Camila', monto: 17000 }])
+    expect(p.descuentos).toEqual([
+      { persona_id: 'pe3', descripcion: '', monto: 17000 },
+      { id: 'd9', persona_id: 'pe1', descripcion: 'Coca-Cola', monto: 4500 },
+    ])
   })
 
   it('el empleado ve el cuadre con los descuentos', () => {
@@ -95,12 +147,7 @@ describe('descuentos (fiados, consumos, préstamos)', () => {
   it('el reporte los registra por día y en detalle', () => {
     const c = cierre({
       total_descuentos: 113400,
-      descuentos: DESCUENTOS_AYER.map((d, i) => ({
-        ...d,
-        id: `d${i}`,
-        cierre_id: 'c1',
-        created_at: '',
-      })),
+      descuentos: descuentosGuardados(3),
     })
     const { dias, totales } = construirFilas({
       nombreNegocio: 'x',
@@ -113,6 +160,13 @@ describe('descuentos (fiados, consumos, préstamos)', () => {
     expect(dias[0].descuentos).toBe(113400)
     expect(dias[0].esperado).toBe(249100 + 673000 - 113400)
     expect(totales.descuentos).toBe(113400)
-    expect(descuentosDetalle([c]).map((d) => d.monto)).toEqual([2900, 8000, 4500, 17000, 81000])
+    const detalle = descuentosDetalle([c])
+    expect(detalle.map((d) => d.persona)).toEqual(['Camila', 'Eliana', 'Eliana', 'Leo', 'Papá'])
+    expect(detalle.find((d) => d.persona === 'Camila')?.estado).toBe('Descontado')
+    expect(detalle.find((d) => d.persona === 'Papá')).toMatchObject({
+      descripcion: 'Pizza',
+      monto: 81000,
+      estado: 'Pendiente',
+    })
   })
 })

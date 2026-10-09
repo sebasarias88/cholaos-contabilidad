@@ -7,6 +7,7 @@ import { NumeroAnimado } from '@/components/ui/NumeroAnimado'
 import { ListaMovimientos } from '@/components/cierre/caja/ListaMovimientos'
 import { NuevoMovimiento } from '@/components/cierre/caja/NuevoMovimiento'
 import { BaseCaja } from '@/components/cierre/caja/BaseCaja'
+import { DescuentosCaja } from '@/components/cierre/caja/DescuentosCaja'
 import type { CierreDiaApi } from '@/hooks/useCierreDia'
 
 function Bloque({
@@ -114,29 +115,13 @@ export function PasoCaja({ cierre }: { cierre: CierreDiaApi }) {
         icono={<HandCoins size={18} />}
         titulo="Descuentos"
         total={cuadre.totalDescuentos}
-        className="@4xl:col-span-2"
+        className="@container @4xl:col-span-2"
       >
         <p className="text-text-secondary -mt-1 text-xs">
           Lo que se registró pero no se pagó: fiados, lo que se comió el personal o plata prestada.
-          Se descuenta de lo que debe haber en caja.
+          Se descuenta de lo que debe haber en caja y queda en la cuenta de cada persona.
         </p>
-        {!bloqueado && (
-          <NuevoMovimiento tipo="descuento" onAgregar={movimientos.agregarDescuento} />
-        )}
-        <ListaMovimientos
-          items={estado.descuentos.map((d) => ({
-            id: d.id,
-            etiqueta: d.descripcion,
-            monto: d.monto,
-          }))}
-          bloqueado={bloqueado}
-          edicion={{
-            tipo: 'texto',
-            placeholder: 'Quién o qué',
-            onChange: movimientos.editarDescuento,
-          }}
-          onEliminar={movimientos.quitarDescuento}
-        />
+        <DescuentosCaja cierre={cierre} />
       </Bloque>
 
       <Bloque icono={<Wallet size={18} />} titulo="Efectivo en caja">
