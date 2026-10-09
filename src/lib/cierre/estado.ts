@@ -2,8 +2,13 @@
  * Estado editable del formulario de cierre y sus transformaciones puras
  * (datos del servidor → formulario → payload). Sin React: se prueba con Vitest.
  */
-import { tipoProducto } from '@/lib/productos-ui'
-import { calcularItemsVendidos, erroresDesgloseVasos } from '@/lib/cierre/ventas-vasos'
+import { esBebidaContada, tipoProducto } from '@/lib/productos-ui'
+import {
+  calcularItemsVendidos,
+  erroresDesgloseVasos,
+  totalNovedades,
+  vendidosReales,
+} from '@/lib/cierre/ventas-vasos'
 import type {
   CierreDia,
   CierreDiaEmpleado,
@@ -20,6 +25,11 @@ import type {
 
 export type FilaVaso = ConteoVasoValor & { talla_id: string; talla?: TallaVaso }
 export type FilaInsumo = ConteoProductoValor & { producto_id: string; producto: Producto }
+/** Bebida contada como los vasos (gaseosas, agua): vendidos = inicio + llegaron − quedan − novedades */
+export type FilaBebida = Omit<ConteoVasoValor, 'desglose'> & {
+  producto_id: string
+  producto: Producto
+}
 /** Masa de pizza: se escribe con cuántas empezó y con cuántas terminó (sin precio) */
 export type FilaMasa = {
   producto_id: string
@@ -39,6 +49,7 @@ export type LineaTransferencia = LineaMovimiento & { medio_id: string }
 
 export interface EstadoCierreForm {
   vasos: FilaVaso[]
+  bebidas: FilaBebida[]
   insumos: FilaInsumo[]
   masas: FilaMasa[]
   ventasVariantes: VentaVarianteInput[]
@@ -53,6 +64,7 @@ export interface EstadoCierreForm {
 
 export const ESTADO_VACIO: EstadoCierreForm = {
   vasos: [],
+  bebidas: [],
   insumos: [],
   masas: [],
   ventasVariantes: [],
@@ -104,6 +116,7 @@ function filasDesdeCatalogo(datos: DatosCierre) {
 
   const vasos: FilaVaso[] = []
   const vistas = new Set<string>()
+  const bebidas: FilaBebida[] = []
   const insumos: FilaInsumo[] = []
   const masas: FilaMasa[] = []
 
@@ -119,6 +132,15 @@ function filasDesdeCatalogo(datos: DatosCierre) {
         cantidad_final: null,
         novedades: [],
         desglose: [],
+      })
+    } else if (esBebidaContada(p)) {
+      bebidas.push({
+        producto_id: p.id,
+        producto: p,
+        cantidad_inicio: finalAnterior(null, p.id),
+        cantidad_nuevos: null,
+        cantidad_final: null,
+        novedades: [],
       })
     } else if (tipo === 'insumo') {
       insumos.push({
@@ -139,7 +161,7 @@ function filasDesdeCatalogo(datos: DatosCierre) {
       })
     }
   }
-  return { vasos, insumos, masas }
+  return { vasos, bebidas, insumos, masas }
 }
 
 function valoresConteo(c: ConteoVaso) {
@@ -161,6 +183,7 @@ function valoresConteo(c: ConteoVaso) {
 /** Filas de un cierre ya cerrado: se muestran tal como se guardaron */
 function filasDesdeCierreCerrado(cierre: CierreDia | CierreDiaEmpleado, productos: Producto[]) {
   const vasos: FilaVaso[] = []
+  const bebidas: FilaBebida[] = []
   const insumos: FilaInsumo[] = []
   const masas: FilaMasa[] = []
   for (const c of (cierre.conteo_vasos ?? []) as ConteoVaso[]) {
@@ -177,6 +200,18 @@ function filasDesdeCierreCerrado(cierre: CierreDia | CierreDiaEmpleado, producto
     }
     const producto = c.producto ?? productos.find((p) => p.id === c.producto_id)
     if (!c.producto_id || !producto) continue
+    if (tipoProducto(producto) === 'comida') {
+      const { novedades } = valoresConteo(c)
+      bebidas.push({
+        producto_id: c.producto_id,
+        producto,
+        cantidad_inicio: c.cantidad_inicio,
+        cantidad_nuevos: c.cantidad_nuevos,
+        cantidad_final: c.cantidad_final,
+        novedades,
+      })
+      continue
+    }
     if (tipoProducto(producto) === 'masa') {
       masas.push({
         producto_id: c.producto_id,
@@ -195,7 +230,7 @@ function filasDesdeCierreCerrado(cierre: CierreDia | CierreDiaEmpleado, producto
       cantidad_final: c.cantidad_final,
     })
   }
-  return { vasos, insumos, masas }
+  return { vasos, bebidas, insumos, masas }
 }
 
 /** Estado inicial del formulario según lo que haya guardado en esa fecha */
@@ -213,6 +248,12 @@ export function estadoDesdeDatos(datos: DatosCierre): EstadoCierreForm {
         const g = guardados.find((c) => c.talla_id === f.talla_id)
         return g ? { ...f, ...valoresConteo(g) } : f
       }),
+      bebidas: filas.bebidas.map((f) => {
+        const g = guardados.find((c) => !c.talla_id && c.producto_id === f.producto_id)
+        if (!g) return f
+        const { cantidad_nuevos, cantidad_final, novedades } = valoresConteo(g)
+        return { ...f, cantidad_nuevos, cantidad_final, novedades }
+      }),
       insumos: filas.insumos.map((f) => {
         const g = guardados.find((c) => !c.talla_id && c.producto_id === f.producto_id)
         return g
@@ -228,16 +269,24 @@ export function estadoDesdeDatos(datos: DatosCierre): EstadoCierreForm {
     }
   }
 
+  const idsBebidas = new Set([
+    ...filas.bebidas.map((b) => b.producto_id),
+    ...datos.productos.filter(esBebidaContada).map((p) => p.id),
+  ])
+
   return {
     ...filas,
     ventasVariantes: (cierre?.ventas_variantes ?? []).map((v) => ({
       variante_id: v.variante_id,
       cantidad: v.cantidad,
     })),
-    ventasComida: (cierre?.ventas_comida ?? []).map((v) => ({
-      producto_id: v.producto_id,
-      cantidad: v.cantidad,
-    })),
+    // Las bebidas contadas generan su venta desde el conteo: no se repiten en Comida
+    ventasComida: (cierre?.ventas_comida ?? [])
+      .filter((v) => !idsBebidas.has(v.producto_id))
+      .map((v) => ({
+        producto_id: v.producto_id,
+        cantidad: v.cantidad,
+      })),
     gastos: (cierre?.gastos ?? []).map((g) => ({
       id: g.id,
       descripcion: g.descripcion,
@@ -289,6 +338,12 @@ export function construirPayload(
       producto_id: f.producto_id,
       cantidad_nuevos: f.cantidad_nuevos ?? 0,
       cantidad_final: f.cantidad_final,
+    })),
+    bebidas: estado.bebidas.map((f) => ({
+      producto_id: f.producto_id,
+      cantidad_nuevos: f.cantidad_nuevos ?? 0,
+      cantidad_final: f.cantidad_final,
+      novedades: f.novedades.filter((n) => n.cantidad > 0),
     })),
     masas: estado.masas.map((f) => ({
       producto_id: f.producto_id,
@@ -364,6 +419,28 @@ export function validarCierre(
   }
 
   if (finalizar) {
+    const sinContar = estado.bebidas.filter((f) => f.cantidad_final === null)
+    if (sinContar.length > 0) {
+      errores.push(
+        `Bebidas: falta el conteo final de ${listar(sinContar.map((f) => f.producto.nombre))}`
+      )
+    }
+  }
+  for (const f of estado.bebidas) {
+    if (f.cantidad_final === null) continue
+    const disponible = f.cantidad_inicio + (f.cantidad_nuevos ?? 0)
+    if (f.cantidad_final > disponible) {
+      errores.push(
+        `Bebidas — ${f.producto.nombre}: quedan ${f.cantidad_final} y solo había ${disponible}`
+      )
+    } else if (totalNovedades(f) > disponible - f.cantidad_final) {
+      errores.push(
+        `Bebidas — ${f.producto.nombre}: hay más novedades (${totalNovedades(f)}) que unidades que salieron (${disponible - f.cantidad_final})`
+      )
+    }
+  }
+
+  if (finalizar) {
     const sinAnotar = estado.masas
       .filter((f) => f.cantidad_inicio === null || f.cantidad_final === null)
       .map((f) => f.producto.nombre)
@@ -401,11 +478,18 @@ export function validarCierre(
   return errores
 }
 
-/** Ítems vendidos (vasos + variantes + comida) con precio actual del catálogo */
+/** Ítems vendidos (vasos + bebidas contadas + variantes + comida) con precio actual del catálogo */
 export function itemsVendidos(estado: EstadoCierreForm, productos: Producto[]) {
   const variantes = productos.flatMap((p) => p.variantes ?? [])
   return [
     ...calcularItemsVendidos(estado.vasos, productos),
+    ...estado.bebidas
+      .map((f) => ({
+        cantidad: vendidosReales(f),
+        precio_unitario:
+          productos.find((p) => p.id === f.producto_id)?.precio ?? f.producto.precio ?? 0,
+      }))
+      .filter((i) => i.cantidad > 0),
     ...estado.ventasVariantes
       .filter((v) => v.cantidad > 0)
       .map((v) => ({

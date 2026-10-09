@@ -4,7 +4,14 @@ import { motion } from 'framer-motion'
 import { formatTalla } from '@/lib/utils'
 import type { ConteoVaso } from '@/types'
 
-export function TabVasos({ rows }: { rows: ConteoVaso[] }) {
+export function TabVasos({
+  rows,
+  columna = 'Talla',
+}: {
+  rows: ConteoVaso[]
+  /** Encabezado de la primera columna */
+  columna?: string
+}) {
   if (rows.length === 0) {
     return <p className="text-text-muted text-sm">Sin conteo de vasos.</p>
   }
@@ -12,7 +19,7 @@ export function TabVasos({ rows }: { rows: ConteoVaso[] }) {
   return (
     <motion.div layout className="space-y-3">
       <div className="text-text-muted hidden grid-cols-5 gap-2 text-xs md:grid">
-        <span className="col-span-2">Talla</span>
+        <span className="col-span-2">{columna}</span>
         <span className="text-center">Inicio</span>
         <span className="text-center">Nuevos</span>
         <span className="text-right">Resultado</span>
@@ -29,7 +36,7 @@ export function TabVasos({ rows }: { rows: ConteoVaso[] }) {
           ? conteo.talla.descripcion
           : conteo.talla
             ? formatTalla(conteo.talla)
-            : '—'
+            : (conteo.producto?.nombre ?? '—')
 
         return (
           <motion.div key={conteo.id} layout className="space-y-2">

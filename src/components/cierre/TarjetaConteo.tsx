@@ -102,11 +102,13 @@ export function TarjetaConteo({
   children?: ReactNode
 }) {
   const sinContar = final === null
+  // Quedan más de las que había: dato imposible, se marca en la tarjeta
+  const exceso = final !== null && final > inicio + (nuevos ?? 0)
   const tono = {
     ok: 'bg-ok-soft text-ok',
     bad: 'bg-bad-soft text-bad',
     neutral: 'bg-bg-elevated text-text-secondary',
-  }[tonoResultado]
+  }[exceso ? 'bad' : tonoResultado]
 
   return (
     <motion.li
@@ -115,7 +117,7 @@ export function TarjetaConteo({
       animate={{ opacity: 1, y: 0 }}
       className={[
         'bg-bg-surface shadow-soft flex flex-col gap-4 rounded-[var(--radius-lg)] border p-4 sm:p-5',
-        sinContar ? 'border-brand/25' : 'border-bg-border',
+        exceso ? 'border-bad/50' : sinContar ? 'border-brand/25' : 'border-bg-border',
         ancho ? 'md:col-span-2' : '',
       ].join(' ')}
     >
@@ -128,7 +130,13 @@ export function TarjetaConteo({
         </div>
         <div className="flex shrink-0 items-center gap-2">
           {accion}
-          {sinContar ? <span className="badge-brand">Falta contar</span> : <CheckAnimado />}
+          {exceso ? (
+            <span className="badge-bad">Revisar</span>
+          ) : sinContar ? (
+            <span className="badge-brand">Falta contar</span>
+          ) : (
+            <CheckAnimado />
+          )}
         </div>
       </div>
 
@@ -155,10 +163,16 @@ export function TarjetaConteo({
             animate={{ scale: 1 }}
             className={`flex h-12 items-center justify-center rounded-[12px] text-xl font-extrabold tabular-nums ${tono}`}
           >
-            {sinContar ? '—' : resultado}
+            {sinContar ? '—' : exceso ? '!' : resultado}
           </motion.span>
         </div>
       </div>
+
+      {exceso && (
+        <p className="text-bad -mt-1 text-xs font-bold">
+          Quedan {final} y solo había {inicio + (nuevos ?? 0)}. Revisa el conteo.
+        </p>
+      )}
 
       {children}
     </motion.li>

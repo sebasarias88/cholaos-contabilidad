@@ -68,7 +68,7 @@ function TablaConteos({
   )
 }
 
-/** Todo lo contado en el cierre: vasos, masas de pizza e insumos */
+/** Todo lo contado en el cierre: vasos, bebidas, masas de pizza e insumos */
 export function TabInventario({ cierre }: { cierre: CierreDia }) {
   const conteos: ConteoVaso[] = cierre.conteo_vasos ?? []
   const vasos = conteos.filter((c) => c.talla_id)
@@ -77,6 +77,7 @@ export function TabInventario({ cierre }: { cierre: CierreDia }) {
     .filter((c) => !c.talla_id && tipoDe(c) === 'masa')
     .sort((a, b) => (a.producto?.orden ?? 0) - (b.producto?.orden ?? 0))
   const insumos = conteos.filter((c) => !c.talla_id && tipoDe(c) === 'insumo')
+  const bebidas = conteos.filter((c) => !c.talla_id && tipoDe(c) === 'comida')
 
   const totalMasas = masas.reduce(
     (s, m) =>
@@ -89,6 +90,12 @@ export function TabInventario({ cierre }: { cierre: CierreDia }) {
       <Seccion titulo="Vasos">
         <TabVasos rows={vasos} />
       </Seccion>
+
+      {bebidas.length > 0 && (
+        <Seccion titulo="Bebidas">
+          <TabVasos rows={bebidas} columna="Producto" />
+        </Seccion>
+      )}
 
       {masas.length > 0 && (
         <Seccion

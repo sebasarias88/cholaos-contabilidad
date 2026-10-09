@@ -41,7 +41,7 @@ export function PasoRevisar({
   errores: string[]
   onIrA: (paso: IdPaso) => void
 }) {
-  const { estado, cuadre, esAdmin, esCorreccion, vasosVendidos } = cierre
+  const { estado, cuadre, esAdmin, esCorreccion, vasosVendidos, bebidasVendidas } = cierre
   const comida =
     estado.ventasVariantes.reduce((s, v) => s + (v.cantidad || 0), 0) +
     estado.ventasComida.reduce((s, v) => s + (v.cantidad || 0), 0)
@@ -91,6 +91,7 @@ export function PasoRevisar({
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
         <Dato label="Vasos vendidos" valor={vasosVendidos} />
+        {estado.bebidas.length > 0 && <Dato label="Bebidas vendidas" valor={bebidasVendidas} />}
         <Dato label="Comida vendida" valor={comida} />
         {estado.masas.length > 0 && (
           <Dato

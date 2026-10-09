@@ -123,6 +123,16 @@ export function normalizarPayloadCierre(raw: Record<string, unknown>): GuardarCi
       cantidad_nuevos: num(i.cantidad_nuevos) ?? 0,
       cantidad_final: num(i.cantidad_final),
     })),
+    bebidas: arr(raw.bebidas).map((b) => ({
+      producto_id: str(b.producto_id),
+      cantidad_nuevos: num(b.cantidad_nuevos) ?? 0,
+      cantidad_final: num(b.cantidad_final),
+      novedades: arr(b.novedades).map((n) => ({
+        motivo_id: str(n.motivo_id),
+        motivo_custom: str(n.motivo_custom) || undefined,
+        cantidad: num(n.cantidad) ?? 0,
+      })),
+    })),
     masas: arr(raw.masas).map((m) => ({
       producto_id: str(m.producto_id),
       cantidad_inicio: num(m.cantidad_inicio),

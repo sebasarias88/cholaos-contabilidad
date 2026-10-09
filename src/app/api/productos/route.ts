@@ -70,6 +70,7 @@ export async function POST(request: Request) {
   const descripcion = typeof body.descripcion === 'string' ? body.descripcion : null
   const talla_id = typeof body.talla_id === 'string' && body.talla_id ? body.talla_id : null
   const tiene_variantes = Boolean(body.tiene_variantes)
+  const conteo_inventario = Boolean(body.conteo_inventario)
 
   if (!nombre.trim()) {
     return NextResponse.json({ error: 'El nombre es requerido' }, { status: 400 })
@@ -105,6 +106,7 @@ export async function POST(request: Request) {
       descripcion: descripcion?.trim() || null,
       talla_id: null,
       tiene_variantes: tipo === 'comida' ? tiene_variantes : false,
+      conteo_inventario: tipo === 'comida' && !tiene_variantes ? conteo_inventario : false,
     })
     .select('*, talla:tallas_vasos(*), variantes:variantes_producto(*)')
     .single()

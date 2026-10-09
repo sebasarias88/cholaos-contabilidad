@@ -58,6 +58,10 @@ function normalizarUpdate(body: ProductoUpdateInput) {
     }
   }
 
+  if (body.conteo_inventario !== undefined) {
+    patch.conteo_inventario = Boolean(body.conteo_inventario)
+  }
+
   if (body.talla_id !== undefined) {
     patch.talla_id = typeof body.talla_id === 'string' && body.talla_id ? body.talla_id : null
   }
@@ -65,6 +69,10 @@ function normalizarUpdate(body: ProductoUpdateInput) {
   // Si se cambia a insumo o masa vía payload completo, forzar precio null
   if ((body.tipo === 'insumo' || body.tipo === 'masa') && body.precio === undefined) {
     patch.precio = null
+  }
+  // Solo la comida sin variantes se puede contar como los vasos
+  if ((body.tipo !== undefined && body.tipo !== 'comida') || body.tiene_variantes === true) {
+    patch.conteo_inventario = false
   }
   if (body.tipo === 'vaso' && body.unidad === undefined) {
     patch.unidad = null

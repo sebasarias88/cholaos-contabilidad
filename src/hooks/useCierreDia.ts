@@ -11,12 +11,13 @@ import {
   productosPorTalla,
   validarCierre,
   type EstadoCierreForm,
+  type FilaBebida,
   type FilaInsumo,
   type FilaMasa,
   type FilaVaso,
 } from '@/lib/cierre/estado'
 import { vendidosReales } from '@/lib/cierre/ventas-vasos'
-import { tipoProducto } from '@/lib/productos-ui'
+import { esBebidaContada, tipoProducto } from '@/lib/productos-ui'
 import { toastError, toastLoading, toastSuccess } from '@/lib/toast'
 import type { DatosCierre, GuardarCierreResponse, Rol } from '@/types'
 
@@ -81,7 +82,8 @@ export function useCierreDia({ fecha, rol }: { fecha: string; rol: Rol }) {
 
   const porTalla = useMemo(() => productosPorTalla(productos), [productos])
   const productosComida = useMemo(
-    () => productos.filter((p) => p.activo && tipoProducto(p) === 'comida'),
+    // Las bebidas que se cuentan como los vasos van en su propio paso
+    () => productos.filter((p) => p.activo && tipoProducto(p) === 'comida' && !esBebidaContada(p)),
     [productos]
   )
   const items = useMemo(() => itemsVendidos(estado, productos), [estado, productos])
@@ -100,6 +102,10 @@ export function useCierreDia({ fecha, rol }: { fecha: string; rol: Rol }) {
   const vasosVendidos = useMemo(
     () => estado.vasos.reduce((s, f) => s + vendidosReales(f), 0),
     [estado.vasos]
+  )
+  const bebidasVendidas = useMemo(
+    () => estado.bebidas.reduce((s, f) => s + vendidosReales(f), 0),
+    [estado.bebidas]
   )
 
   // ---------- Mutaciones ----------
@@ -139,6 +145,17 @@ export function useCierreDia({ fecha, rol }: { fecha: string; rol: Rol }) {
       setEstado((e) => ({
         ...e,
         insumos: e.insumos.map((f) =>
+          f.producto_id === productoId ? { ...f, [campo]: valor } : f
+        ),
+      })),
+    []
+  )
+
+  const actualizarBebida = useCallback(
+    <K extends keyof FilaBebida>(productoId: string, campo: K, valor: FilaBebida[K]) =>
+      setEstado((e) => ({
+        ...e,
+        bebidas: e.bebidas.map((f) =>
           f.producto_id === productoId ? { ...f, [campo]: valor } : f
         ),
       })),
@@ -305,10 +322,12 @@ export function useCierreDia({ fecha, rol }: { fecha: string; rol: Rol }) {
     porTalla,
     cuadre,
     vasosVendidos,
+    bebidasVendidas,
     actualizar,
     actualizarVaso,
     actualizarDesglose,
     actualizarInsumo,
+    actualizarBebida,
     actualizarMasa,
     cambiarVariante,
     cambiarComida,

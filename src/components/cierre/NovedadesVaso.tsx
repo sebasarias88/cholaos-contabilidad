@@ -9,6 +9,8 @@ interface NovedadesVasoProps {
   novedades: NovedadVasoInput[]
   motivos: MotivoNovedad[]
   disabled?: boolean
+  /** Texto del encabezado (ej. "Vasos no vendidos", "Unidades no vendidas") */
+  etiqueta?: string
   onChange: (novedades: NovedadVasoInput[]) => void
 }
 
@@ -62,6 +64,7 @@ export function NovedadesVaso({
   novedades,
   motivos,
   disabled = false,
+  etiqueta = 'Vasos no vendidos',
   onChange,
 }: NovedadesVasoProps) {
   const totalNovedades = novedades.reduce((s, n) => s + n.cantidad, 0)
@@ -104,7 +107,7 @@ export function NovedadesVaso({
       <div className="flex items-center justify-between gap-2">
         <div className="flex min-w-0 items-center gap-1.5">
           <AlertTriangle size={13} className="text-warn shrink-0" aria-hidden />
-          <span className="text-text-secondary text-xs font-medium">Vasos no vendidos</span>
+          <span className="text-text-secondary text-xs font-medium">{etiqueta}</span>
         </div>
         {!disabled && (
           <button type="button" onClick={agregar} className="btn-add-dashed-amber">

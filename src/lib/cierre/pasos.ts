@@ -2,7 +2,7 @@ import type { EstadoCierreForm } from '@/lib/cierre/estado'
 import { desgloseCuadra } from '@/lib/cierre/ventas-vasos'
 import type { Producto } from '@/types'
 
-export type IdPaso = 'vasos' | 'comida' | 'masas' | 'insumos' | 'caja' | 'revisar'
+export type IdPaso = 'vasos' | 'bebidas' | 'comida' | 'masas' | 'insumos' | 'caja' | 'revisar'
 export type EstadoPaso = 'completo' | 'parcial' | 'pendiente' | 'neutral'
 
 export interface Paso {
@@ -40,6 +40,25 @@ export function calcularPasos(
           ? 'parcial'
           : 'pendiente',
   })
+
+  if (estado.bebidas.length > 0) {
+    const contadas = estado.bebidas.filter((b) => b.cantidad_final !== null).length
+    const conError = estado.bebidas.some(
+      (b) =>
+        b.cantidad_final !== null && b.cantidad_final > b.cantidad_inicio + (b.cantidad_nuevos ?? 0)
+    )
+    pasos.push({
+      id: 'bebidas',
+      titulo: 'Bebidas',
+      detalle: `${contadas} de ${estado.bebidas.length} contadas`,
+      estado:
+        contadas === estado.bebidas.length && !conError
+          ? 'completo'
+          : contadas > 0
+            ? 'parcial'
+            : 'pendiente',
+    })
+  }
 
   if (opciones.hayComida) {
     const unidades =
@@ -117,6 +136,7 @@ export function calcularPasos(
 export function pasoDeError(error: string): IdPaso {
   const e = error.toLowerCase()
   if (e.startsWith('masas de pizza')) return 'masas'
+  if (e.startsWith('bebidas')) return 'bebidas'
   if (
     e.includes('dinero') ||
     e.includes('gasto') ||

@@ -16,6 +16,8 @@ export type ProductoFormState = {
   precio: string
   descripcion: string
   tiene_variantes: boolean
+  /** Solo comida sin variantes: se cuenta como los vasos */
+  conteo_inventario: boolean
   variantes: VarianteFormDraft[]
   /** '' = crear vaso nuevo; uuid = reutilizar talla existente */
   talla_id: string
@@ -32,6 +34,7 @@ export const formVacio = (): ProductoFormState => ({
   precio: '',
   descripcion: '',
   tiene_variantes: false,
+  conteo_inventario: false,
   variantes: [],
   talla_id: '',
   tipo_vaso: 'normal',
@@ -49,6 +52,7 @@ export function formDesdeProducto(p: Producto): ProductoFormState {
     precio: p.precio != null ? String(p.precio) : '',
     descripcion: p.descripcion ?? '',
     tiene_variantes: Boolean(p.tiene_variantes),
+    conteo_inventario: Boolean(p.conteo_inventario),
     variantes: variantesActivas.map((v) => ({
       id: v.id,
       nombre: v.nombre,
@@ -73,6 +77,7 @@ export function construirPayloadProducto(form: ProductoFormState) {
       precio: Number(form.precio),
       unidad: null,
       tiene_variantes: false,
+      conteo_inventario: false,
       talla_id: creandoNueva ? null : form.talla_id,
       crear_talla: creandoNueva,
       tipo_vaso: form.tipo_vaso,
@@ -88,6 +93,7 @@ export function construirPayloadProducto(form: ProductoFormState) {
       precio: tiene ? null : Number(form.precio),
       onzas: null,
       tiene_variantes: tiene,
+      conteo_inventario: tiene ? false : form.conteo_inventario,
       talla_id: null,
     }
   }
@@ -99,6 +105,7 @@ export function construirPayloadProducto(form: ProductoFormState) {
     precio: null,
     onzas: null,
     tiene_variantes: false,
+    conteo_inventario: false,
     talla_id: null,
   }
 }

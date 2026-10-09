@@ -46,6 +46,15 @@ export const BADGE_TIPO: Record<TipoProducto, { label: string; className: string
   },
 }
 
+/** Comida que se cuenta como los vasos (inicio, llegaron, quedan) en vez de sumarla a mano */
+export function esBebidaContada(p: {
+  tipo?: TipoProducto | string | null
+  conteo_inventario?: boolean | null
+  tiene_variantes?: boolean | null
+}): boolean {
+  return p.tipo === 'comida' && Boolean(p.conteo_inventario) && !p.tiene_variantes
+}
+
 /** Insumos y masas solo llevan conteo: no tienen precio ni generan venta */
 export function esSoloConteo(tipo: TipoProducto | string | null | undefined): boolean {
   return tipo === 'insumo' || tipo === 'masa'
