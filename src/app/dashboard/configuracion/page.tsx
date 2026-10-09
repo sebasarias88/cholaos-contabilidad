@@ -17,7 +17,7 @@ export default async function ConfiguracionPage() {
     <div className="flex min-w-0 flex-col gap-6 p-4 sm:p-6 lg:p-8">
       <EncabezadoPagina
         titulo="Configuración"
-        descripcion="Equipo, medios de pago, motivos de novedad y tu cuenta."
+        descripcion="Equipo, personas de los descuentos, medios de pago, motivos de novedad y tu cuenta."
       />
       <ConfiguracionPanel usuario={usuario} email={user?.email ?? ''} />
     </div>

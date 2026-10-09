@@ -277,13 +277,59 @@ export interface DomicilioDia {
   created_at: string
 }
 
+export type TipoPersonaDescuento = 'empleado' | 'familia' | 'cliente'
+
+/** Persona a la que se le descuenta (no es una cuenta de usuario) */
+export interface PersonaDescuento {
+  id: string
+  nombre: string
+  tipo: TipoPersonaDescuento
+  activo: boolean
+  created_at: string
+  /** Solo en la lista del admin: cuántos descuentos tiene */
+  total_descuentos?: number
+}
+
 /** Fiado, consumo o préstamo que no se pagó: se descuenta del total del cierre */
 export interface DescuentoDia {
   id: string
   cierre_id: string
+  persona_id: string | null
+  persona?: Pick<PersonaDescuento, 'id' | 'nombre' | 'tipo'> | null
+  /** Concepto (opcional): "Coca-Cola", "Préstamo"… */
   descripcion: string
   monto: number
+  /** Si ya se descontó del sueldo */
+  liquidacion_id: string | null
   created_at: string
+}
+
+/** Descuentos de una persona que el admin ya descontó del sueldo */
+export interface LiquidacionDescuento {
+  id: string
+  persona_id: string
+  desde: string
+  hasta: string
+  total: number
+  nota: string | null
+  created_at: string
+}
+
+/** Fila del reporte de descuentos por persona */
+export interface DescuentoReporte {
+  id: string
+  fecha: string
+  persona_id: string | null
+  descripcion: string
+  monto: number
+  liquidacion: Pick<LiquidacionDescuento, 'id' | 'desde' | 'hasta' | 'total' | 'created_at'> | null
+}
+
+export interface ReporteDescuentos {
+  personas: PersonaDescuento[]
+  descuentos: DescuentoReporte[]
+  /** Pendiente de fechas anteriores al periodo, por persona (monto y fecha más antigua) */
+  pendienteAnterior: Record<string, { monto: number; desde: string }>
 }
 
 export interface NuevoDomicilio {
@@ -463,7 +509,7 @@ export interface GuardarCierrePayload {
   gastos: NuevoGasto[]
   transferencias: { medio_id: string; monto: number }[]
   domicilios: NuevoDomicilio[]
-  descuentos: { descripcion: string; monto: number }[]
+  descuentos: { id?: string; persona_id: string; descripcion: string; monto: number }[]
   vasos: ConteoVasoPayload[]
   insumos: ConteoInsumoPayload[]
   masas: ConteoMasaPayload[]

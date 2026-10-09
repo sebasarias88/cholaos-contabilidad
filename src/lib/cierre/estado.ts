@@ -59,6 +59,13 @@ export function masasUsadas(fila: Pick<FilaMasa, 'cantidad_inicio' | 'cantidad_f
 export type LineaMovimiento = { id: string; descripcion: string; monto: number }
 export type LineaTransferencia = LineaMovimiento & { medio_id: string }
 
+/** Descuento de una persona; si ya se descontó del sueldo no se puede cambiar */
+export type LineaDescuento = LineaMovimiento & {
+  persona_id: string
+  persona_nombre: string
+  liquidado: boolean
+}
+
 export interface EstadoCierreForm {
   vasos: FilaVaso[]
   bebidas: FilaBebida[]
@@ -70,7 +77,7 @@ export interface EstadoCierreForm {
   transferencias: LineaTransferencia[]
   domicilios: LineaMovimiento[]
   /** Fiados, consumos y préstamos que se descuentan del total */
-  descuentos: LineaMovimiento[]
+  descuentos: LineaDescuento[]
   /** Base con la que cerró el día anterior */
   dineroBase: number
   /** Base nueva si el dueño sacó o metió plata (null = sigue la de anoche) */
@@ -326,8 +333,11 @@ export function estadoDesdeDatos(datos: DatosCierre): EstadoCierreForm {
     })),
     descuentos: (cierre?.descuentos ?? []).map((d) => ({
       id: d.id,
-      descripcion: d.descripcion,
+      persona_id: d.persona_id ?? '',
+      persona_nombre: d.persona?.nombre ?? '',
+      descripcion: d.descripcion ?? '',
       monto: Number(d.monto),
+      liquidado: Boolean(d.liquidacion_id),
     })),
     domicilios: (cierre?.domicilios ?? []).map((d) => ({
       id: d.id,
@@ -357,7 +367,10 @@ export function construirPayload(
     observaciones: estado.observaciones.trim() || undefined,
     gastos: estado.gastos.map(({ descripcion, monto }) => ({ descripcion, monto })),
     transferencias: estado.transferencias.map(({ medio_id, monto }) => ({ medio_id, monto })),
-    descuentos: estado.descuentos.map(({ descripcion, monto }) => ({
+    descuentos: estado.descuentos.map(({ id, persona_id, descripcion, monto }) => ({
+      // El id solo sirve para reconocer los que ya se descontaron del sueldo
+      ...(id.startsWith('tmp-') ? {} : { id }),
+      persona_id,
       descripcion: descripcion.trim(),
       monto,
     })),
@@ -512,8 +525,8 @@ export function validarCierre(
 
   const gastoSinDescripcion = estado.gastos.some((g) => !g.descripcion.trim())
   if (gastoSinDescripcion) errores.push('Hay un gasto sin descripción')
-  if (estado.descuentos.some((d) => !d.descripcion.trim())) {
-    errores.push('Hay un descuento sin descripción (ej. quién o qué)')
+  if (estado.descuentos.some((d) => !d.persona_id)) {
+    errores.push('Hay un descuento sin persona (elige a quién se le descuenta)')
   }
   if (
     [...estado.gastos, ...estado.transferencias, ...estado.domicilios, ...estado.descuentos].some(

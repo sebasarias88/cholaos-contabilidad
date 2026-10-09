@@ -9,7 +9,7 @@ export const CIERRE_SELECT = `
   gastos:gastos_dia(*),
   transferencias:transferencias_dia(*, medio:medios_transferencia(nombre)),
   domicilios:domicilios_dia(*),
-  descuentos:descuentos_dia(*),
+  descuentos:descuentos_dia(*, persona:personas_descuento(id, nombre, tipo)),
   conteo_vasos:conteo_vasos(
     *,
     talla:tallas_vasos(*),
@@ -108,6 +108,8 @@ export function normalizarPayloadCierre(raw: Record<string, unknown>): GuardarCi
       monto: num(t.monto) ?? 0,
     })),
     descuentos: arr(raw.descuentos).map((d) => ({
+      ...(str(d.id) ? { id: str(d.id) } : {}),
+      persona_id: str(d.persona_id),
       descripcion: str(d.descripcion),
       monto: num(d.monto) ?? 0,
     })),

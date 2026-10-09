@@ -2,18 +2,20 @@
 
 import { useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
-import { Smartphone, Tags, User, Users } from 'lucide-react'
+import { HandCoins, Smartphone, Tags, User, Users } from 'lucide-react'
 import { GestionEquipo } from '@/components/configuracion/GestionEquipo'
 import { GestionMediosTransferencia } from '@/components/configuracion/GestionMediosTransferencia'
+import { GestionPersonas } from '@/components/configuracion/GestionPersonas'
 import { GestionMotivosNovedad } from '@/components/configuracion/GestionMotivosNovedad'
 import { MiCuenta } from '@/components/configuracion/MiCuenta'
 import { fadeUp, staggerContainer } from '@/lib/animations'
 import type { Usuario } from '@/types'
 
-type Tab = 'equipo' | 'motivos' | 'transferencias' | 'cuenta'
+type Tab = 'equipo' | 'personas' | 'motivos' | 'transferencias' | 'cuenta'
 
 const TABS: { id: Tab; label: string; icon: typeof Users }[] = [
   { id: 'equipo', label: 'Equipo', icon: Users },
+  { id: 'personas', label: 'Personas', icon: HandCoins },
   { id: 'motivos', label: 'Motivos', icon: Tags },
   { id: 'transferencias', label: 'Transferencias', icon: Smartphone },
   { id: 'cuenta', label: 'Mi cuenta', icon: User },
@@ -80,6 +82,7 @@ export function ConfiguracionPanel({ usuario: usuarioInicial, email }: Configura
           transition={{ duration: 0.2 }}
         >
           {tab === 'equipo' && <GestionEquipo usuarioActualId={usuario.id} />}
+          {tab === 'personas' && <GestionPersonas />}
           {tab === 'motivos' && <GestionMotivosNovedad />}
           {tab === 'transferencias' && <GestionMediosTransferencia />}
           {tab === 'cuenta' && (

@@ -37,6 +37,8 @@ const NOMBRES_TABLA: Record<string, string> = {
   transferencias_dia: 'Transferencias',
   domicilios_dia: 'Domicilios',
   descuentos_dia: 'Descuentos',
+  personas_descuento: 'Personas (descuentos)',
+  liquidaciones_descuento: 'Descuentos del sueldo',
   ventas: 'Ventas',
   detalle_ventas: 'Detalle de ventas',
   ventas_comida: 'Ventas de comida',

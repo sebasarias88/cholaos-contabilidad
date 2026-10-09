@@ -57,15 +57,15 @@ type Totales = {
   promedioDiario: number
 }
 
-function fechaLarga(iso: string) {
+export function fechaLarga(iso: string) {
   return format(fechaComoDate(iso), "d 'de' MMMM yyyy", { locale: es })
 }
 
-function fechaCorta(iso: string) {
+export function fechaCorta(iso: string) {
   return format(fechaComoDate(iso), 'dd/MM/yyyy')
 }
 
-function pesos(n: number) {
+export function pesos(n: number) {
   return new Intl.NumberFormat('es-CO', {
     style: 'currency',
     currency: 'COP',
@@ -146,11 +146,13 @@ export function descuentosDetalle(cierres: CierreDia[]) {
     .flatMap((c) =>
       (c.descuentos ?? []).map((d) => ({
         fecha: c.fecha,
-        descripcion: d.descripcion,
+        persona: d.persona?.nombre ?? '',
+        descripcion: d.descripcion ?? '',
         monto: Number(d.monto),
+        estado: d.liquidacion_id ? 'Descontado' : 'Pendiente',
       }))
     )
-    .sort((a, b) => a.fecha.localeCompare(b.fecha))
+    .sort((a, b) => a.fecha.localeCompare(b.fecha) || a.persona.localeCompare(b.persona, 'es'))
 }
 
 /** Masas y unidades de pizza de cada día cerrado: empezó, terminó, masas y usadas */
@@ -180,7 +182,7 @@ function nombreArchivo(data: ExportReportesInput, ext: string) {
   return `reporte-ventas_${data.desde}_${data.hasta}.${ext}`
 }
 
-function descargar(blob: Blob, nombre: string) {
+export function descargar(blob: Blob, nombre: string) {
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
   a.href = url
@@ -315,8 +317,10 @@ async function exportarExcel(data: ExportReportesInput) {
     const ds = wb.addWorksheet('Descuentos')
     ds.columns = [
       { header: 'Fecha', key: 'fecha', width: 12 },
-      { header: 'Descripción', key: 'descripcion', width: 40 },
+      { header: 'Persona', key: 'persona', width: 22 },
+      { header: 'Concepto', key: 'descripcion', width: 30 },
       { header: 'Monto', key: 'monto', width: 14 },
+      { header: 'Sueldo', key: 'estado', width: 13 },
     ]
     estilizarEncabezado(ds.getRow(1))
     for (const d of descuentos) ds.addRow({ ...d, fecha: fechaCorta(d.fecha) })
@@ -531,9 +535,15 @@ async function exportarPdf(data: ExportReportesInput) {
       theme: 'striped',
       headStyles: { fillColor: marca },
       styles: { fontSize: 8 },
-      columnStyles: { 2: { halign: 'right' } },
-      head: [['Fecha', 'Descripción', 'Monto']],
-      body: descuentosPdf.map((d) => [fechaCorta(d.fecha), d.descripcion, pesos(d.monto)]),
+      columnStyles: { 3: { halign: 'right' } },
+      head: [['Fecha', 'Persona', 'Concepto', 'Monto', 'Sueldo']],
+      body: descuentosPdf.map((d) => [
+        fechaCorta(d.fecha),
+        d.persona,
+        d.descripcion,
+        pesos(d.monto),
+        d.estado,
+      ]),
     })
   }
 

@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import { ReportesDashboard } from '@/components/reportes/ReportesDashboard'
+import { ReportesPanel } from '@/components/reportes/ReportesPanel'
 import { requireAdmin } from '@/lib/auth'
 import { EncabezadoPagina } from '@/components/ui/EncabezadoPagina'
 
@@ -12,9 +12,9 @@ export default async function ReportesPage() {
     <div className="flex min-w-0 flex-col gap-6 p-4 sm:p-6 lg:p-8">
       <EncabezadoPagina
         titulo="Reportes"
-        descripcion="Ingresos y ventas del período que elijas. Exporta a Excel o PDF."
+        descripcion="Ventas del período y descuentos por persona. Exporta a Excel o PDF."
       />
-      <ReportesDashboard />
+      <ReportesPanel />
     </div>
   )
 }
