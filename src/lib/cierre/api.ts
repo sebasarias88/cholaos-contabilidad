@@ -9,6 +9,7 @@ export const CIERRE_SELECT = `
   gastos:gastos_dia(*),
   transferencias:transferencias_dia(*, medio:medios_transferencia(nombre)),
   domicilios:domicilios_dia(*),
+  descuentos:descuentos_dia(*),
   conteo_vasos:conteo_vasos(
     *,
     talla:tallas_vasos(*),
@@ -35,7 +36,8 @@ export function sanitizarCierreParaEmpleado(cierre: CierreDia): CierreDiaEmplead
     cierre.total_ventas -
     cierre.total_transferencias -
     cierre.total_gastos -
-    Number(cierre.total_domicilios ?? 0)
+    Number(cierre.total_domicilios ?? 0) -
+    Number(cierre.total_descuentos ?? 0)
 
   return {
     id: cierre.id,
@@ -47,6 +49,7 @@ export function sanitizarCierreParaEmpleado(cierre: CierreDia): CierreDiaEmplead
     total_transferencias: cierre.total_transferencias,
     total_gastos: cierre.total_gastos,
     total_domicilios: Number(cierre.total_domicilios ?? 0),
+    total_descuentos: Number(cierre.total_descuentos ?? 0),
     efectivo_final_esperado: efectivo,
     diferencia_caja: cierre.dinero_final - efectivo,
     cuadre_ok: cierre.dinero_final === efectivo,
@@ -55,6 +58,7 @@ export function sanitizarCierreParaEmpleado(cierre: CierreDia): CierreDiaEmplead
     gastos: cierre.gastos,
     transferencias: cierre.transferencias,
     domicilios: cierre.domicilios,
+    descuentos: cierre.descuentos,
     conteo_vasos: cierre.conteo_vasos,
     ventas_variantes: cierre.ventas_variantes,
     ventas_comida: cierre.ventas_comida,
@@ -102,6 +106,10 @@ export function normalizarPayloadCierre(raw: Record<string, unknown>): GuardarCi
     transferencias: arr(raw.transferencias).map((t) => ({
       medio_id: str(t.medio_id),
       monto: num(t.monto) ?? 0,
+    })),
+    descuentos: arr(raw.descuentos).map((d) => ({
+      descripcion: str(d.descripcion),
+      monto: num(d.monto) ?? 0,
     })),
     domicilios: arr(raw.domicilios).map((d) => ({
       descripcion: str(d.descripcion) || undefined,

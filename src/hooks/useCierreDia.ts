@@ -99,6 +99,7 @@ export function useCierreDia({ fecha, rol }: { fecha: string; rol: Rol }) {
         transferencias: estado.transferencias,
         gastos: estado.gastos,
         domicilios: estado.domicilios,
+        descuentos: estado.descuentos,
       }),
     [estado, items]
   )
@@ -235,6 +236,19 @@ export function useCierreDia({ fecha, rol }: { fecha: string; rol: Rol }) {
       quitarTransferencia: (id: string) =>
         setEstado((e) => ({ ...e, transferencias: e.transferencias.filter((t) => t.id !== id) })),
 
+      agregarDescuento: (descripcion: string, monto: number) =>
+        setEstado((e) => ({
+          ...e,
+          descuentos: [...e.descuentos, { id: idTemporal(), descripcion, monto }],
+        })),
+      editarDescuento: (id: string, descripcion: string, monto: number) =>
+        setEstado((e) => ({
+          ...e,
+          descuentos: e.descuentos.map((d) => (d.id === id ? { ...d, descripcion, monto } : d)),
+        })),
+      quitarDescuento: (id: string) =>
+        setEstado((e) => ({ ...e, descuentos: e.descuentos.filter((d) => d.id !== id) })),
+
       agregarDomicilio: (descripcion: string, monto: number) =>
         setEstado((e) => ({
           ...e,
@@ -254,8 +268,9 @@ export function useCierreDia({ fecha, rol }: { fecha: string; rol: Rol }) {
   // ---------- Guardar ----------
   /** Devuelve los errores que impiden guardar (vacío = se puede) */
   const validar = useCallback(
-    (finalizar: boolean) => validarCierre(estado, productos, finalizar),
-    [estado, productos]
+    (finalizar: boolean) =>
+      validarCierre(estado, productos, finalizar, { correccion: esCorreccion }),
+    [estado, productos, esCorreccion]
   )
 
   const guardar = useCallback(

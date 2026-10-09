@@ -118,8 +118,8 @@ export function TarjetaCajas({
         exceso ? 'border-bad/50' : sinContar ? 'border-brand/25' : 'border-bg-border',
       ].join(' ')}
     >
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
+      <div className="flex flex-wrap items-start justify-between gap-x-3 gap-y-2">
+        <div className="min-w-0 flex-1 basis-40">
           <p className="font-display text-text-primary text-lg leading-tight font-bold">{titulo}</p>
           <p className="text-text-secondary mt-0.5 text-[13px] font-semibold">
             Caja de {porCaja} unidades

@@ -89,7 +89,7 @@ export function PasoRevisar({
         </motion.section>
       )}
 
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
+      <div className="grid grid-cols-2 gap-3 @3xl:grid-cols-3">
         <Dato label="Vasos vendidos" valor={vasosVendidos} />
         {estado.bebidas.length > 0 && <Dato label="Bebidas vendidas" valor={bebidasVendidas} />}
         <Dato label="Comida vendida" valor={comida} />
@@ -108,6 +108,9 @@ export function PasoRevisar({
           valor={cuadre.totalGastos + cuadre.totalTransferencias + cuadre.totalDomicilios}
           pesos
         />
+        {cuadre.totalDescuentos > 0 && (
+          <Dato label="Descuentos (fiados, préstamos)" valor={cuadre.totalDescuentos} pesos />
+        )}
         <Dato label="Debe haber en caja" valor={cuadre.efectivoEsperado} pesos />
         <Dato label="Dinero contado" valor={estado.dineroFinal} pesos />
       </div>

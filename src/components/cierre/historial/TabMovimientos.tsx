@@ -7,9 +7,19 @@ export function TabMovimientos({ cierre }: { cierre: CierreDia }) {
   const gastos = cierre.gastos ?? []
   const transferencias = cierre.transferencias ?? []
   const domicilios = cierre.domicilios ?? []
+  const descuentos = cierre.descuentos ?? []
 
-  if (gastos.length === 0 && transferencias.length === 0 && domicilios.length === 0) {
-    return <p className="text-text-muted text-sm">Sin gastos, transferencias ni domicilios.</p>
+  if (
+    gastos.length === 0 &&
+    transferencias.length === 0 &&
+    domicilios.length === 0 &&
+    descuentos.length === 0
+  ) {
+    return (
+      <p className="text-text-muted text-sm">
+        Sin gastos, transferencias, domicilios ni descuentos.
+      </p>
+    )
   }
 
   return (
@@ -32,6 +42,14 @@ export function TabMovimientos({ cierre }: { cierre: CierreDia }) {
             Domicilio{d.descripcion ? ` — ${d.descripcion}` : ''}
           </span>
           <span className="text-text-secondary shrink-0 tabular-nums">{formatPesos(d.monto)}</span>
+        </li>
+      ))}
+      {descuentos.map((d) => (
+        <li key={d.id} className="flex justify-between gap-3 py-2.5 text-sm">
+          <span className="text-text-primary">Descuento — {d.descripcion}</span>
+          <span className="text-warn shrink-0 font-semibold tabular-nums">
+            −{formatPesos(d.monto)}
+          </span>
         </li>
       ))}
     </ul>

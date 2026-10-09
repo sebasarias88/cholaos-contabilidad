@@ -32,6 +32,8 @@ type FilaDia = {
   gastos: number
   transferencias: number
   domicilios: number
+  /** Fiados, consumos y préstamos descontados ese día */
+  descuentos: number
   base: number
   /** Plata sacada de la base ese día (negativo = se metió) */
   retiro: number
@@ -47,6 +49,7 @@ type Totales = {
   gastos: number
   transferencias: number
   domicilios: number
+  descuentos: number
   diferencia: number
   retiroBase: number
   diasConCierre: number
@@ -77,8 +80,14 @@ export function construirFilas(data: ExportReportesInput): { dias: FilaDia[]; to
     .sort((a, b) => a.fecha.localeCompare(b.fecha))
     .map((c) => {
       const domicilios = Number(c.total_domicilios ?? 0)
+      const descuentos = Number(c.total_descuentos ?? 0)
       const esperado =
-        c.dinero_base_inicio + c.total_ventas - c.total_transferencias - c.total_gastos - domicilios
+        c.dinero_base_inicio +
+        c.total_ventas -
+        c.total_transferencias -
+        c.total_gastos -
+        domicilios -
+        descuentos
       return {
         fecha: c.fecha,
         ventas: c.total_ventas,
@@ -86,6 +95,7 @@ export function construirFilas(data: ExportReportesInput): { dias: FilaDia[]; to
         gastos: c.total_gastos,
         transferencias: c.total_transferencias,
         domicilios,
+        descuentos,
         base: c.dinero_base_inicio,
         retiro: retiroBase(c),
         esperado,
@@ -110,6 +120,7 @@ export function construirFilas(data: ExportReportesInput): { dias: FilaDia[]; to
       gastos: suma('gastos'),
       transferencias: suma('transferencias'),
       domicilios: suma('domicilios'),
+      descuentos: suma('descuentos'),
       diferencia: suma('diferencia'),
       retiroBase: suma('retiro'),
       diasConCierre: dias.length,
@@ -124,6 +135,20 @@ function gastosDetalle(cierres: CierreDia[]) {
     .filter((c) => c.estado === 'cerrado')
     .flatMap((c) =>
       (c.gastos ?? []).map((g) => ({ fecha: c.fecha, descripcion: g.descripcion, monto: g.monto }))
+    )
+    .sort((a, b) => a.fecha.localeCompare(b.fecha))
+}
+
+/** Fiados, consumos y préstamos de cada día cerrado */
+export function descuentosDetalle(cierres: CierreDia[]) {
+  return cierres
+    .filter((c) => c.estado === 'cerrado')
+    .flatMap((c) =>
+      (c.descuentos ?? []).map((d) => ({
+        fecha: c.fecha,
+        descripcion: d.descripcion,
+        monto: Number(d.monto),
+      }))
     )
     .sort((a, b) => a.fecha.localeCompare(b.fecha))
 }
@@ -221,6 +246,7 @@ async function exportarExcel(data: ExportReportesInput) {
     { header: 'Gastos', key: 'gastos', width: 13 },
     { header: 'Transferencias', key: 'transferencias', width: 15 },
     { header: 'Domicilios', key: 'domicilios', width: 13 },
+    { header: 'Descuentos', key: 'descuentos', width: 13 },
     { header: 'Base inicio', key: 'base', width: 13 },
     { header: 'Retiro base', key: 'retiro', width: 13 },
     { header: 'Esperado', key: 'esperado', width: 13 },
@@ -237,6 +263,7 @@ async function exportarExcel(data: ExportReportesInput) {
     gastos: totales.gastos,
     transferencias: totales.transferencias,
     domicilios: totales.domicilios,
+    descuentos: totales.descuentos,
     retiro: totales.retiroBase,
     diferencia: totales.diferencia,
   })
@@ -246,6 +273,7 @@ async function exportarExcel(data: ExportReportesInput) {
     'gastos',
     'transferencias',
     'domicilios',
+    'descuentos',
     'base',
     'retiro',
     'esperado',
@@ -280,6 +308,20 @@ async function exportarExcel(data: ExportReportesInput) {
   estilizarEncabezado(gs.getRow(1))
   for (const g of gastosDetalle(data.cierres)) gs.addRow({ ...g, fecha: fechaCorta(g.fecha) })
   gs.getColumn('monto').numFmt = FMT_PESOS
+
+  // Descuentos (fiados, consumos, préstamos)
+  const descuentos = descuentosDetalle(data.cierres)
+  if (descuentos.length > 0) {
+    const ds = wb.addWorksheet('Descuentos')
+    ds.columns = [
+      { header: 'Fecha', key: 'fecha', width: 12 },
+      { header: 'Descripción', key: 'descripcion', width: 40 },
+      { header: 'Monto', key: 'monto', width: 14 },
+    ]
+    estilizarEncabezado(ds.getRow(1))
+    for (const d of descuentos) ds.addRow({ ...d, fecha: fechaCorta(d.fecha) })
+    ds.getColumn('monto').numFmt = FMT_PESOS
+  }
 
   // Masas de pizza (solo conteo, sin dinero)
   const masas = masasDetalle(data.cierres)
@@ -345,6 +387,7 @@ async function exportarPdf(data: ExportReportesInput) {
         'Gastos',
         'Transferencias',
         'Domicilios',
+        'Descuentos',
         'Retiro de base',
         'Diferencia caja',
       ],
@@ -358,6 +401,7 @@ async function exportarPdf(data: ExportReportesInput) {
         pesos(totales.gastos),
         pesos(totales.transferencias),
         pesos(totales.domicilios),
+        pesos(totales.descuentos),
         pesos(totales.retiroBase),
         pesos(totales.diferencia),
       ],
@@ -468,6 +512,28 @@ async function exportarPdf(data: ExportReportesInput) {
       columnStyles: { 2: { halign: 'right' } },
       head: [['Fecha', 'Descripción', 'Monto']],
       body: gastos.map((g) => [fechaCorta(g.fecha), g.descripcion, pesos(g.monto)]),
+    })
+  }
+
+  const descuentosPdf = descuentosDetalle(data.cierres)
+  if (descuentosPdf.length > 0) {
+    y = siguienteY()
+    if (y > doc.internal.pageSize.getHeight() - 90) {
+      doc.addPage()
+      y = 50
+    }
+    doc.setFont('helvetica', 'bold')
+    doc.setFontSize(11)
+    doc.text('Descuentos (fiados, consumos, préstamos)', margen, y)
+    autoTable(doc, {
+      startY: y + 8,
+      margin: { left: margen, right: margen },
+      theme: 'striped',
+      headStyles: { fillColor: marca },
+      styles: { fontSize: 8 },
+      columnStyles: { 2: { halign: 'right' } },
+      head: [['Fecha', 'Descripción', 'Monto']],
+      body: descuentosPdf.map((d) => [fechaCorta(d.fecha), d.descripcion, pesos(d.monto)]),
     })
   }
 

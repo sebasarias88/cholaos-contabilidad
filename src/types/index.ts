@@ -168,6 +168,8 @@ export interface CierreDia {
   total_transferencias: number
   total_gastos: number
   total_domicilios: number
+  /** Fiados, consumos o préstamos: se descuentan de lo que debe haber en caja */
+  total_descuentos?: number
   total_ventas: number // SOLO visible para admin
   efectivo_esperado: number // campo generado por Postgres
   diferencia: number // campo generado por Postgres
@@ -184,6 +186,7 @@ export interface CierreDia {
   gastos?: GastoDia[]
   transferencias?: TransferenciaDia[]
   domicilios?: DomicilioDia[]
+  descuentos?: DescuentoDia[]
   conteo_vasos?: ConteoVaso[]
   ventas_variantes?: VentaVarianteCierre[]
   ventas_comida?: VentaComidaCierre[]
@@ -199,6 +202,8 @@ export interface CierreDiaEmpleado {
   total_transferencias: number
   total_gastos: number
   total_domicilios: number
+  /** Fiados, consumos o préstamos: se descuentan de lo que debe haber en caja */
+  total_descuentos?: number
   observaciones?: string
   // NO incluye: total_ventas, efectivo_esperado, diferencia
   base_anterior?: number | null
@@ -210,6 +215,7 @@ export interface CierreDiaEmpleado {
   gastos?: GastoDia[]
   transferencias?: TransferenciaDia[]
   domicilios?: DomicilioDia[]
+  descuentos?: DescuentoDia[]
   conteo_vasos?: ConteoVaso[]
   ventas_variantes?: VentaVarianteCierre[]
   ventas_comida?: VentaComidaCierre[]
@@ -267,6 +273,15 @@ export interface DomicilioDia {
   id: string
   cierre_id: string
   descripcion?: string | null
+  monto: number
+  created_at: string
+}
+
+/** Fiado, consumo o préstamo que no se pagó: se descuenta del total del cierre */
+export interface DescuentoDia {
+  id: string
+  cierre_id: string
+  descripcion: string
   monto: number
   created_at: string
 }
@@ -448,6 +463,7 @@ export interface GuardarCierrePayload {
   gastos: NuevoGasto[]
   transferencias: { medio_id: string; monto: number }[]
   domicilios: NuevoDomicilio[]
+  descuentos: { descripcion: string; monto: number }[]
   vasos: ConteoVasoPayload[]
   insumos: ConteoInsumoPayload[]
   masas: ConteoMasaPayload[]

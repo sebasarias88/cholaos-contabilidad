@@ -90,10 +90,10 @@ Preferir `@/components/ui/*` sobre clases sueltas: `Button`, `Input`, `InputPeso
 
 ## Variables de entorno (Vercel: tipo **Sensitive**, sin prefijo `NEXT_PUBLIC_`)
 
-| Variable | Uso |
-|----------|-----|
-| `SUPABASE_URL` | URL del proyecto — solo servidor |
-| `SUPABASE_ANON_KEY` | Anon key — proxy, SSR, API routes |
+| Variable                    | Uso                                                              |
+| --------------------------- | ---------------------------------------------------------------- |
+| `SUPABASE_URL`              | URL del proyecto — solo servidor                                 |
+| `SUPABASE_ANON_KEY`         | Anon key — proxy, SSR, API routes                                |
 | `SUPABASE_SERVICE_ROLE_KEY` | Solo `/api/usuarios` (crear, bloquear, eliminar cuentas de Auth) |
 
 Copia `.env.example` → `.env` en local. Auth del navegador va por `/api/auth` (POST login, PATCH contraseña, DELETE logout).
@@ -117,6 +117,8 @@ Siempre `hoyColombia()` / `fechaColombia()` de `@/lib/fechas` (America/Bogota). 
 - Reglas del cierre: un cierre nuevo (o un borrador que se finaliza) debe ser **posterior al último cierre cerrado**; corregir un día cerrado no cambia su fecha ni recalcula los días siguientes; un cierre cerrado no vuelve a borrador.
 - `limpiar_datos` siempre conserva el último cierre (es la base del inventario).
 - Tipos de producto: `vaso`, `comida`, `insumo`, `masa`. Insumo y masa son solo conteo (sin precio, `esSoloConteo()`).
+- Descuentos (`descuentos_dia`, `cierres_dia.total_descuentos`): fiados, consumos o préstamos que se registraron pero no se pagaron. Se restan de lo que debe haber en caja (`efectivo_esperado` y `diferencia` son columnas generadas que ya los restan).
+- Diseño del cierre: la barra de pasos es una línea de progreso (`PasosCierre`); el contenido usa container queries (`@container`, `@3xl:`) para no montarse en monitores angostos; la Caja en vivo es sticky.
 - Adiciones: comida sin variantes con `productos.es_adicion` → sección Adiciones del paso Comida.
 - Insumos por cajas: `productos.unidades_por_caja` (ej. Barquillo = 24). En el cierre se escribe cajas + unidades; en la BD todo se guarda en unidades (`lib/cajas.ts`).
 - Masas y unidades: `productos.lleva_masas` agrega el campo "Masas" (`conteo_vasos.numero_masas`), obligatorio al finalizar.
@@ -144,7 +146,7 @@ Siempre `hoyColombia()` / `fechaColombia()` de `@/lib/fechas` (America/Bogota). 
 - `src/hooks/useCierreDia.ts` — estado y acciones del cierre (guardar avance / finalizar)
 - `src/hooks/useApiGet.ts`, `useRangoFechas.ts`, `useMenuAcciones.ts` — datos, filtros de período y menús
 - `src/components/cierre/` — `FormCierreDia` compone `CierreEncabezado`, `TablaVasos`, `SeccionComida`, `TablaInsumos`, `caja/PasoCaja`, `PasoRevisar`; historial en `historial/`
-- `src/components/cierre/` — el cierre es un asistente por pasos (`lib/cierre/pasos.ts` + `PasosCierre`): Vasos, Bebidas, Comida, Masas y unidades, Insumos, Caja, Revisar; a un lado `caja/CajaEnVivo` y en celular `caja/BarraMovil`
+- `src/components/cierre/` — el cierre es un asistente por pasos (`lib/cierre/pasos.ts` + `PasosCierre`): Vasos, Comida (bebidas contadas + ventas de comida/adiciones + insumos, `PasoComida`), Masas y unidades, Caja, Revisar; a un lado `caja/CajaEnVivo` y en celular `caja/BarraMovil`
 - `src/components/dashboard/` — Inicio (estado del cierre de hoy, KPIs, barras de 7 días)
 - `src/components/ui/` — componentes base (ver arriba) y `MenuAccionesPortal` (+ `MenuItem`), `BotonAcciones`
 
@@ -161,17 +163,16 @@ El admin crea cuentas en `/dashboard/configuracion` → pestaña Equipo (contras
 
 Imágenes del negocio para UI, marketing o branding. **Ruta en código:** `/images/<archivo>` (carpeta `public/images/`, no `src/public`).
 
-| Archivo | Uso típico |
-|---------|------------|
-| `icons/icon-512.png`, `icons/icon-192.png` | PWA, favicon |
-| `cholao-hero.jpg` | Login: arriba en celular, panel izquierdo en PC |
+| Archivo                                    | Uso típico                                      |
+| ------------------------------------------ | ----------------------------------------------- |
+| `icons/icon-512.png`, `icons/icon-192.png` | PWA, favicon                                    |
+| `cholao-hero.jpg`                          | Login: arriba en celular, panel izquierdo en PC |
 
 ```tsx
 import Image from 'next/image'
 
-<Image src="/icons/icon-512.png" alt="Cholao Oscar" width={64} height={64} />
+;<Image src="/icons/icon-512.png" alt="Cholao Oscar" width={64} height={64} />
 ```
-
 
 ### Favicon e iconos PWA (desde `logo.JPG`)
 

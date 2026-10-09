@@ -69,6 +69,8 @@ export interface EstadoCierreForm {
   gastos: LineaMovimiento[]
   transferencias: LineaTransferencia[]
   domicilios: LineaMovimiento[]
+  /** Fiados, consumos y préstamos que se descuentan del total */
+  descuentos: LineaMovimiento[]
   /** Base con la que cerró el día anterior */
   dineroBase: number
   /** Base nueva si el dueño sacó o metió plata (null = sigue la de anoche) */
@@ -87,6 +89,7 @@ export const ESTADO_VACIO: EstadoCierreForm = {
   gastos: [],
   transferencias: [],
   domicilios: [],
+  descuentos: [],
   dineroBase: 0,
   baseNueva: null,
   dineroFinal: 0,
@@ -321,6 +324,11 @@ export function estadoDesdeDatos(datos: DatosCierre): EstadoCierreForm {
       descripcion: t.medio?.nombre ?? t.descripcion,
       monto: t.monto,
     })),
+    descuentos: (cierre?.descuentos ?? []).map((d) => ({
+      id: d.id,
+      descripcion: d.descripcion,
+      monto: Number(d.monto),
+    })),
     domicilios: (cierre?.domicilios ?? []).map((d) => ({
       id: d.id,
       descripcion: d.descripcion?.trim() ?? '',
@@ -349,6 +357,10 @@ export function construirPayload(
     observaciones: estado.observaciones.trim() || undefined,
     gastos: estado.gastos.map(({ descripcion, monto }) => ({ descripcion, monto })),
     transferencias: estado.transferencias.map(({ medio_id, monto }) => ({ medio_id, monto })),
+    descuentos: estado.descuentos.map(({ descripcion, monto }) => ({
+      descripcion: descripcion.trim(),
+      monto,
+    })),
     domicilios: estado.domicilios.map(({ descripcion, monto }) => ({
       descripcion: descripcion.trim() || undefined,
       monto,
@@ -406,7 +418,9 @@ function listar(nombres: string[]) {
 export function validarCierre(
   estado: EstadoCierreForm,
   productos: Producto[],
-  finalizar: boolean
+  finalizar: boolean,
+  /** Al corregir un día antiguo no se exigen datos que en ese momento no existían */
+  opciones: { correccion?: boolean } = {}
 ): string[] {
   const errores: string[] = []
   const etiqueta = (tallaId: string) =>
@@ -415,9 +429,14 @@ export function validarCierre(
   if (finalizar) {
     const sinContar = [
       ...estado.vasos.filter((f) => f.cantidad_final === null).map((f) => etiquetaVaso(f)),
-      ...estado.insumos.filter((f) => f.cantidad_final === null).map((f) => f.producto.nombre),
     ]
     if (sinContar.length > 0) errores.push(`Falta el conteo final de: ${listar(sinContar)}`)
+    const insumosSinContar = estado.insumos
+      .filter((f) => f.cantidad_final === null)
+      .map((f) => f.producto.nombre)
+    if (insumosSinContar.length > 0) {
+      errores.push(`Insumos: falta el conteo final de ${listar(insumosSinContar)}`)
+    }
   }
 
   for (const f of estado.vasos) {
@@ -443,7 +462,7 @@ export function validarCierre(
     if (f.cantidad_final > disponible) {
       const fmt = (n: number) => formatCajas(n, f.producto.unidades_por_caja)
       errores.push(
-        `${f.producto.nombre}: el final (${fmt(f.cantidad_final)}) es mayor que lo disponible (${fmt(disponible)})`
+        `Insumos — ${f.producto.nombre}: el final (${fmt(f.cantidad_final)}) es mayor que lo disponible (${fmt(disponible)})`
       )
     }
   }
@@ -471,7 +490,13 @@ export function validarCierre(
   }
 
   if (finalizar) {
-    const sinAnotar = estado.masas.filter(masaIncompleta).map((f) => f.producto.nombre)
+    const sinAnotar = estado.masas
+      .filter((f) =>
+        opciones.correccion
+          ? f.cantidad_inicio === null || f.cantidad_final === null
+          : masaIncompleta(f)
+      )
+      .map((f) => f.producto.nombre)
     if (sinAnotar.length > 0) {
       errores.push(`Masas y unidades: falta anotar ${listar(sinAnotar)}`)
     }
@@ -487,8 +512,13 @@ export function validarCierre(
 
   const gastoSinDescripcion = estado.gastos.some((g) => !g.descripcion.trim())
   if (gastoSinDescripcion) errores.push('Hay un gasto sin descripción')
+  if (estado.descuentos.some((d) => !d.descripcion.trim())) {
+    errores.push('Hay un descuento sin descripción (ej. quién o qué)')
+  }
   if (
-    [...estado.gastos, ...estado.transferencias, ...estado.domicilios].some((m) => m.monto <= 0)
+    [...estado.gastos, ...estado.transferencias, ...estado.domicilios, ...estado.descuentos].some(
+      (m) => m.monto <= 0
+    )
   ) {
     errores.push('Hay movimientos de caja con monto en 0')
   }

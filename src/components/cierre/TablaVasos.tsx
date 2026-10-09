@@ -35,7 +35,7 @@ export function TablaVasos({
   onAbrirNovedades,
 }: TablaVasosProps) {
   return (
-    <ul className="grid gap-4 md:grid-cols-2 2xl:grid-cols-3">
+    <ul className="grid gap-4 @3xl:grid-cols-2 @6xl:grid-cols-3">
       {filas.map((fila) => {
         const productos = productosPorTalla[fila.talla_id] ?? []
         const vendidos = vendidosReales(fila)

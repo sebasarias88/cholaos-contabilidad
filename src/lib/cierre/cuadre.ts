@@ -6,6 +6,8 @@ export type CuadreInput = {
   transferencias: { monto: number }[]
   gastos: { monto: number }[]
   domicilios: { monto: number }[]
+  /** Fiados, consumos y préstamos (opcional para cierres antiguos) */
+  descuentos?: { monto: number }[]
 }
 
 export type Cuadre = {
@@ -13,6 +15,7 @@ export type Cuadre = {
   totalTransferencias: number
   totalGastos: number
   totalDomicilios: number
+  totalDescuentos: number
   efectivoEsperado: number
   diferencia: number
   cuadreOk: boolean
@@ -25,8 +28,14 @@ export function calcularCuadre(input: CuadreInput): Cuadre {
   const totalTransferencias = suma(input.transferencias)
   const totalGastos = suma(input.gastos)
   const totalDomicilios = suma(input.domicilios)
+  const totalDescuentos = suma(input.descuentos ?? [])
   const efectivoEsperado =
-    input.dineroBaseInicio + totalVentas - totalTransferencias - totalGastos - totalDomicilios
+    input.dineroBaseInicio +
+    totalVentas -
+    totalTransferencias -
+    totalGastos -
+    totalDomicilios -
+    totalDescuentos
   const diferencia = input.dineroFinal - efectivoEsperado
 
   return {
@@ -34,6 +43,7 @@ export function calcularCuadre(input: CuadreInput): Cuadre {
     totalTransferencias,
     totalGastos,
     totalDomicilios,
+    totalDescuentos,
     efectivoEsperado,
     diferencia,
     cuadreOk: diferencia === 0,

@@ -19,7 +19,7 @@ export function TablaInsumos({
   onChange: <K extends keyof FilaInsumo>(productoId: string, campo: K, valor: FilaInsumo[K]) => void
 }) {
   return (
-    <ul className="grid gap-4 md:grid-cols-2 2xl:grid-cols-3">
+    <ul className="grid gap-4 @3xl:grid-cols-2 @6xl:grid-cols-3">
       {filas.map((fila) =>
         fila.producto.unidades_por_caja ? (
           <TarjetaCajas
