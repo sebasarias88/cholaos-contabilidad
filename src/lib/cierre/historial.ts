@@ -29,12 +29,15 @@ export function getEstadoCuadre(diferencia: number): EstadoCuadreHistorial {
   return 'sobra'
 }
 
+/** Solo vasos (filas con talla): no cuenta bebidas, masas ni insumos */
 export function totalVasosGastadosCierre(conteo: ConteoVaso[] | undefined) {
   return (
-    conteo?.reduce(
-      (s, c) => s + Math.max(0, c.cantidad_inicio + c.cantidad_nuevos - (c.cantidad_final ?? 0)),
-      0
-    ) ?? 0
+    conteo
+      ?.filter((c) => c.talla_id)
+      .reduce(
+        (s, c) => s + Math.max(0, c.cantidad_inicio + c.cantidad_nuevos - (c.cantidad_final ?? 0)),
+        0
+      ) ?? 0
   )
 }
 

@@ -67,6 +67,8 @@ export interface Producto {
   orden: number
   talla_id?: string // solo para tipo 'vaso'
   tiene_variantes: boolean
+  /** Comida que se cuenta como los vasos (inicio, llegaron, quedan): ej. gaseosas, agua */
+  conteo_inventario?: boolean
   talla?: TallaVaso
   variantes?: VarianteProducto[] // join opcional
   created_at: string
@@ -88,6 +90,8 @@ export interface ProductoUpdateInput {
   talla_descripcion?: string | null
   activo?: boolean
   tiene_variantes?: boolean
+  /** Solo comida sin variantes: se cuenta como los vasos en el cierre */
+  conteo_inventario?: boolean
 }
 
 /** Join en GET /api/ventas */
@@ -397,6 +401,14 @@ export interface ConteoInsumoPayload {
   cantidad_final: number | null
 }
 
+/** Bebidas contadas como los vasos: vendidos = inicio + llegaron − quedan − novedades */
+export interface ConteoBebidaPayload {
+  producto_id: string
+  cantidad_nuevos: number
+  cantidad_final: number | null
+  novedades: NovedadVasoInput[]
+}
+
 /** Masas de pizza: el usuario escribe con cuántas empezó y con cuántas terminó */
 export interface ConteoMasaPayload {
   producto_id: string
@@ -418,6 +430,7 @@ export interface GuardarCierrePayload {
   vasos: ConteoVasoPayload[]
   insumos: ConteoInsumoPayload[]
   masas: ConteoMasaPayload[]
+  bebidas: ConteoBebidaPayload[]
   ventas_comida: VentaComidaInput[]
   ventas_variantes: VentaVarianteInput[]
 }

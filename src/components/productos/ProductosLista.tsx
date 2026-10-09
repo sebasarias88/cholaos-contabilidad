@@ -2,7 +2,7 @@
 
 import { BotonAcciones } from '@/components/ui/BotonAcciones'
 import { BadgeTipo, ProductoEstado, ProductoPrecio } from '@/components/productos/ProductoCeldas'
-import { medidaProducto, tipoProducto } from '@/lib/productos-ui'
+import { esBebidaContada, medidaProducto, tipoProducto } from '@/lib/productos-ui'
 import type { Producto } from '@/types'
 
 export type EdicionPrecio = {
@@ -45,6 +45,11 @@ export function ProductosLista({
                     <p className="text-text-primary leading-snug font-bold">{p.nombre}</p>
                     <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
                       <BadgeTipo tipo={tipo} />
+                      {esBebidaContada(p) && (
+                        <span className="badge-warn" title="En el cierre se cuenta como los vasos">
+                          Se cuenta
+                        </span>
+                      )}
                       <span className="text-text-secondary text-xs tabular-nums">
                         {medidaProducto(p)}
                       </span>
@@ -109,7 +114,14 @@ export function ProductosLista({
                 <tr key={p.id}>
                   <td className="col-name text-text-primary font-bold">{p.nombre}</td>
                   <td className="col-compact">
-                    <BadgeTipo tipo={tipo} />
+                    <span className="inline-flex flex-wrap items-center gap-1.5">
+                      <BadgeTipo tipo={tipo} />
+                      {esBebidaContada(p) && (
+                        <span className="badge-warn" title="En el cierre se cuenta como los vasos">
+                          Se cuenta
+                        </span>
+                      )}
+                    </span>
                   </td>
                   <td className="col-compact text-text-secondary tabular-nums">
                     {medidaProducto(p)}

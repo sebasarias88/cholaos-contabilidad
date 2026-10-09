@@ -13,6 +13,7 @@ import { PasosCierre } from '@/components/cierre/PasosCierre'
 import { SeccionComida } from '@/components/cierre/SeccionComida'
 import { TablaInsumos } from '@/components/cierre/TablaInsumos'
 import { TablaMasas } from '@/components/cierre/TablaMasas'
+import { TablaBebidas } from '@/components/cierre/TablaBebidas'
 import { TablaVasos } from '@/components/cierre/TablaVasos'
 import { Celebracion } from '@/components/ui/Celebracion'
 import { Skeleton } from '@/components/ui/Skeleton'
@@ -27,6 +28,8 @@ import type { Rol } from '@/types'
 const AYUDA: Record<IdPaso, string> = {
   vasos:
     'Cuenta cuántos vasos llegaron y cuántos quedan. Presiona Enter para pasar a la siguiente casilla.',
+  bebidas:
+    'Igual que los vasos: cuántas llegaron y cuántas quedan. Las vendidas se calculan solas.',
   comida: 'Suma lo que se vendió de comida, bebidas y adiciones.',
   masas:
     'Anota con cuántas masas de pizza empezó y con cuántas terminó cada tamaño (no suman a las ventas).',
@@ -46,7 +49,10 @@ export function FormCierreDia({ rol, fecha }: FormCierreDiaProps) {
   const { estado, porTalla, bloqueado, esAdmin, datos, esCorreccion } = cierre
   const [paso, setPaso] = useState<IdPaso>('vasos')
   const [direccion, setDireccion] = useState(1)
-  const [novedadesTallaId, setNovedadesTallaId] = useState<string | null>(null)
+  // Novedades de un vaso (talla) o de una bebida contada (producto)
+  const [novedadesDe, setNovedadesDe] = useState<{ tipo: 'vaso' | 'bebida'; id: string } | null>(
+    null
+  )
   const [celebrar, setCelebrar] = useState<{ detalle: string } | null>(null)
 
   // Avisar antes de salir con cambios sin guardar
@@ -109,7 +115,15 @@ export function FormCierreDia({ rol, fecha }: FormCierreDiaProps) {
     }
   }
 
-  const filaNovedades = estado.vasos.find((f) => f.talla_id === novedadesTallaId) ?? null
+  const vasoNovedades =
+    novedadesDe?.tipo === 'vaso'
+      ? (estado.vasos.find((f) => f.talla_id === novedadesDe.id) ?? null)
+      : null
+  const bebidaNovedades =
+    novedadesDe?.tipo === 'bebida'
+      ? (estado.bebidas.find((f) => f.producto_id === novedadesDe.id) ?? null)
+      : null
+  const novedadesAbiertas = vasoNovedades ?? bebidaNovedades
 
   if (cierre.loading && !datos) {
     return (
@@ -175,9 +189,18 @@ export function FormCierreDia({ rol, fecha }: FormCierreDiaProps) {
                     productosPorTalla={porTalla}
                     onChange={cierre.actualizarVaso}
                     onDesgloseChange={cierre.actualizarDesglose}
-                    onAbrirNovedades={setNovedadesTallaId}
+                    onAbrirNovedades={(id) => setNovedadesDe({ tipo: 'vaso', id })}
                   />
                 ))}
+              {paso === 'bebidas' && (
+                <TablaBebidas
+                  filas={estado.bebidas}
+                  esAdmin={esAdmin}
+                  disabled={bloqueado}
+                  onChange={cierre.actualizarBebida}
+                  onAbrirNovedades={(id) => setNovedadesDe({ tipo: 'bebida', id })}
+                />
+              )}
               {paso === 'comida' && (
                 <SeccionComida
                   productos={cierre.productosComida}
@@ -231,14 +254,22 @@ export function FormCierreDia({ rol, fecha }: FormCierreDiaProps) {
       />
 
       <NovedadesDrawer
-        open={!!filaNovedades}
-        titulo={etiquetaVaso(filaNovedades ?? undefined)}
-        novedades={filaNovedades?.novedades ?? []}
+        open={!!novedadesAbiertas}
+        titulo={
+          bebidaNovedades
+            ? bebidaNovedades.producto.nombre
+            : etiquetaVaso(vasoNovedades ?? undefined)
+        }
+        unidad={bebidaNovedades ? 'unidades' : 'vasos'}
+        novedades={novedadesAbiertas?.novedades ?? []}
         motivos={datos.motivos}
         disabled={bloqueado}
-        onClose={() => setNovedadesTallaId(null)}
+        onClose={() => setNovedadesDe(null)}
         onChange={(novedades) => {
-          if (novedadesTallaId) cierre.actualizarVaso(novedadesTallaId, 'novedades', novedades)
+          if (novedadesDe?.tipo === 'vaso')
+            cierre.actualizarVaso(novedadesDe.id, 'novedades', novedades)
+          if (novedadesDe?.tipo === 'bebida')
+            cierre.actualizarBebida(novedadesDe.id, 'novedades', novedades)
         }}
       />
 

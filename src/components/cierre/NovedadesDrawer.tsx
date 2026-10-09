@@ -10,6 +10,8 @@ interface NovedadesDrawerProps {
   novedades: NovedadVasoInput[]
   motivos: MotivoNovedad[]
   disabled?: boolean
+  /** Cómo se llaman las unidades en el texto ("vasos", "unidades") */
+  unidad?: string
   onClose: () => void
   onChange: (novedades: NovedadVasoInput[]) => void
 }
@@ -21,6 +23,7 @@ export function NovedadesDrawer({
   novedades,
   motivos,
   disabled = false,
+  unidad = 'vasos',
   onClose,
   onChange,
 }: NovedadesDrawerProps) {
@@ -29,9 +32,14 @@ export function NovedadesDrawer({
       open={open}
       onClose={onClose}
       title={`Novedades · ${titulo}`}
-      description="Vasos que se gastaron pero no se vendieron. Se descuentan de los vendidos."
+      description={
+        unidad === 'vasos'
+          ? 'Vasos que se gastaron pero no se vendieron. Se descuentan de los vendidos.'
+          : 'Unidades que salieron pero no se vendieron (dañadas, regaladas…). Se descuentan de las vendidas.'
+      }
     >
       <NovedadesVaso
+        etiqueta={unidad === 'vasos' ? 'Vasos no vendidos' : 'Unidades no vendidas'}
         novedades={novedades}
         motivos={motivos}
         disabled={disabled}

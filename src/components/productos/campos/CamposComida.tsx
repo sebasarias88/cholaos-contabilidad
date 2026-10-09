@@ -23,6 +23,7 @@ export function CamposComida({
     onChange({
       ...form,
       tiene_variantes: checked,
+      conteo_inventario: checked ? false : form.conteo_inventario,
       precio: checked ? '' : form.precio,
       variantes: checked
         ? form.variantes.length > 0
@@ -72,6 +73,22 @@ export function CamposComida({
           Tiene variantes de precio (Mesa, Para llevar, Paisa…)
         </span>
       </label>
+
+      {!form.tiene_variantes && (
+        <label className="border-bg-border bg-bg-elevated/40 flex cursor-pointer items-start gap-2.5 rounded-[var(--radius-md)] border px-3 py-3">
+          <input
+            type="checkbox"
+            checked={form.conteo_inventario}
+            onChange={(e) => onChange({ ...form, conteo_inventario: e.target.checked })}
+            className="border-bg-border mt-0.5 h-4 w-4 rounded accent-[var(--brand)]"
+          />
+          <span className="text-text-secondary text-sm leading-snug">
+            <span className="text-text-primary font-bold">Contar como los vasos</span> — en el
+            cierre se anota cuántas había, cuántas llegaron y cuántas quedan; lo vendido se calcula
+            solo (ej. gaseosas, agua).
+          </span>
+        </label>
+      )}
 
       {form.tiene_variantes ? (
         <div className="space-y-2">
