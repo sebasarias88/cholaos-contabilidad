@@ -1,5 +1,6 @@
 'use client'
 
+import { retiroBase } from '@/lib/cierre/base'
 import { getDiferenciaCierre } from '@/lib/cierre/historial'
 import { formatPesos } from '@/lib/utils'
 import type { CierreDia } from '@/types'
@@ -14,12 +15,36 @@ export function TabResumen({ cierre, esAdmin }: { cierre: CierreDia; esAdmin: bo
       cierre.total_gastos -
       (cierre.total_domicilios ?? 0)
 
+  const retiro = retiroBase(cierre)
+  const huboBaseNueva = cierre.base_nueva != null && cierre.base_anterior != null
+  const filasBase = huboBaseNueva
+    ? [
+        {
+          label: 'Base de anoche',
+          value: formatPesos(cierre.base_anterior ?? 0),
+          color: 'text-text-primary',
+        },
+        {
+          label: 'Base nueva',
+          value: formatPesos(cierre.base_nueva ?? 0),
+          color: 'text-text-primary',
+        },
+        {
+          label: retiro >= 0 ? 'Retiro de base' : 'Se metió a la base',
+          value: formatPesos(Math.abs(retiro)),
+          color: retiro >= 0 ? 'text-warn' : 'text-ok',
+        },
+      ]
+    : [
+        {
+          label: 'Base inicio',
+          value: formatPesos(cierre.dinero_base_inicio),
+          color: 'text-text-primary',
+        },
+      ]
+
   const movimientos = [
-    {
-      label: 'Base inicio',
-      value: formatPesos(cierre.dinero_base_inicio),
-      color: 'text-text-primary',
-    },
+    ...filasBase,
     {
       label: 'Ventas',
       value: formatPesos(cierre.total_ventas),
@@ -64,7 +89,9 @@ export function TabResumen({ cierre, esAdmin }: { cierre: CierreDia; esAdmin: bo
             ))}
           </div>
 
-          <div className="hidden md:grid md:grid-cols-5 md:gap-3">
+          <div
+            className={`hidden md:grid md:gap-3 ${huboBaseNueva ? 'md:grid-cols-4' : 'md:grid-cols-5'}`}
+          >
             {movimientos.map((s) => (
               <div
                 key={s.label}

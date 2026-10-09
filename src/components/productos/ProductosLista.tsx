@@ -50,6 +50,11 @@ export function ProductosLista({
                           Se cuenta
                         </span>
                       )}
+                      {p.es_adicion && <span className="badge-brand">Adición</span>}
+                      {p.unidades_por_caja ? (
+                        <span className="badge-warn">Caja de {p.unidades_por_caja}</span>
+                      ) : null}
+                      {p.lleva_masas && <span className="badge-warn">+ masas</span>}
                       <span className="text-text-secondary text-xs tabular-nums">
                         {medidaProducto(p)}
                       </span>
@@ -121,6 +126,11 @@ export function ProductosLista({
                           Se cuenta
                         </span>
                       )}
+                      {p.es_adicion && <span className="badge-brand">Adición</span>}
+                      {p.unidades_por_caja ? (
+                        <span className="badge-warn">Caja de {p.unidades_por_caja}</span>
+                      ) : null}
+                      {p.lleva_masas && <span className="badge-warn">+ masas</span>}
                     </span>
                   </td>
                   <td className="col-compact text-text-secondary tabular-nums">

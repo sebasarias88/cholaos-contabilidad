@@ -30,9 +30,9 @@ const AYUDA: Record<IdPaso, string> = {
     'Cuenta cuántos vasos llegaron y cuántos quedan. Presiona Enter para pasar a la siguiente casilla.',
   bebidas:
     'Igual que los vasos: cuántas llegaron y cuántas quedan. Las vendidas se calculan solas.',
-  comida: 'Suma lo que se vendió de comida, bebidas y adiciones.',
+  comida: 'Suma lo que se vendió de pizzas, otros productos y adiciones.',
   masas:
-    'Anota con cuántas masas de pizza empezó y con cuántas terminó cada tamaño (no suman a las ventas).',
+    'Anota con cuántas unidades empezó y terminó cada tamaño y, en Pizzeta, Mediana y Familiar, el número de masas (no suman a las ventas).',
   insumos: 'Cuenta los insumos que quedan (no suman a las ventas).',
   caja: 'Registra gastos, transferencias y domicilios, y cuenta el dinero de la caja.',
   revisar: 'Revisa el resumen. Si todo está bien, finaliza el cierre.',

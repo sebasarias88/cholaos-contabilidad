@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { baseEfectiva } from '@/lib/cierre/base'
 import { calcularCuadre } from '@/lib/cierre/cuadre'
 import {
   construirPayload,
@@ -78,6 +79,8 @@ export function useCierreDia({ fecha, rol }: { fecha: string; rol: Rol }) {
   const estadoCierre = cierre?.estado ?? null
   const esCorreccion = estadoCierre === 'cerrado'
   const bloqueado = esCorreccion && !(esAdmin && corrigiendo)
+  /** El empleado solo puede escribir la base nueva una vez (ya quedó guardada) */
+  const baseNuevaGuardada = cierre?.base_nueva != null
   const hayCambios = !loading && JSON.stringify(estado) !== guardadoJson
 
   const porTalla = useMemo(() => productosPorTalla(productos), [productos])
@@ -90,7 +93,7 @@ export function useCierreDia({ fecha, rol }: { fecha: string; rol: Rol }) {
   const cuadre = useMemo(
     () =>
       calcularCuadre({
-        dineroBaseInicio: estado.dineroBase,
+        dineroBaseInicio: baseEfectiva(estado),
         dineroFinal: estado.dineroFinal,
         itemsVendidos: items,
         transferencias: estado.transferencias,
@@ -165,7 +168,7 @@ export function useCierreDia({ fecha, rol }: { fecha: string; rol: Rol }) {
   const actualizarMasa = useCallback(
     (
       productoId: string,
-      campo: 'cantidad_inicio' | 'cantidad_final',
+      campo: 'cantidad_inicio' | 'cantidad_final' | 'numero_masas',
       valor: FilaMasa[typeof campo]
     ) =>
       setEstado((e) => ({
@@ -316,6 +319,7 @@ export function useCierreDia({ fecha, rol }: { fecha: string; rol: Rol }) {
     estadoCierre,
     esCorreccion,
     bloqueado,
+    baseNuevaGuardada,
     hayCambios,
     productos,
     productosComida,

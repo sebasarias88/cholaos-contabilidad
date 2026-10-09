@@ -95,7 +95,7 @@ export function PasoRevisar({
         <Dato label="Comida vendida" valor={comida} />
         {estado.masas.length > 0 && (
           <Dato
-            label="Masas de pizza usadas"
+            label="Unidades de pizza usadas"
             valor={estado.masas.reduce((s, m) => s + masasUsadas(m), 0)}
             tono="text-warn"
           />

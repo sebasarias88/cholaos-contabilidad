@@ -15,14 +15,15 @@ import { datosCierre, producto, PRODUCTOS } from './fixtures'
 
 const PORCION = producto({
   id: 'm-porcion',
-  nombre: 'Masa Porción',
+  nombre: 'Porción',
   tipo: 'masa',
   unidad: 'masa',
   orden: 1,
 })
 const FAMILIAR = producto({
   id: 'm-familiar',
-  nombre: 'Masa Familiar',
+  nombre: 'Unidades Familiar',
+  lleva_masas: true,
   tipo: 'masa',
   unidad: 'masa',
   orden: 4,
@@ -108,20 +109,25 @@ describe('masas de pizza', () => {
     e.masas[0].cantidad_final = 1
     const p = construirPayload(e, { fecha: '2026-10-07', esAdmin: false, finalizar: false })
     expect(p.masas).toEqual([
-      { producto_id: 'm-porcion', cantidad_inicio: 2, cantidad_final: 1 },
-      { producto_id: 'm-familiar', cantidad_inicio: null, cantidad_final: null },
+      { producto_id: 'm-porcion', cantidad_inicio: 2, cantidad_final: 1, numero_masas: null },
+      {
+        producto_id: 'm-familiar',
+        cantidad_inicio: null,
+        cantidad_final: null,
+        numero_masas: null,
+      },
     ])
   })
 
   it('al finalizar exige anotarlas y no permite terminar con más de las que empezó', () => {
     const e: EstadoCierreForm = estadoDesdeDatos(datos())
-    const faltan = validarCierre(e, CATALOGO, true).filter((x) => x.startsWith('Masas de pizza'))
-    expect(faltan).toEqual(['Masas de pizza: falta anotar Masa Porción, Masa Familiar'])
+    const faltan = validarCierre(e, CATALOGO, true).filter((x) => x.startsWith('Masas y unidades'))
+    expect(faltan).toEqual(['Masas y unidades: falta anotar Porción, Unidades Familiar'])
     expect(pasoDeError(faltan[0])).toBe('masas')
 
     e.masas[0] = { ...e.masas[0], cantidad_inicio: 3, cantidad_final: 5 }
     expect(validarCierre(e, CATALOGO, false)).toContain(
-      'Masas de pizza — Masa Porción: terminó con 5 y empezó con 3'
+      'Masas y unidades — Porción: terminó con 5 y empezó con 3'
     )
     // Guardar avance no exige las que faltan
     expect(validarCierre(e, CATALOGO, false).some((x) => x.includes('falta anotar'))).toBe(false)
@@ -146,20 +152,44 @@ describe('masas de pizza', () => {
       fecha: '2026-10-07',
       masas: [{ producto_id: 'm-porcion', cantidad_inicio: '5', cantidad_final: '1', precio: 9 }],
     })
-    expect(p.masas).toEqual([{ producto_id: 'm-porcion', cantidad_inicio: 5, cantidad_final: 1 }])
+    expect(p.masas).toEqual([
+      { producto_id: 'm-porcion', cantidad_inicio: 5, cantidad_final: 1, numero_masas: null },
+    ])
   })
 
   it('el reporte lista las masas de los días cerrados', () => {
     const filas = masasDetalle([
       cierre({
         estado: 'cerrado',
-        conteo_vasos: [conteoMasa('m-familiar', 4, 1), conteoMasa('m-porcion', 5, 1)],
+        conteo_vasos: [
+          { ...conteoMasa('m-familiar', 4, 1), numero_masas: 7 },
+          conteoMasa('m-porcion', 5, 1),
+        ],
       }),
       cierre({ fecha: '2026-10-08', conteo_vasos: [conteoMasa('m-porcion', 9, 0)] }),
     ])
     expect(filas).toEqual([
-      { fecha: '2026-10-07', masa: 'Masa Porción', empezo: 5, termino: 1, usadas: 4 },
-      { fecha: '2026-10-07', masa: 'Masa Familiar', empezo: 4, termino: 1, usadas: 3 },
+      { fecha: '2026-10-07', masa: 'Porción', empezo: 5, termino: 1, masas: null, usadas: 4 },
+      {
+        fecha: '2026-10-07',
+        masa: 'Unidades Familiar',
+        empezo: 4,
+        termino: 1,
+        masas: 7,
+        usadas: 3,
+      },
     ])
+  })
+
+  it('Pizzeta, Mediana y Familiar exigen el número de masas; Porción no', () => {
+    const e = estadoDesdeDatos(datos())
+    e.masas = e.masas.map((m) => ({ ...m, cantidad_inicio: 5, cantidad_final: 1 }))
+    expect(validarCierre(e, CATALOGO, true)).toContain(
+      'Masas y unidades: falta anotar Unidades Familiar'
+    )
+    e.masas[1] = { ...e.masas[1], numero_masas: 3 }
+    expect(validarCierre(e, CATALOGO, true).some((x) => x.startsWith('Masas'))).toBe(false)
+    const p = construirPayload(e, { fecha: '2026-10-07', esAdmin: false, finalizar: true })
+    expect(p.masas.map((m) => m.numero_masas)).toEqual([null, 3])
   })
 })

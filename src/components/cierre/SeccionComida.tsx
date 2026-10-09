@@ -49,7 +49,7 @@ function Fila({
   )
 }
 
-/** Ventas de comida: productos con variantes (pizza mesa / llevar…) y productos simples */
+/** Ventas de comida: productos con variantes (pizza mesa / llevar…), otros productos y adiciones */
 export function SeccionComida({
   productos,
   ventasVariantes,
@@ -102,32 +102,36 @@ export function SeccionComida({
         </motion.section>
       ))}
 
-      {simples.length > 0 && (
-        <motion.section
-          layout
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="card px-4 py-3 sm:px-5"
-        >
-          <h3 className="font-display text-text-primary pt-1 text-lg font-bold">
-            Bebidas y adiciones
-          </h3>
-          <div className="divide-bg-border divide-y">
-            {simples.map((p) => (
-              <Fila
-                key={p.id}
-                nombre={p.nombre}
-                detalle={p.descripcion}
-                precio={p.precio}
-                cantidad={cantidadComida(p.id)}
-                esAdmin={esAdmin}
-                disabled={disabled}
-                onChange={(n) => onComidaChange(p.id, n)}
-              />
-            ))}
-          </div>
-        </motion.section>
-      )}
+      {[
+        { titulo: 'Otros productos', lista: simples.filter((p) => !p.es_adicion) },
+        { titulo: 'Adiciones', lista: simples.filter((p) => p.es_adicion) },
+      ]
+        .filter((g) => g.lista.length > 0)
+        .map((g) => (
+          <motion.section
+            key={g.titulo}
+            layout
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="card px-4 py-3 sm:px-5"
+          >
+            <h3 className="font-display text-text-primary pt-1 text-lg font-bold">{g.titulo}</h3>
+            <div className="divide-bg-border divide-y">
+              {g.lista.map((p) => (
+                <Fila
+                  key={p.id}
+                  nombre={p.nombre}
+                  detalle={p.descripcion}
+                  precio={p.precio}
+                  cantidad={cantidadComida(p.id)}
+                  esAdmin={esAdmin}
+                  disabled={disabled}
+                  onChange={(n) => onComidaChange(p.id, n)}
+                />
+              ))}
+            </div>
+          </motion.section>
+        ))}
     </div>
   )
 }

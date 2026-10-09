@@ -61,6 +61,16 @@ function normalizarUpdate(body: ProductoUpdateInput) {
   if (body.conteo_inventario !== undefined) {
     patch.conteo_inventario = Boolean(body.conteo_inventario)
   }
+  if (body.es_adicion !== undefined) {
+    patch.es_adicion = Boolean(body.es_adicion)
+  }
+  if (body.unidades_por_caja !== undefined) {
+    const n = Number(body.unidades_por_caja)
+    patch.unidades_por_caja = body.unidades_por_caja !== null && n > 0 ? Math.floor(n) : null
+  }
+  if (body.lleva_masas !== undefined) {
+    patch.lleva_masas = Boolean(body.lleva_masas)
+  }
 
   if (body.talla_id !== undefined) {
     patch.talla_id = typeof body.talla_id === 'string' && body.talla_id ? body.talla_id : null
@@ -73,7 +83,10 @@ function normalizarUpdate(body: ProductoUpdateInput) {
   // Solo la comida sin variantes se puede contar como los vasos
   if ((body.tipo !== undefined && body.tipo !== 'comida') || body.tiene_variantes === true) {
     patch.conteo_inventario = false
+    patch.es_adicion = false
   }
+  if (body.tipo !== undefined && body.tipo !== 'insumo') patch.unidades_por_caja = null
+  if (body.tipo !== undefined && body.tipo !== 'masa') patch.lleva_masas = false
   if (body.tipo === 'vaso' && body.unidad === undefined) {
     patch.unidad = null
   }

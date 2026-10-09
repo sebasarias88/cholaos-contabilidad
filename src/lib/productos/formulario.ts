@@ -18,6 +18,12 @@ export type ProductoFormState = {
   tiene_variantes: boolean
   /** Solo comida sin variantes: se cuenta como los vasos */
   conteo_inventario: boolean
+  /** Comida sin variantes que va en Adiciones */
+  es_adicion: boolean
+  /** Insumo contado en cajas + unidades ('' = por unidades) */
+  unidades_por_caja: string
+  /** Masa que lleva el número de masas */
+  lleva_masas: boolean
   variantes: VarianteFormDraft[]
   /** '' = crear vaso nuevo; uuid = reutilizar talla existente */
   talla_id: string
@@ -35,6 +41,9 @@ export const formVacio = (): ProductoFormState => ({
   descripcion: '',
   tiene_variantes: false,
   conteo_inventario: false,
+  es_adicion: false,
+  unidades_por_caja: '',
+  lleva_masas: false,
   variantes: [],
   talla_id: '',
   tipo_vaso: 'normal',
@@ -53,6 +62,9 @@ export function formDesdeProducto(p: Producto): ProductoFormState {
     descripcion: p.descripcion ?? '',
     tiene_variantes: Boolean(p.tiene_variantes),
     conteo_inventario: Boolean(p.conteo_inventario),
+    es_adicion: Boolean(p.es_adicion),
+    unidades_por_caja: p.unidades_por_caja ? String(p.unidades_por_caja) : '',
+    lleva_masas: Boolean(p.lleva_masas),
     variantes: variantesActivas.map((v) => ({
       id: v.id,
       nombre: v.nombre,
@@ -78,6 +90,9 @@ export function construirPayloadProducto(form: ProductoFormState) {
       unidad: null,
       tiene_variantes: false,
       conteo_inventario: false,
+      es_adicion: false,
+      unidades_por_caja: null,
+      lleva_masas: false,
       talla_id: creandoNueva ? null : form.talla_id,
       crear_talla: creandoNueva,
       tipo_vaso: form.tipo_vaso,
@@ -94,6 +109,9 @@ export function construirPayloadProducto(form: ProductoFormState) {
       onzas: null,
       tiene_variantes: tiene,
       conteo_inventario: tiene ? false : form.conteo_inventario,
+      es_adicion: tiene || form.conteo_inventario ? false : form.es_adicion,
+      unidades_por_caja: null,
+      lleva_masas: false,
       talla_id: null,
     }
   }
@@ -106,6 +124,12 @@ export function construirPayloadProducto(form: ProductoFormState) {
     onzas: null,
     tiene_variantes: false,
     conteo_inventario: false,
+    es_adicion: false,
+    unidades_por_caja:
+      form.tipo === 'insumo' && Number(form.unidades_por_caja) > 0
+        ? Math.floor(Number(form.unidades_por_caja))
+        : null,
+    lleva_masas: form.tipo === 'masa' ? form.lleva_masas : false,
     talla_id: null,
   }
 }
@@ -138,6 +162,13 @@ export function validarFormProducto(form: ProductoFormState): string | null {
   }
   if (form.tipo === 'insumo' && !form.unidad.trim()) {
     return 'Indica la unidad'
+  }
+  if (
+    form.tipo === 'insumo' &&
+    form.unidades_por_caja.trim() !== '' &&
+    !(Number(form.unidades_por_caja) > 0)
+  ) {
+    return 'Las unidades por caja deben ser un número mayor a 0'
   }
   return null
 }

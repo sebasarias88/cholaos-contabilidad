@@ -3,9 +3,12 @@
 import { motion } from 'framer-motion'
 import { CampoNumero } from '@/components/cierre/TarjetaConteo'
 import { CheckAnimado } from '@/components/ui/CheckAnimado'
-import { masasUsadas, type FilaMasa } from '@/lib/cierre/estado'
+import { masaIncompleta, masasUsadas, type FilaMasa } from '@/lib/cierre/estado'
 
-/** Masas de pizza: con cuántas empezó y con cuántas terminó (no suma a las ventas) */
+/**
+ * Masas y unidades de pizza: con cuántas empezó y terminó, y (en Pizzeta, Mediana y
+ * Familiar) el número de masas. No suma a las ventas.
+ */
 export function TablaMasas({
   filas,
   disabled = false,
@@ -15,15 +18,19 @@ export function TablaMasas({
   disabled?: boolean
   onChange: (
     productoId: string,
-    campo: 'cantidad_inicio' | 'cantidad_final',
+    campo: 'cantidad_inicio' | 'cantidad_final' | 'numero_masas',
     valor: number | null
   ) => void
 }) {
   return (
     <ul className="grid gap-4 sm:grid-cols-2 2xl:grid-cols-4">
       {filas.map((fila, i) => {
-        const completa = fila.cantidad_inicio !== null && fila.cantidad_final !== null
-        const error = completa && fila.cantidad_final! > fila.cantidad_inicio!
+        const conMasas = Boolean(fila.producto.lleva_masas)
+        const completa = !masaIncompleta(fila)
+        const error =
+          fila.cantidad_inicio !== null &&
+          fila.cantidad_final !== null &&
+          fila.cantidad_final > fila.cantidad_inicio
         const usadas = masasUsadas(fila)
         return (
           <motion.li
@@ -50,7 +57,7 @@ export function TablaMasas({
               )}
             </div>
 
-            <div className="grid grid-cols-3 gap-2 sm:gap-3">
+            <div className={`grid gap-2 sm:gap-3 ${conMasas ? 'grid-cols-4' : 'grid-cols-3'}`}>
               <CampoNumero
                 etiqueta="Empezó con"
                 valor={fila.cantidad_inicio}
@@ -65,6 +72,15 @@ export function TablaMasas({
                 disabled={disabled}
                 resaltar={fila.cantidad_final === null}
               />
+              {conMasas && (
+                <CampoNumero
+                  etiqueta="Masas"
+                  valor={fila.numero_masas}
+                  onChange={(n) => onChange(fila.producto_id, 'numero_masas', n)}
+                  disabled={disabled}
+                  resaltar={fila.numero_masas === null}
+                />
+              )}
               <div className="flex min-w-0 flex-col gap-1.5">
                 <span className="text-text-secondary text-xs font-bold">Usadas</span>
                 <motion.span
@@ -75,15 +91,17 @@ export function TablaMasas({
                     error ? 'bg-bad-soft text-bad' : 'bg-warn-soft text-warn'
                   }`}
                 >
-                  {completa ? (error ? '!' : usadas) : '—'}
+                  {error
+                    ? '!'
+                    : fila.cantidad_final !== null && fila.cantidad_inicio !== null
+                      ? usadas
+                      : '—'}
                 </motion.span>
               </div>
             </div>
 
             {error && (
-              <p className="text-bad -mt-1 text-xs font-bold">
-                Terminó con más masas de las que empezó.
-              </p>
+              <p className="text-bad -mt-1 text-xs font-bold">Terminó con más de las que empezó.</p>
             )}
           </motion.li>
         )

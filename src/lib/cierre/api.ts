@@ -41,6 +41,8 @@ export function sanitizarCierreParaEmpleado(cierre: CierreDia): CierreDiaEmplead
     id: cierre.id,
     fecha: cierre.fecha,
     dinero_base_inicio: cierre.dinero_base_inicio,
+    base_anterior: cierre.base_anterior ?? null,
+    base_nueva: cierre.base_nueva ?? null,
     dinero_final: cierre.dinero_final,
     total_transferencias: cierre.total_transferencias,
     total_gastos: cierre.total_gastos,
@@ -90,6 +92,7 @@ export function normalizarPayloadCierre(raw: Record<string, unknown>): GuardarCi
     fecha: str(raw.fecha),
     finalizar: raw.finalizar !== false,
     dinero_base_inicio: num(raw.dinero_base_inicio) ?? undefined,
+    base_nueva: num(raw.base_nueva),
     dinero_final: num(raw.dinero_final),
     observaciones: str(raw.observaciones) || undefined,
     gastos: arr(raw.gastos).map((g) => ({
@@ -137,6 +140,7 @@ export function normalizarPayloadCierre(raw: Record<string, unknown>): GuardarCi
       producto_id: str(m.producto_id),
       cantidad_inicio: num(m.cantidad_inicio),
       cantidad_final: num(m.cantidad_final),
+      numero_masas: num(m.numero_masas),
     })),
     ventas_comida: arr(raw.ventas_comida).map((c) => ({
       producto_id: str(c.producto_id),

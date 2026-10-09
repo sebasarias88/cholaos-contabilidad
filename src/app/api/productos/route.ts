@@ -71,6 +71,10 @@ export async function POST(request: Request) {
   const talla_id = typeof body.talla_id === 'string' && body.talla_id ? body.talla_id : null
   const tiene_variantes = Boolean(body.tiene_variantes)
   const conteo_inventario = Boolean(body.conteo_inventario)
+  const es_adicion = Boolean(body.es_adicion)
+  const porCaja = Number(body.unidades_por_caja)
+  const unidades_por_caja = Number.isFinite(porCaja) && porCaja > 0 ? Math.floor(porCaja) : null
+  const lleva_masas = Boolean(body.lleva_masas)
 
   if (!nombre.trim()) {
     return NextResponse.json({ error: 'El nombre es requerido' }, { status: 400 })
@@ -107,6 +111,9 @@ export async function POST(request: Request) {
       talla_id: null,
       tiene_variantes: tipo === 'comida' ? tiene_variantes : false,
       conteo_inventario: tipo === 'comida' && !tiene_variantes ? conteo_inventario : false,
+      es_adicion: tipo === 'comida' && !tiene_variantes && !conteo_inventario ? es_adicion : false,
+      unidades_por_caja: tipo === 'insumo' ? unidades_por_caja : null,
+      lleva_masas: tipo === 'masa' ? lleva_masas : false,
     })
     .select('*, talla:tallas_vasos(*), variantes:variantes_producto(*)')
     .single()
