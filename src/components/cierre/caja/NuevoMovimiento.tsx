@@ -63,13 +63,14 @@ export function NuevoMovimiento(props: Props) {
   }
 
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex flex-wrap items-center gap-2">
       {props.tipo === 'transferencia' ? (
         <Select
           value={texto}
           onChange={setTexto}
           placeholder="Medio…"
           aria-label="Medio de transferencia"
+          className="basis-[11rem]"
           options={props.medios.map((m) => ({ value: m.id, label: m.nombre }))}
         />
       ) : (
@@ -79,14 +80,14 @@ export function NuevoMovimiento(props: Props) {
           onKeyDown={onEnter}
           placeholder={PLACEHOLDER[props.tipo]}
           aria-label="Descripción"
-          className="input placeholder:text-text-secondary min-w-0 flex-1"
+          className="input placeholder:text-text-secondary min-w-0 flex-1 basis-[11rem]"
         />
       )}
       <InputPeso
         value={monto}
         onChange={setMonto}
         placeholder="Monto $"
-        className="input placeholder:text-text-secondary w-28 shrink-0 tabular-nums sm:w-[7.5rem]"
+        className="input placeholder:text-text-secondary min-w-0 grow basis-28 tabular-nums sm:w-[7.5rem] sm:grow-0 sm:basis-auto"
         onKeyDown={onEnter}
       />
       <button

@@ -7,6 +7,7 @@ import {
   History,
   House,
   Package,
+  Pizza,
   Settings,
 } from 'lucide-react'
 import type { Rol } from '@/types'
@@ -34,6 +35,12 @@ export const NAV_LINKS: NavLinkConfig[] = [
     icon: ClipboardCheck,
     roles: ['admin', 'empleado'],
     exact: true,
+  },
+  {
+    href: '/dashboard/pizzeria',
+    label: 'Pizzería',
+    icon: Pizza,
+    roles: ['admin', 'empleado', 'pizzero'],
   },
   {
     href: '/dashboard/cierre/historial',
@@ -77,6 +84,7 @@ export const NAV_LINKS: NavLinkConfig[] = [
 const PAGE_TITLES: Record<string, string> = {
   '/dashboard': 'Inicio',
   '/dashboard/cierre': 'Cierre del día',
+  '/dashboard/pizzeria': 'Pizzería',
   '/dashboard/historial': 'Historial ventas',
   '/dashboard/cierre/historial': 'Historial cierres',
   '/dashboard/productos': 'Productos',

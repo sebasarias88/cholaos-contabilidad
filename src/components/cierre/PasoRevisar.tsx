@@ -1,11 +1,10 @@
 'use client'
 
 import { motion } from 'framer-motion'
-import { AlertTriangle, ArrowRight, PartyPopper } from 'lucide-react'
+import { AlertTriangle, ArrowRight, ClipboardList, PartyPopper } from 'lucide-react'
 import { NumeroAnimado } from '@/components/ui/NumeroAnimado'
 import { etiquetaCuadre } from '@/components/cierre/caja/etiquetaCuadre'
 import type { CierreDiaApi } from '@/hooks/useCierreDia'
-import { masasUsadas } from '@/lib/cierre/estado'
 import { pasoDeError, type IdPaso } from '@/lib/cierre/pasos'
 
 function Dato({
@@ -31,14 +30,67 @@ function Dato({
   )
 }
 
+function ListaRevision({
+  titulo,
+  descripcion,
+  icono,
+  items,
+  tono,
+  onIrA,
+}: {
+  titulo: string
+  descripcion?: string
+  icono: React.ReactNode
+  items: string[]
+  tono: 'bad' | 'warn'
+  onIrA: (paso: IdPaso) => void
+}) {
+  const estilos =
+    tono === 'bad'
+      ? { caja: 'border-bad/30 bg-bad-soft/60', texto: 'text-bad', boton: 'text-bad' }
+      : { caja: 'border-warn/30 bg-warn-soft/70', texto: 'text-warn', boton: 'text-warn' }
+  return (
+    <section className={`rounded-[var(--radius-lg)] border p-4 sm:p-5 ${estilos.caja}`}>
+      <p className={`flex items-center gap-2 font-extrabold ${estilos.texto}`}>
+        {icono}
+        {titulo}
+      </p>
+      {descripcion && <p className="text-text-secondary mt-1 text-sm">{descripcion}</p>}
+      <ul className="mt-3 flex flex-col gap-2">
+        {items.map((e, i) => (
+          <motion.li
+            key={e}
+            initial={{ opacity: 0, x: -8 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: i * 0.05 }}
+            className="bg-bg-surface flex items-center justify-between gap-3 rounded-[12px] px-3.5 py-2.5"
+          >
+            <span className="text-text-primary min-w-0 text-sm font-semibold break-words">{e}</span>
+            <button
+              type="button"
+              onClick={() => onIrA(pasoDeError(e))}
+              className={`focus-ring flex min-h-9 shrink-0 items-center gap-1 text-sm font-extrabold ${estilos.boton}`}
+            >
+              Ir <ArrowRight size={14} />
+            </button>
+          </motion.li>
+        ))}
+      </ul>
+    </section>
+  )
+}
+
 /** Último paso: lo que falta y el resumen antes de finalizar */
 export function PasoRevisar({
   cierre,
   errores,
+  avisos,
   onIrA,
 }: {
   cierre: CierreDiaApi
   errores: string[]
+  /** Lo que no se llenó: no impide cerrar */
+  avisos: string[]
   onIrA: (paso: IdPaso) => void
 }) {
   const { estado, cuadre, esAdmin, esCorreccion, vasosVendidos, bebidasVendidas } = cierre
@@ -49,40 +101,32 @@ export function PasoRevisar({
 
   return (
     <div className="flex flex-col gap-5">
-      {errores.length > 0 ? (
-        <section className="border-brand/30 bg-brand-soft/50 rounded-[var(--radius-lg)] border p-4 sm:p-5">
-          <p className="text-brand-strong flex items-center gap-2 font-extrabold">
-            <AlertTriangle size={18} />
-            Antes de cerrar falta:
-          </p>
-          <ul className="mt-3 flex flex-col gap-2">
-            {errores.map((e, i) => (
-              <motion.li
-                key={e}
-                initial={{ opacity: 0, x: -8 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: i * 0.05 }}
-                className="bg-bg-surface flex items-center justify-between gap-3 rounded-[12px] px-3.5 py-2.5"
-              >
-                <span className="text-text-primary text-sm font-semibold">{e}</span>
-                <button
-                  type="button"
-                  onClick={() => onIrA(pasoDeError(e))}
-                  className="focus-ring text-brand-strong flex shrink-0 items-center gap-1 text-sm font-extrabold"
-                >
-                  Ir <ArrowRight size={14} />
-                </button>
-              </motion.li>
-            ))}
-          </ul>
-        </section>
-      ) : (
+      {errores.length > 0 && (
+        <ListaRevision
+          titulo="Antes de cerrar debes corregir:"
+          icono={<AlertTriangle size={18} />}
+          items={errores}
+          tono="bad"
+          onIrA={onIrA}
+        />
+      )}
+      {avisos.length > 0 && (
+        <ListaRevision
+          titulo="Revisa antes de cerrar"
+          descripcion="Si no hubo movimiento puedes cerrar igual: lo que no se cuente queda igual que como empezó (0 vendidos)."
+          icono={<ClipboardList size={18} />}
+          items={avisos}
+          tono="warn"
+          onIrA={onIrA}
+        />
+      )}
+      {errores.length === 0 && avisos.length === 0 && (
         <motion.section
           initial={{ opacity: 0, scale: 0.98 }}
           animate={{ opacity: 1, scale: 1 }}
           className="bg-ok-soft text-ok flex items-center gap-3 rounded-[var(--radius-lg)] p-4 font-extrabold sm:p-5"
         >
-          <PartyPopper size={22} />
+          <PartyPopper size={22} className="shrink-0" />
           {esCorreccion
             ? 'Todo en orden para guardar la corrección.'
             : '¡Todo listo! Ya puedes finalizar el cierre.'}
@@ -93,13 +137,6 @@ export function PasoRevisar({
         <Dato label="Vasos vendidos" valor={vasosVendidos} />
         {estado.bebidas.length > 0 && <Dato label="Bebidas vendidas" valor={bebidasVendidas} />}
         <Dato label="Comida vendida" valor={comida} />
-        {estado.masas.length > 0 && (
-          <Dato
-            label="Unidades de pizza usadas"
-            valor={estado.masas.reduce((s, m) => s + masasUsadas(m), 0)}
-            tono="text-warn"
-          />
-        )}
         {esAdmin && (
           <Dato label="Total vendido" valor={cuadre.totalVentas} pesos tono="text-brand-strong" />
         )}

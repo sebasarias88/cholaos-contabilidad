@@ -1,4 +1,4 @@
-import { jsonError, leerJson, requireAdminApi, requireAuthApi } from '@/lib/api-auth'
+import { jsonError, leerJson, requireAdminApi, requireCajaApi } from '@/lib/api-auth'
 import { respuestaErrorRpc } from '@/lib/cierre/api'
 import { esTipoPersona } from '@/lib/descuentos'
 import { NextResponse } from 'next/server'
@@ -10,7 +10,7 @@ import type { PersonaDescuento } from '@/types'
  */
 export async function GET(request: Request) {
   const todas = new URL(request.url).searchParams.get('todas') === '1'
-  const auth = todas ? await requireAdminApi() : await requireAuthApi()
+  const auth = todas ? await requireAdminApi() : await requireCajaApi()
   if (!auth.ok) return auth.response
   const { supabase } = auth.ctx
 
@@ -41,7 +41,7 @@ export async function GET(request: Request) {
 
 /** POST — crea una persona (o devuelve la que ya tiene ese nombre). Cualquier usuario. */
 export async function POST(request: Request) {
-  const auth = await requireAuthApi()
+  const auth = await requireCajaApi()
   if (!auth.ok) return auth.response
 
   const body = await leerJson<{ nombre?: unknown; tipo?: unknown }>(request)

@@ -3,14 +3,20 @@
 import { motion } from 'framer-motion'
 import { Badge } from '@/components/ui/Badge'
 import { BotonAcciones } from '@/components/ui/BotonAcciones'
-import type { Usuario } from '@/types'
+import type { Rol, Usuario } from '@/types'
+
+export function etiquetaRol(rol: Rol) {
+  if (rol === 'admin') return 'Admin'
+  if (rol === 'pizzero') return 'Pizzero'
+  return 'Cajera / empleado'
+}
 
 export type FilaEquipo = Usuario & { esYo: boolean }
 
 export function ordenarEquipo(usuarios: Usuario[], actualId: string): FilaEquipo[] {
   const admin = usuarios.find((u) => u.rol === 'admin')
   const empleados = usuarios
-    .filter((u) => u.rol === 'empleado')
+    .filter((u) => u.rol !== 'admin')
     .sort((a, b) => a.nombre.localeCompare(b.nombre))
   const lista = [...(admin ? [admin] : []), ...empleados]
   return lista.map((u) => ({ ...u, esYo: u.id === actualId }))
@@ -73,9 +79,7 @@ export function EquipoLista({
             </p>
             {u.email && <p className="text-text-muted truncate text-xs font-medium">{u.email}</p>}
             <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
-              <Badge variant={u.rol === 'admin' ? 'admin' : 'empleado'}>
-                {u.rol === 'admin' ? 'Admin' : 'Empleado'}
-              </Badge>
+              <Badge variant={u.rol === 'admin' ? 'admin' : 'empleado'}>{etiquetaRol(u.rol)}</Badge>
               {u.activo ? (
                 <span className="text-ok inline-flex items-center gap-1 text-xs font-bold">
                   <span className="bg-ok-solid h-1.5 w-1.5 rounded-full" /> Activo
@@ -87,7 +91,7 @@ export function EquipoLista({
               )}
             </div>
           </div>
-          {u.rol === 'empleado' && (
+          {u.rol !== 'admin' && (
             <BotonAcciones abierto={menuAbierto === u.id} onClick={(e) => onToggleMenu(u, e)} />
           )}
         </motion.li>

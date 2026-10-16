@@ -1,4 +1,5 @@
-export type Rol = 'admin' | 'empleado'
+/** pizzero: solo usa la página Pizzería (no ve caja ni cierre) */
+export type Rol = 'admin' | 'empleado' | 'pizzero'
 
 export interface Usuario {
   id: string
@@ -365,18 +366,23 @@ export interface VentaComidaCierre {
 // ============================================================
 // CONTEO DE VASOS
 // ============================================================
+/** vasos = novedades de vasos y bebidas (cierre); masas = novedades de la pizzería */
+export type AplicaMotivo = 'vasos' | 'masas'
+
 export interface MotivoNovedad {
   id: string
   descripcion: string
   emoji: string
   activo: boolean
   orden: number
+  aplica_a?: AplicaMotivo
 }
 
 /** Body POST /api/motivos-novedad */
 export interface CrearMotivoNovedadPayload {
   descripcion: string
   emoji: string
+  aplica_a?: AplicaMotivo
 }
 
 /** Body PUT /api/motivos-novedad/[id] */
@@ -487,15 +493,6 @@ export interface ConteoBebidaPayload {
   novedades: NovedadVasoInput[]
 }
 
-/** Masas de pizza: el usuario escribe con cuántas empezó y con cuántas terminó */
-export interface ConteoMasaPayload {
-  producto_id: string
-  cantidad_inicio: number | null
-  cantidad_final: number | null
-  /** Solo masas con lleva_masas */
-  numero_masas: number | null
-}
-
 export interface GuardarCierrePayload {
   fecha: string // 'YYYY-MM-DD'
   /** false = guardar avance (borrador); true = cierre definitivo */
@@ -512,7 +509,6 @@ export interface GuardarCierrePayload {
   descuentos: { id?: string; persona_id: string; descripcion: string; monto: number }[]
   vasos: ConteoVasoPayload[]
   insumos: ConteoInsumoPayload[]
-  masas: ConteoMasaPayload[]
   bebidas: ConteoBebidaPayload[]
   ventas_comida: VentaComidaInput[]
   ventas_variantes: VentaVarianteInput[]
@@ -557,4 +553,60 @@ export interface DatosCierre {
   medios: MedioTransferencia[]
   /** Cierre guardado en esa fecha (borrador o cerrado) */
   cierre: CierreDia | CierreDiaEmpleado | null
+}
+
+// ============================================================
+// PIZZERÍA (masas y unidades, aparte del cierre)
+// ============================================================
+export interface NovedadMasa {
+  id?: string
+  motivo_id: string
+  motivo_custom?: string | null
+  cantidad: number
+  motivo?: MotivoNovedad
+}
+
+export interface ConteoMasa {
+  id: string
+  masas_dia_id: string
+  producto_id: string
+  cantidad_inicio: number | null
+  cantidad_final: number | null
+  numero_masas: number | null
+  producto?: Pick<Producto, 'id' | 'nombre' | 'lleva_masas' | 'orden'>
+  novedades?: NovedadMasa[]
+}
+
+/** Registro de pizzería de un día */
+export interface MasasDia {
+  id: string
+  fecha: string
+  usuario_id: string | null
+  created_at: string
+  updated_at: string
+  usuario?: { nombre: string } | null
+  conteos?: ConteoMasa[]
+}
+
+/** GET /api/masas?fecha= */
+export interface DatosPizzeria {
+  fecha: string
+  hoy: string
+  productos: Producto[]
+  motivos: MotivoNovedad[]
+  registro: MasasDia | null
+  /** Con cuántas terminó cada producto el último día anotado antes de esta fecha */
+  base: Record<string, number>
+  fecha_anterior: string | null
+}
+
+export interface GuardarMasasPayload {
+  fecha: string
+  masas: {
+    producto_id: string
+    cantidad_inicio: number | null
+    cantidad_final: number | null
+    numero_masas: number | null
+    novedades: NovedadVasoInput[]
+  }[]
 }

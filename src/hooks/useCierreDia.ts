@@ -10,11 +10,11 @@ import {
   idTemporal,
   itemsVendidos,
   productosPorTalla,
+  avisosCierre,
   validarCierre,
   type EstadoCierreForm,
   type FilaBebida,
   type FilaInsumo,
-  type FilaMasa,
   type FilaVaso,
 } from '@/lib/cierre/estado'
 import { vendidosReales } from '@/lib/cierre/ventas-vasos'
@@ -166,19 +166,6 @@ export function useCierreDia({ fecha, rol }: { fecha: string; rol: Rol }) {
     []
   )
 
-  const actualizarMasa = useCallback(
-    (
-      productoId: string,
-      campo: 'cantidad_inicio' | 'cantidad_final' | 'numero_masas',
-      valor: FilaMasa[typeof campo]
-    ) =>
-      setEstado((e) => ({
-        ...e,
-        masas: e.masas.map((f) => (f.producto_id === productoId ? { ...f, [campo]: valor } : f)),
-      })),
-    []
-  )
-
   const cambiarVariante = useCallback(
     (varianteId: string, cantidad: number) =>
       setEstado((e) => ({
@@ -296,10 +283,11 @@ export function useCierreDia({ fecha, rol }: { fecha: string; rol: Rol }) {
   // ---------- Guardar ----------
   /** Devuelve los errores que impiden guardar (vacío = se puede) */
   const validar = useCallback(
-    (finalizar: boolean) =>
-      validarCierre(estado, productos, finalizar, { correccion: esCorreccion }),
-    [estado, productos, esCorreccion]
+    (finalizar: boolean) => validarCierre(estado, productos, finalizar),
+    [estado, productos]
   )
+  /** Lo que no se llenó: no impide cerrar, solo se avisa */
+  const avisos = useMemo(() => avisosCierre(estado), [estado])
 
   const guardar = useCallback(
     async (finalizar: boolean): Promise<boolean> => {
@@ -375,11 +363,11 @@ export function useCierreDia({ fecha, rol }: { fecha: string; rol: Rol }) {
     actualizarDesglose,
     actualizarInsumo,
     actualizarBebida,
-    actualizarMasa,
     cambiarVariante,
     cambiarComida,
     movimientos,
     validar,
+    avisos,
     guardar,
   }
 }

@@ -64,6 +64,8 @@ export async function POST(request: Request) {
     .trim()
     .slice(0, 80)
   const password = String(body.password ?? '')
+  // Cajera (empleado) o pizzero; el admin no se crea desde aquí
+  const rol = body.rol === 'pizzero' ? 'pizzero' : 'empleado'
 
   if (!nombre) return jsonError('El nombre es requerido', 400)
   if (!isValidEmail(email)) return jsonError('Ingresa un correo válido', 400)
@@ -86,7 +88,7 @@ export async function POST(request: Request) {
   // El perfil se crea explícitamente (no dependemos solo del trigger)
   const { data: perfil, error: perfilError } = await admin
     .from('usuarios')
-    .upsert({ id: authData.user.id, nombre, rol: 'empleado', activo: true }, { onConflict: 'id' })
+    .upsert({ id: authData.user.id, nombre, rol, activo: true }, { onConflict: 'id' })
     .select(CAMPOS_USUARIO)
     .single()
 
@@ -97,7 +99,7 @@ export async function POST(request: Request) {
   }
 
   const respuesta: CrearEmpleadoResponse = {
-    mensaje: 'Empleado creado correctamente',
+    mensaje: rol === 'pizzero' ? 'Pizzero creado correctamente' : 'Empleado creado correctamente',
     usuario: { ...(perfil as Usuario), email },
   }
   return NextResponse.json(respuesta, { status: 201 })

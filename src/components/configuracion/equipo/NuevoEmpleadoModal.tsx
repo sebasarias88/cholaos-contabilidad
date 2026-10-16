@@ -25,6 +25,7 @@ export function NuevoEmpleadoModal({
   const [password, setPassword] = useState('')
   const [passwordEditada, setPasswordEditada] = useState(false)
   const [guardando, setGuardando] = useState(false)
+  const [rol, setRol] = useState<'empleado' | 'pizzero'>('empleado')
 
   function cerrar() {
     if (guardando) return
@@ -32,6 +33,7 @@ export function NuevoEmpleadoModal({
     setNombre('')
     setPassword('')
     setPasswordEditada(false)
+    setRol('empleado')
     onClose()
   }
 
@@ -82,6 +84,7 @@ export function NuevoEmpleadoModal({
           email: emailTrim,
           nombre: nombreTrim,
           password,
+          rol,
         }),
       })
 
@@ -92,7 +95,13 @@ export function NuevoEmpleadoModal({
         return
       }
 
-      toast.success('Empleado creado. Comparte las credenciales con él.', { id })
+      toast.success(
+        rol === 'pizzero'
+          ? 'Pizzero creado. Comparte las credenciales con él.'
+          : 'Empleado creado. Comparte las credenciales con él.',
+        { id }
+      )
+      setRol('empleado')
       onCreado({
         email: emailTrim,
         password,
@@ -108,6 +117,33 @@ export function NuevoEmpleadoModal({
   return (
     <Modal open={open} onClose={cerrar} title="Nuevo empleado">
       <form onSubmit={crearEmpleado} className="space-y-4">
+        <div className="space-y-1.5">
+          <span className="text-text-secondary text-sm">Rol</span>
+          <div className="grid grid-cols-2 gap-2">
+            {(
+              [
+                { id: 'empleado', label: 'Cajera / empleado', ayuda: 'Cierre del día y Pizzería' },
+                { id: 'pizzero', label: 'Pizzero', ayuda: 'Solo la página Pizzería' },
+              ] as const
+            ).map((r) => (
+              <button
+                key={r.id}
+                type="button"
+                aria-pressed={rol === r.id}
+                disabled={guardando}
+                onClick={() => setRol(r.id)}
+                className={`focus-ring flex min-h-14 flex-col items-start justify-center rounded-[12px] border px-3 py-2 text-left transition-colors ${
+                  rol === r.id
+                    ? 'border-brand bg-brand-soft text-brand'
+                    : 'border-bg-border text-text-secondary hover:text-text-primary'
+                }`}
+              >
+                <span className="text-sm font-bold">{r.label}</span>
+                <span className="text-xs opacity-80">{r.ayuda}</span>
+              </button>
+            ))}
+          </div>
+        </div>
         <Input
           label="Nombre completo"
           value={nombre}

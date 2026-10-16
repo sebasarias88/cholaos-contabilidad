@@ -4,6 +4,7 @@ import {
   estadoDesdeDatos,
   itemsVendidos,
   validarCierre,
+  avisosCierre,
 } from '@/lib/cierre/estado'
 import type { CierreDia, ConteoVaso } from '@/types'
 import { datosCierre, PRODUCTOS, T14 } from './fixtures'
@@ -117,10 +118,22 @@ describe('validarCierre', () => {
     expect(validarCierre(estado, PRODUCTOS, false)).toEqual([])
   })
 
-  it('finalizar exige conteos completos y dinero contado', () => {
+  it('finalizar solo exige el dinero contado; lo que no se contó es un aviso', () => {
     const errores = validarCierre(estado, PRODUCTOS, true)
-    expect(errores[0]).toContain('Falta el conteo final')
-    expect(errores.at(-1)).toContain('dinero final')
+    expect(errores).toEqual([expect.stringContaining('dinero final')])
+    expect(avisosCierre(estado)[0]).toContain('Vasos sin conteo final')
+  })
+
+  it('sin contar queda sin movimiento: las novedades no pueden pasar de lo que había', () => {
+    const conNovedades = {
+      ...estado,
+      vasos: estado.vasos.map((v, i) =>
+        i === 0 ? { ...v, novedades: [{ motivo_id: 'm1', cantidad: v.cantidad_inicio + 1 }] } : v
+      ),
+    }
+    expect(validarCierre(conNovedades, PRODUCTOS, false).join(' ')).toContain(
+      'que vasos disponibles'
+    )
   })
 
   it('el final no puede superar lo disponible', () => {

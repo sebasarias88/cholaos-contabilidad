@@ -4,7 +4,9 @@ import { useEffect, useRef, useState } from 'react'
 
 export function useMenuAcciones() {
   const [menuId, setMenuId] = useState<string | null>(null)
-  const [menuPos, setMenuPos] = useState<{ top: number; left: number } | null>(null)
+  const [menuPos, setMenuPos] = useState<{ top: number; left: number; arriba?: boolean } | null>(
+    null
+  )
   const menuRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -41,7 +43,14 @@ export function useMenuAcciones() {
       return
     }
     const rect = e.currentTarget.getBoundingClientRect()
-    setMenuPos({ top: rect.bottom + 4, left: rect.right })
+    // Cerca del final de la pantalla el menú se abre hacia arriba para que no se corte
+    const altoPantalla = window.visualViewport?.height ?? window.innerHeight
+    const arriba = altoPantalla - rect.bottom < 240 && rect.top > altoPantalla - rect.bottom
+    setMenuPos(
+      arriba
+        ? { top: rect.top - 4, left: rect.right, arriba: true }
+        : { top: rect.bottom + 4, left: rect.right }
+    )
     setMenuId(id)
   }
 

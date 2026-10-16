@@ -5,7 +5,7 @@ import type { ReactNode, RefObject } from 'react'
 
 interface MenuAccionesPortalProps {
   open: boolean
-  position: { top: number; left: number } | null
+  position: { top: number; left: number; arriba?: boolean } | null
   menuRef: RefObject<HTMLDivElement | null>
   children: ReactNode
 }
@@ -19,7 +19,11 @@ export function MenuAccionesPortal({ open, position, menuRef, children }: MenuAc
       ref={menuRef}
       role="menu"
       className="border-bg-border bg-bg-surface fixed z-[200] min-w-[11rem] rounded-[var(--radius-md)] border py-1 shadow-xl"
-      style={{ top: position.top, left: position.left, transform: 'translateX(-100%)' }}
+      style={{
+        top: position.top,
+        left: Math.max(position.left, 184),
+        transform: position.arriba ? 'translate(-100%, -100%)' : 'translateX(-100%)',
+      }}
     >
       {children}
     </div>,

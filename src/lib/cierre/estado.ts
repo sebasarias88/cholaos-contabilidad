@@ -32,31 +32,6 @@ export type FilaBebida = Omit<ConteoVasoValor, 'desglose'> & {
   producto_id: string
   producto: Producto
 }
-/** Masa de pizza: se escribe con cuántas empezó y con cuántas terminó (sin precio) */
-export type FilaMasa = {
-  producto_id: string
-  producto: Producto
-  cantidad_inicio: number | null
-  cantidad_final: number | null
-  /** Solo si el producto lleva_masas (Pizzeta, Mediana, Familiar) */
-  numero_masas: number | null
-}
-
-/** true si a la fila le falta algún dato por anotar */
-export function masaIncompleta(f: FilaMasa) {
-  return (
-    f.cantidad_inicio === null ||
-    f.cantidad_final === null ||
-    (Boolean(f.producto.lleva_masas) && f.numero_masas === null)
-  )
-}
-
-/** Masas usadas en el día (empezó − terminó); 0 si falta un dato */
-export function masasUsadas(fila: Pick<FilaMasa, 'cantidad_inicio' | 'cantidad_final'>) {
-  if (fila.cantidad_inicio === null || fila.cantidad_final === null) return 0
-  return Math.max(0, fila.cantidad_inicio - fila.cantidad_final)
-}
-
 export type LineaMovimiento = { id: string; descripcion: string; monto: number }
 export type LineaTransferencia = LineaMovimiento & { medio_id: string }
 
@@ -72,7 +47,6 @@ export interface EstadoCierreForm {
   vasos: FilaVaso[]
   bebidas: FilaBebida[]
   insumos: FilaInsumo[]
-  masas: FilaMasa[]
   ventasVariantes: VentaVarianteInput[]
   ventasComida: VentaComidaInput[]
   gastos: LineaMovimiento[]
@@ -92,7 +66,6 @@ export const ESTADO_VACIO: EstadoCierreForm = {
   vasos: [],
   bebidas: [],
   insumos: [],
-  masas: [],
   ventasVariantes: [],
   ventasComida: [],
   gastos: [],
@@ -146,7 +119,6 @@ function filasDesdeCatalogo(datos: DatosCierre) {
   const vistas = new Set<string>()
   const bebidas: FilaBebida[] = []
   const insumos: FilaInsumo[] = []
-  const masas: FilaMasa[] = []
 
   for (const p of datos.productos) {
     const tipo = tipoProducto(p)
@@ -178,19 +150,9 @@ function filasDesdeCatalogo(datos: DatosCierre) {
         cantidad_nuevos: null,
         cantidad_final: null,
       })
-    } else if (tipo === 'masa') {
-      // Sugerencia: con las que terminó el último cierre (se puede cambiar)
-      const anterior = datos.base_conteos.find((c) => !c.talla_id && c.producto_id === p.id)
-      masas.push({
-        producto_id: p.id,
-        producto: p,
-        cantidad_inicio: anterior ? anterior.cantidad_final : null,
-        cantidad_final: null,
-        numero_masas: null,
-      })
     }
   }
-  return { vasos, bebidas, insumos, masas }
+  return { vasos, bebidas, insumos }
 }
 
 function valoresConteo(c: ConteoVaso) {
@@ -214,7 +176,6 @@ function filasDesdeCierreCerrado(cierre: CierreDia | CierreDiaEmpleado, producto
   const vasos: FilaVaso[] = []
   const bebidas: FilaBebida[] = []
   const insumos: FilaInsumo[] = []
-  const masas: FilaMasa[] = []
   for (const c of (cierre.conteo_vasos ?? []) as ConteoVaso[]) {
     const valores = valoresConteo(c)
     if (c.talla_id) {
@@ -241,16 +202,6 @@ function filasDesdeCierreCerrado(cierre: CierreDia | CierreDiaEmpleado, producto
       })
       continue
     }
-    if (tipoProducto(producto) === 'masa') {
-      masas.push({
-        producto_id: c.producto_id,
-        producto,
-        cantidad_inicio: c.cantidad_inicio,
-        cantidad_final: c.cantidad_final,
-        numero_masas: c.numero_masas ?? null,
-      })
-      continue
-    }
     if (tipoProducto(producto) !== 'insumo') continue
     insumos.push({
       producto_id: c.producto_id,
@@ -260,7 +211,7 @@ function filasDesdeCierreCerrado(cierre: CierreDia | CierreDiaEmpleado, producto
       cantidad_final: c.cantidad_final,
     })
   }
-  return { vasos, bebidas, insumos, masas }
+  return { vasos, bebidas, insumos }
 }
 
 /** Estado inicial del formulario según lo que haya guardado en esa fecha */
@@ -288,17 +239,6 @@ export function estadoDesdeDatos(datos: DatosCierre): EstadoCierreForm {
         const g = guardados.find((c) => !c.talla_id && c.producto_id === f.producto_id)
         return g
           ? { ...f, cantidad_nuevos: g.cantidad_nuevos || null, cantidad_final: g.cantidad_final }
-          : f
-      }),
-      masas: filas.masas.map((f) => {
-        const g = guardados.find((c) => !c.talla_id && c.producto_id === f.producto_id)
-        return g
-          ? {
-              ...f,
-              cantidad_inicio: g.cantidad_inicio,
-              cantidad_final: g.cantidad_final,
-              numero_masas: g.numero_masas ?? null,
-            }
           : f
       }),
     }
@@ -401,12 +341,6 @@ export function construirPayload(
       cantidad_final: f.cantidad_final,
       novedades: f.novedades.filter((n) => n.cantidad > 0),
     })),
-    masas: estado.masas.map((f) => ({
-      producto_id: f.producto_id,
-      cantidad_inicio: f.cantidad_inicio,
-      cantidad_final: f.cantidad_final,
-      numero_masas: f.producto.lleva_masas ? f.numero_masas : null,
-    })),
     ventas_variantes: estado.ventasVariantes
       .filter((v) => v.cantidad > 0)
       .map(({ variante_id, cantidad }) => ({ variante_id, cantidad })),
@@ -428,43 +362,56 @@ function listar(nombres: string[]) {
 }
 
 /**
- * Errores que impiden guardar. Al guardar avance solo se validan los datos
- * que ya están escritos; al finalizar se exige todo completo.
+ * Lo que no se llenó: no impide cerrar (puede que no haya habido movimiento),
+ * solo se muestra para una última revisión. Lo que no se cuente queda "sin movimiento".
+ */
+export function avisosCierre(estado: EstadoCierreForm): string[] {
+  const avisos: string[] = []
+  const vasos = estado.vasos.filter((f) => f.cantidad_final === null).map((f) => etiquetaVaso(f))
+  if (vasos.length > 0) avisos.push(`Vasos sin conteo final: ${listar(vasos)}`)
+  const bebidas = estado.bebidas
+    .filter((f) => f.cantidad_final === null)
+    .map((f) => f.producto.nombre)
+  if (bebidas.length > 0) avisos.push(`Bebidas sin conteo final: ${listar(bebidas)}`)
+  const insumos = estado.insumos
+    .filter((f) => f.cantidad_final === null)
+    .map((f) => f.producto.nombre)
+  if (insumos.length > 0) avisos.push(`Insumos sin conteo final: ${listar(insumos)}`)
+  return avisos
+}
+
+/**
+ * Errores que impiden guardar: datos imposibles (final mayor que lo que había, más
+ * novedades que vasos gastados, desglose que no cuadra, montos en 0…). Lo que falta
+ * por llenar no impide cerrar: ver avisosCierre.
  */
 export function validarCierre(
   estado: EstadoCierreForm,
   productos: Producto[],
-  finalizar: boolean,
-  /** Al corregir un día antiguo no se exigen datos que en ese momento no existían */
-  opciones: { correccion?: boolean } = {}
+  finalizar: boolean
 ): string[] {
   const errores: string[] = []
   const etiqueta = (tallaId: string) =>
     etiquetaVaso(estado.vasos.find((f) => f.talla_id === tallaId))
 
-  if (finalizar) {
-    const sinContar = [
-      ...estado.vasos.filter((f) => f.cantidad_final === null).map((f) => etiquetaVaso(f)),
-    ]
-    if (sinContar.length > 0) errores.push(`Falta el conteo final de: ${listar(sinContar)}`)
-    const insumosSinContar = estado.insumos
-      .filter((f) => f.cantidad_final === null)
-      .map((f) => f.producto.nombre)
-    if (insumosSinContar.length > 0) {
-      errores.push(`Insumos: falta el conteo final de ${listar(insumosSinContar)}`)
-    }
-  }
-
   for (const f of estado.vasos) {
-    if (f.cantidad_final === null) continue
     const disponible = f.cantidad_inicio + (f.cantidad_nuevos ?? 0)
+    const novedades = f.novedades.reduce((s, n) => s + n.cantidad, 0)
+    if (f.cantidad_final === null) {
+      // Sin contar queda "sin movimiento": las novedades no pueden pasar de lo que había
+      if (novedades > disponible) {
+        errores.push(
+          `${etiquetaVaso(f)}: hay más novedades (${novedades}) que vasos disponibles (${disponible})`
+        )
+      }
+      continue
+    }
     if (f.cantidad_final > disponible) {
       errores.push(
         `${etiquetaVaso(f)}: el final (${f.cantidad_final}) es mayor que lo disponible (${disponible})`
       )
     }
     const gastados = disponible - f.cantidad_final
-    const novedades = f.novedades.reduce((s, n) => s + n.cantidad, 0)
     if (novedades > gastados) {
       errores.push(
         `${etiquetaVaso(f)}: hay más novedades (${novedades}) que vasos gastados (${gastados})`
@@ -483,17 +430,16 @@ export function validarCierre(
     }
   }
 
-  if (finalizar) {
-    const sinContar = estado.bebidas.filter((f) => f.cantidad_final === null)
-    if (sinContar.length > 0) {
-      errores.push(
-        `Bebidas: falta el conteo final de ${listar(sinContar.map((f) => f.producto.nombre))}`
-      )
-    }
-  }
   for (const f of estado.bebidas) {
-    if (f.cantidad_final === null) continue
     const disponible = f.cantidad_inicio + (f.cantidad_nuevos ?? 0)
+    if (f.cantidad_final === null) {
+      if (totalNovedades(f) > disponible) {
+        errores.push(
+          `Bebidas — ${f.producto.nombre}: hay más novedades (${totalNovedades(f)}) que unidades disponibles (${disponible})`
+        )
+      }
+      continue
+    }
     if (f.cantidad_final > disponible) {
       errores.push(
         `Bebidas — ${f.producto.nombre}: quedan ${f.cantidad_final} y solo había ${disponible}`
@@ -501,27 +447,6 @@ export function validarCierre(
     } else if (totalNovedades(f) > disponible - f.cantidad_final) {
       errores.push(
         `Bebidas — ${f.producto.nombre}: hay más novedades (${totalNovedades(f)}) que unidades que salieron (${disponible - f.cantidad_final})`
-      )
-    }
-  }
-
-  if (finalizar) {
-    const sinAnotar = estado.masas
-      .filter((f) =>
-        opciones.correccion
-          ? f.cantidad_inicio === null || f.cantidad_final === null
-          : masaIncompleta(f)
-      )
-      .map((f) => f.producto.nombre)
-    if (sinAnotar.length > 0) {
-      errores.push(`Masas y unidades: falta anotar ${listar(sinAnotar)}`)
-    }
-  }
-  for (const f of estado.masas) {
-    if (f.cantidad_inicio === null || f.cantidad_final === null) continue
-    if (f.cantidad_final > f.cantidad_inicio) {
-      errores.push(
-        `Masas y unidades — ${f.producto.nombre}: terminó con ${f.cantidad_final} y empezó con ${f.cantidad_inicio}`
       )
     }
   }
