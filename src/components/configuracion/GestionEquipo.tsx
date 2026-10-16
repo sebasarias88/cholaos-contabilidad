@@ -84,6 +84,28 @@ export function GestionEquipo({ usuarioActualId }: GestionEquipoProps) {
     cargar()
   }
 
+  async function cambiarRol(u: Usuario, rol: 'empleado' | 'pizzero') {
+    menu.close()
+    const toastId = toastLoading('Cambiando rol...')
+    const res = await fetch(`/api/usuarios/${u.id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ rol }),
+    })
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}))
+      toastError(data.error ?? 'Error al cambiar el rol', toastId)
+      return
+    }
+    toastSuccess(
+      rol === 'pizzero'
+        ? `${u.nombre} ahora es pizzero: solo verá Pizzería`
+        : `${u.nombre} ahora es cajera / empleado`,
+      toastId
+    )
+    cargar()
+  }
+
   function pedirEliminar(u: Usuario) {
     if (u.rol === 'admin') {
       toast.error('No se puede eliminar la cuenta del admin')
@@ -125,7 +147,7 @@ export function GestionEquipo({ usuarioActualId }: GestionEquipoProps) {
   }
 
   const filas = ordenarEquipo(usuarios, usuarioActualId)
-  const empleadoMenu = filas.find((u) => u.id === menu.menuId && u.rol === 'empleado')
+  const empleadoMenu = filas.find((u) => u.id === menu.menuId && u.rol !== 'admin')
   const empleadoEliminar = filas.find((u) => u.id === eliminarId)
 
   return (
@@ -183,6 +205,15 @@ export function GestionEquipo({ usuarioActualId }: GestionEquipoProps) {
               <MenuItem onClick={() => cambiarEstado(empleadoMenu, true)}>Activar</MenuItem>
             )}
             <MenuItem onClick={() => abrirReset(empleadoMenu)}>Restablecer contraseña</MenuItem>
+            {empleadoMenu.rol === 'pizzero' ? (
+              <MenuItem onClick={() => cambiarRol(empleadoMenu, 'empleado')}>
+                Cambiar a cajera / empleado
+              </MenuItem>
+            ) : (
+              <MenuItem onClick={() => cambiarRol(empleadoMenu, 'pizzero')}>
+                Cambiar a pizzero
+              </MenuItem>
+            )}
             <MenuSeparador />
             <MenuItem tono="peligro" onClick={() => pedirEliminar(empleadoMenu)}>
               Eliminar

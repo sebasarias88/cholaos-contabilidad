@@ -143,7 +143,11 @@ function Panel({
           <div className="min-w-0 flex-1">
             <p className="truncate text-sm font-bold">{usuario?.nombre ?? 'Usuario'}</p>
             <p className="text-cocoa-muted text-xs capitalize">
-              {usuario?.rol === 'admin' ? 'Administrador' : 'Empleado'}
+              {usuario?.rol === 'admin'
+                ? 'Administrador'
+                : usuario?.rol === 'pizzero'
+                  ? 'Pizzero'
+                  : 'Empleado'}
             </p>
           </div>
         )}

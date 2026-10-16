@@ -5,6 +5,7 @@ import {
   estadoDesdeDatos,
   itemsVendidos,
   validarCierre,
+  avisosCierre,
 } from '@/lib/cierre/estado'
 import { totalVasosGastadosCierre } from '@/lib/cierre/historial'
 import { calcularPasos, pasoDeError } from '@/lib/cierre/pasos'
@@ -160,9 +161,11 @@ describe('bebidas contadas como los vasos', () => {
 
   it('valida conteo final, que no queden más de las que había y las novedades', () => {
     const e = estadoDesdeDatos(datos())
-    const faltan = validarCierre(e, CATALOGO, true).filter((x) => x.startsWith('Bebidas'))
-    expect(faltan).toEqual(['Bebidas: falta el conteo final de Botella Con Agua, Gaseosa 1.5L'])
-    expect(pasoDeError(faltan[0])).toBe('comida')
+    // Lo que no se contó no impide cerrar: es un aviso para revisar
+    expect(validarCierre(e, CATALOGO, true).filter((x) => x.startsWith('Bebidas'))).toEqual([])
+    const avisos = avisosCierre(e).filter((x) => x.startsWith('Bebidas'))
+    expect(avisos).toEqual(['Bebidas sin conteo final: Botella Con Agua, Gaseosa 1.5L'])
+    expect(pasoDeError(avisos[0])).toBe('comida')
 
     e.bebidas[0] = { ...e.bebidas[0], cantidad_final: 13 }
     e.bebidas[1] = {

@@ -11,9 +11,9 @@ import { NovedadesDrawer } from '@/components/cierre/NovedadesDrawer'
 import { PasoComida } from '@/components/cierre/PasoComida'
 import { PasoRevisar } from '@/components/cierre/PasoRevisar'
 import { PasosCierre } from '@/components/cierre/PasosCierre'
-import { TablaMasas } from '@/components/cierre/TablaMasas'
 import { TablaVasos } from '@/components/cierre/TablaVasos'
 import { Celebracion } from '@/components/ui/Celebracion'
+import { ConfirmarModal } from '@/components/ui/ConfirmarModal'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { useCierreDia } from '@/hooks/useCierreDia'
 import { etiquetaVaso } from '@/lib/cierre/estado'
@@ -27,10 +27,9 @@ const AYUDA: Record<IdPaso, string> = {
   vasos:
     'Cuenta cuántos vasos llegaron y cuántos quedan. Presiona Enter para pasar a la siguiente casilla.',
   comida: 'Bebidas, ventas de comida y adiciones, e insumos del día.',
-  masas:
-    'Anota con cuántas unidades empezó y terminó cada tamaño y, en Pizzeta, Mediana y Familiar, el número de masas (no suman a las ventas).',
   caja: 'Gastos, transferencias, domicilios, descuentos (fiados, consumos, préstamos) y el dinero de la caja.',
-  revisar: 'Revisa el resumen. Si todo está bien, finaliza el cierre.',
+  revisar:
+    'Revisa el resumen. Lo que no se llenó se muestra para revisarlo, pero puedes cerrar igual.',
 }
 
 interface FormCierreDiaProps {
@@ -49,6 +48,7 @@ export function FormCierreDia({ rol, fecha }: FormCierreDiaProps) {
     null
   )
   const [celebrar, setCelebrar] = useState<{ detalle: string } | null>(null)
+  const [confirmarIncompleto, setConfirmarIncompleto] = useState(false)
 
   // Avisar antes de salir con cambios sin guardar
   useEffect(() => {
@@ -59,14 +59,16 @@ export function FormCierreDia({ rol, fecha }: FormCierreDiaProps) {
   }, [cierre.hayCambios, bloqueado])
 
   const errores = useMemo(() => cierre.validar(true), [cierre])
+  const { avisos } = cierre
   const pasos = useMemo(
     () =>
       calcularPasos(estado, {
         hayComida: cierre.productosComida.length > 0,
         porTalla,
         errores: errores.length,
+        avisos: avisos.length,
       }),
-    [estado, cierre.productosComida.length, porTalla, errores.length]
+    [estado, cierre.productosComida.length, porTalla, errores.length, avisos.length]
   )
   const indice = Math.max(
     0,
@@ -85,7 +87,7 @@ export function FormCierreDia({ rol, fecha }: FormCierreDiaProps) {
     [pasos, indice]
   )
 
-  async function finalizar() {
+  async function finalizar(confirmado = false) {
     if (datos && fecha === datos.hoy && hoyColombia() !== datos.hoy) {
       toastError('Cambió el día. Recarga la página para cerrar con la fecha correcta.')
       return
@@ -95,6 +97,13 @@ export function FormCierreDia({ rol, fecha }: FormCierreDiaProps) {
       irA('revisar')
       return
     }
+    // Faltan conteos: se puede cerrar igual (sin movimiento), pero se pregunta primero
+    if (avisos.length > 0 && !confirmado) {
+      if (paso !== 'revisar') irA('revisar')
+      setConfirmarIncompleto(true)
+      return
+    }
+    setConfirmarIncompleto(false)
     const { diferencia } = cierre.cuadre
     const correccion = esCorreccion
     const ok = await cierre.guardar(true)
@@ -193,15 +202,10 @@ export function FormCierreDia({ rol, fecha }: FormCierreDiaProps) {
                   onAbrirNovedadesBebida={(id) => setNovedadesDe({ tipo: 'bebida', id })}
                 />
               )}
-              {paso === 'masas' && (
-                <TablaMasas
-                  filas={estado.masas}
-                  disabled={bloqueado}
-                  onChange={cierre.actualizarMasa}
-                />
-              )}
               {paso === 'caja' && <PasoCaja cierre={cierre} />}
-              {paso === 'revisar' && <PasoRevisar cierre={cierre} errores={errores} onIrA={irA} />}
+              {paso === 'revisar' && (
+                <PasoRevisar cierre={cierre} errores={errores} avisos={avisos} onIrA={irA} />
+              )}
             </motion.div>
           </AnimatePresence>
         </div>
@@ -212,7 +216,7 @@ export function FormCierreDia({ rol, fecha }: FormCierreDiaProps) {
             cierre={cierre}
             textoSiguiente={siguiente?.titulo ?? null}
             onSiguiente={() => siguiente && irA(siguiente.id)}
-            onFinalizar={finalizar}
+            onFinalizar={() => void finalizar()}
             esRevisar={esRevisar}
           />
         </div>
@@ -247,6 +251,33 @@ export function FormCierreDia({ rol, fecha }: FormCierreDiaProps) {
             cierre.actualizarBebida(novedadesDe.id, 'novedades', novedades)
         }}
       />
+
+      <ConfirmarModal
+        open={confirmarIncompleto}
+        titulo={
+          esCorreccion ? '¿Guardar con datos sin llenar?' : '¿Cerrar el día con datos sin llenar?'
+        }
+        textoConfirmar={esCorreccion ? 'Guardar de todas formas' : 'Cerrar de todas formas'}
+        variante="primary"
+        cargando={cierre.guardando === 'finalizar'}
+        onCancelar={() => setConfirmarIncompleto(false)}
+        onConfirmar={() => void finalizar(true)}
+      >
+        <ul className="mb-3 flex flex-col gap-1.5">
+          {avisos.map((a) => (
+            <li
+              key={a}
+              className="bg-warn-soft text-text-primary rounded-[10px] px-3 py-2 font-semibold"
+            >
+              {a}
+            </li>
+          ))}
+        </ul>
+        <p>
+          Si no hubo movimiento está bien: lo que no se contó queda igual que como empezó (0
+          vendidos) y el inventario sigue normal mañana.
+        </p>
+      </ConfirmarModal>
 
       <Celebracion
         abierta={!!celebrar}

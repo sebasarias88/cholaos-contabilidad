@@ -16,7 +16,7 @@ export function jsonError(error: string, status: number) {
   return NextResponse.json({ error }, { status })
 }
 
-/** Sesión activa (admin o empleado activo) */
+/** Sesión activa (admin, cajera o pizzero activos) */
 export async function requireAuthApi(): Promise<AuthApiResult> {
   const supabase = await createClient()
   const {
@@ -39,6 +39,16 @@ export async function requireAuthApi(): Promise<AuthApiResult> {
 
   const rol = perfil.rol as Rol
   return { ok: true, ctx: { supabase, user, rol, esAdmin: rol === 'admin' } }
+}
+
+/** Cierre y caja: admin o cajera activos (el pizzero no) */
+export async function requireCajaApi(): Promise<AuthApiResult> {
+  const auth = await requireAuthApi()
+  if (!auth.ok) return auth
+  if (auth.ctx.rol !== 'admin' && auth.ctx.rol !== 'empleado') {
+    return { ok: false, response: jsonError('No autorizado', 403) }
+  }
+  return auth
 }
 
 /** Solo admin activo */

@@ -1,11 +1,10 @@
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { retiroBase } from '@/lib/cierre/base'
-import { masasUsadas } from '@/lib/cierre/estado'
-import { tipoProducto } from '@/lib/productos-ui'
 import { textosCuenta } from '@/lib/descuentos'
 import type { CierreDia, ResumenDia, TipoPersonaDescuento } from '@/types'
 import { fechaComoDate } from '@/lib/fechas'
+import type { FilaPizzaReporte } from '@/lib/pizzeria'
 
 export type FormatoExport = 'excel' | 'pdf'
 
@@ -24,6 +23,8 @@ export type ExportReportesInput = {
   resumen: ResumenDia[]
   productos: ProductoVendidoExport[]
   cierres: CierreDia[]
+  /** Conteo de la pizzería (masas y unidades) por día y producto */
+  pizzeria?: FilaPizzaReporte[]
 }
 
 type FilaDia = {
@@ -161,29 +162,6 @@ export function descuentosDetalle(cierres: CierreDia[]) {
       }))
     )
     .sort((a, b) => a.fecha.localeCompare(b.fecha) || a.persona.localeCompare(b.persona, 'es'))
-}
-
-/** Masas y unidades de pizza de cada día cerrado: empezó, terminó, masas y usadas */
-export function masasDetalle(cierres: CierreDia[]) {
-  return cierres
-    .filter((c) => c.estado === 'cerrado')
-    .flatMap((c) =>
-      (c.conteo_vasos ?? [])
-        .filter((cv) => !cv.talla_id && cv.producto && tipoProducto(cv.producto) === 'masa')
-        .sort((a, b) => (a.producto?.orden ?? 0) - (b.producto?.orden ?? 0))
-        .map((cv) => ({
-          fecha: c.fecha,
-          masa: cv.producto?.nombre ?? 'Masa',
-          empezo: cv.cantidad_inicio,
-          termino: cv.cantidad_final ?? 0,
-          masas: cv.numero_masas ?? null,
-          usadas: masasUsadas({
-            cantidad_inicio: cv.cantidad_inicio,
-            cantidad_final: cv.cantidad_final,
-          }),
-        }))
-    )
-    .sort((a, b) => a.fecha.localeCompare(b.fecha))
 }
 
 function nombreArchivo(data: ExportReportesInput, ext: string) {
@@ -335,17 +313,19 @@ async function exportarExcel(data: ExportReportesInput) {
     ds.getColumn('monto').numFmt = FMT_PESOS
   }
 
-  // Masas de pizza (solo conteo, sin dinero)
-  const masas = masasDetalle(data.cierres)
+  // Pizzería (solo conteo, sin dinero)
+  const masas = data.pizzeria ?? []
   if (masas.length > 0) {
-    const ms = wb.addWorksheet('Masas y unidades')
+    const ms = wb.addWorksheet('Pizzería')
     ms.columns = [
       { header: 'Fecha', key: 'fecha', width: 12 },
-      { header: 'Producto', key: 'masa', width: 24 },
+      { header: 'Producto', key: 'producto', width: 24 },
       { header: 'Empezó con', key: 'empezo', width: 12 },
       { header: 'Terminó con', key: 'termino', width: 12 },
       { header: 'Masas', key: 'masas', width: 10 },
-      { header: 'Usadas', key: 'usadas', width: 10 },
+      { header: 'Novedades', key: 'novedades', width: 11 },
+      { header: 'Vendidas', key: 'vendidas', width: 10 },
+      { header: 'Detalle de novedades', key: 'detalleNovedades', width: 36 },
     ]
     estilizarEncabezado(ms.getRow(1))
     for (const m of masas) ms.addRow({ ...m, fecha: fechaCorta(m.fecha) })
@@ -555,7 +535,7 @@ async function exportarPdf(data: ExportReportesInput) {
     })
   }
 
-  const masas = masasDetalle(data.cierres)
+  const masas = data.pizzeria ?? []
   if (masas.length > 0) {
     y = siguienteY()
     if (y > doc.internal.pageSize.getHeight() - 90) {
@@ -564,7 +544,7 @@ async function exportarPdf(data: ExportReportesInput) {
     }
     doc.setFont('helvetica', 'bold')
     doc.setFontSize(11)
-    doc.text('Masas y unidades', margen, y)
+    doc.text('Pizzería (masas y unidades)', margen, y)
     autoTable(doc, {
       startY: y + 8,
       margin: { left: margen, right: margen },
@@ -576,15 +556,17 @@ async function exportarPdf(data: ExportReportesInput) {
         3: { halign: 'right' },
         4: { halign: 'right' },
         5: { halign: 'right' },
+        6: { halign: 'right' },
       },
-      head: [['Fecha', 'Producto', 'Empezó con', 'Terminó con', 'Masas', 'Usadas']],
+      head: [['Fecha', 'Producto', 'Empezó', 'Terminó', 'Masas', 'Novedades', 'Vendidas']],
       body: masas.map((m) => [
         fechaCorta(m.fecha),
-        m.masa,
-        String(m.empezo),
-        String(m.termino),
+        m.producto,
+        m.empezo === null ? '—' : String(m.empezo),
+        m.termino === null ? '—' : String(m.termino),
         m.masas === null ? '—' : String(m.masas),
-        String(m.usadas),
+        m.detalleNovedades || String(m.novedades),
+        String(m.vendidas),
       ]),
     })
   }

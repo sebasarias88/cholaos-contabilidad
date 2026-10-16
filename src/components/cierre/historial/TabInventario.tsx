@@ -3,7 +3,6 @@
 import type { ReactNode } from 'react'
 import { TabVasos } from '@/components/cierre/historial/TabVasos'
 import { formatCajas } from '@/lib/cajas'
-import { masasUsadas } from '@/lib/cierre/estado'
 import { tipoProducto } from '@/lib/productos-ui'
 import type { CierreDia, ConteoVaso } from '@/types'
 
@@ -29,7 +28,7 @@ function Seccion({
   )
 }
 
-/** Tabla simple de conteos por producto (masas e insumos) */
+/** Tabla simple de conteos por producto (insumos) */
 function TablaConteos({
   filas,
   columnas,
@@ -72,22 +71,13 @@ function TablaConteos({
   )
 }
 
-/** Todo lo contado en el cierre: vasos, bebidas, masas de pizza e insumos */
+/** Todo lo contado en el cierre: vasos, bebidas e insumos (las masas están en Pizzería) */
 export function TabInventario({ cierre }: { cierre: CierreDia }) {
   const conteos: ConteoVaso[] = cierre.conteo_vasos ?? []
   const vasos = conteos.filter((c) => c.talla_id)
   const tipoDe = (c: ConteoVaso) => (c.producto ? tipoProducto(c.producto) : null)
-  const masas = conteos
-    .filter((c) => !c.talla_id && tipoDe(c) === 'masa')
-    .sort((a, b) => (a.producto?.orden ?? 0) - (b.producto?.orden ?? 0))
   const insumos = conteos.filter((c) => !c.talla_id && tipoDe(c) === 'insumo')
   const bebidas = conteos.filter((c) => !c.talla_id && tipoDe(c) === 'comida')
-
-  const totalMasas = masas.reduce(
-    (s, m) =>
-      s + masasUsadas({ cantidad_inicio: m.cantidad_inicio, cantidad_final: m.cantidad_final }),
-    0
-  )
 
   return (
     <div className="space-y-6">
@@ -98,30 +88,6 @@ export function TabInventario({ cierre }: { cierre: CierreDia }) {
       {bebidas.length > 0 && (
         <Seccion titulo="Bebidas">
           <TabVasos rows={bebidas} columna="Producto" />
-        </Seccion>
-      )}
-
-      {masas.length > 0 && (
-        <Seccion
-          titulo="Masas y unidades"
-          extra={
-            <span className="badge-warn tabular-nums">
-              {totalMasas} usada{totalMasas === 1 ? '' : 's'}
-            </span>
-          }
-        >
-          <TablaConteos
-            columnas={['Empezó', 'Terminó', 'Masas', 'Usadas']}
-            filas={masas.map((m) => ({
-              id: m.id,
-              nombre: m.producto?.nombre ?? 'Masa',
-              valores: [m.cantidad_inicio, m.cantidad_final ?? '—', m.numero_masas ?? '—'],
-              resaltado: masasUsadas({
-                cantidad_inicio: m.cantidad_inicio,
-                cantidad_final: m.cantidad_final,
-              }),
-            }))}
-          />
         </Seccion>
       )}
 

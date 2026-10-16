@@ -152,7 +152,7 @@ export function NovedadesVaso({
                       value: m.id,
                       label: `${m.emoji} ${m.descripcion}`,
                     }))}
-                    className="!h-9 w-[14rem] !flex-none shrink-0 !py-0 text-xs"
+                    className="!h-9 min-w-0 basis-full !py-0 text-xs sm:w-[14rem] sm:!flex-none sm:shrink-0 sm:basis-auto"
                   />
 
                   <StepperCantidad
@@ -180,7 +180,7 @@ export function NovedadesVaso({
                     value={novedad.motivo_custom ?? ''}
                     onChange={(e) => actualizar(i, 'motivo_custom', e.target.value)}
                     placeholder="Describe el motivo..."
-                    className={`${fieldClass} max-w-[14rem] px-2.5`}
+                    className={`${fieldClass} px-2.5 sm:max-w-[14rem]`}
                   />
                 )}
               </motion.div>

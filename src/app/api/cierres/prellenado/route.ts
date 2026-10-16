@@ -2,7 +2,7 @@
 // Devuelve todo lo que necesita el formulario del cierre en una sola petición.
 // Empleado: solo hoy. Admin: cualquier fecha hasta hoy.
 import { CIERRE_SELECT, sanitizarCierreParaEmpleado } from '@/lib/cierre/api'
-import { jsonError, requireAuthApi } from '@/lib/api-auth'
+import { jsonError, requireCajaApi } from '@/lib/api-auth'
 import { esFechaISO, hoyColombia } from '@/lib/fechas'
 import { NextResponse } from 'next/server'
 import type {
@@ -21,7 +21,7 @@ type BaseCierre = {
 }
 
 export async function GET(request: Request) {
-  const auth = await requireAuthApi()
+  const auth = await requireCajaApi()
   if (!auth.ok) return auth.response
   const { supabase, esAdmin } = auth.ctx
 
@@ -43,7 +43,12 @@ export async function GET(request: Request) {
       .eq('activo', true)
       .order('orden', { ascending: true })
       .order('nombre', { ascending: true }),
-    supabase.from('motivos_novedad').select('*').eq('activo', true).order('orden'),
+    supabase
+      .from('motivos_novedad')
+      .select('*')
+      .eq('activo', true)
+      .eq('aplica_a', 'vasos')
+      .order('orden'),
     supabase.from('medios_transferencia').select('*').eq('activo', true).order('orden'),
   ])
 

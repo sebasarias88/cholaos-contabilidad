@@ -63,7 +63,7 @@ export function DescuentosCaja({ cierre }: { cierre: CierreDiaApi }) {
                   }
                   placeholder="Concepto (opcional)"
                   aria-label="Concepto"
-                  className="input placeholder:text-text-secondary min-w-0 flex-1"
+                  className="input placeholder:text-text-secondary min-w-[5rem] flex-1"
                 />
                 <InputPeso
                   value={d.monto}
@@ -131,13 +131,13 @@ function NuevoDescuento({
         onKeyDown={onEnter}
         placeholder="Concepto: gaseosa, préstamo…"
         aria-label="Concepto"
-        className="input placeholder:text-text-secondary min-w-0 flex-1"
+        className="input placeholder:text-text-secondary min-w-0 flex-1 basis-[10rem]"
       />
       <InputPeso
         value={monto}
         onChange={setMonto}
         placeholder="Monto $"
-        className="input placeholder:text-text-secondary w-28 shrink-0 tabular-nums sm:w-[7.5rem]"
+        className="input placeholder:text-text-secondary min-w-0 grow basis-28 tabular-nums sm:w-[7.5rem] sm:grow-0 sm:basis-auto"
         onKeyDown={onEnter}
       />
       <button

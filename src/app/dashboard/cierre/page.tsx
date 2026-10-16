@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import { FormCierreDia } from '@/components/cierre/FormCierreDia'
-import { requireAuth } from '@/lib/auth'
+import { requireCaja } from '@/lib/auth'
 import { esFechaISO, hoyColombia } from '@/lib/fechas'
 
 export const metadata: Metadata = { title: 'Cierre del día' }
@@ -10,7 +10,7 @@ export default async function CierrePage({
 }: {
   searchParams: Promise<{ fecha?: string }>
 }) {
-  const usuario = await requireAuth()
+  const usuario = await requireCaja()
   const { fecha } = await searchParams
   const hoy = hoyColombia()
 

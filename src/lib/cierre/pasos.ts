@@ -1,8 +1,8 @@
-import { masaIncompleta, type EstadoCierreForm } from '@/lib/cierre/estado'
+import type { EstadoCierreForm } from '@/lib/cierre/estado'
 import { desgloseCuadra } from '@/lib/cierre/ventas-vasos'
 import type { Producto } from '@/types'
 
-export type IdPaso = 'vasos' | 'comida' | 'masas' | 'caja' | 'revisar'
+export type IdPaso = 'vasos' | 'comida' | 'caja' | 'revisar'
 export type EstadoPaso = 'completo' | 'parcial' | 'pendiente' | 'neutral'
 
 export interface Paso {
@@ -14,12 +14,18 @@ export interface Paso {
 
 /**
  * Pasos del cierre con su avance: Vasos, Comida (bebidas contadas, ventas de comida y
- * adiciones, insumos), Masas y unidades, Caja y Revisar. Comida y masas solo aparecen
- * si el negocio tiene productos de ese tipo.
+ * adiciones, insumos), Caja y Revisar. Comida solo aparece si el negocio tiene productos
+ * de ese tipo. Las masas de pizza van aparte, en la página Pizzería.
  */
 export function calcularPasos(
   estado: EstadoCierreForm,
-  opciones: { hayComida: boolean; porTalla: Record<string, Producto[]>; errores: number }
+  opciones: {
+    hayComida: boolean
+    porTalla: Record<string, Producto[]>
+    errores: number
+    /** Lo que no se llenó (no impide cerrar) */
+    avisos?: number
+  }
 ): Paso[] {
   const pasos: Paso[] = []
 
@@ -76,27 +82,6 @@ export function calcularPasos(
     })
   }
 
-  if (estado.masas.length > 0) {
-    const anotadas = estado.masas.filter((m) => !masaIncompleta(m)).length
-    const conError = estado.masas.some(
-      (m) =>
-        m.cantidad_inicio !== null &&
-        m.cantidad_final !== null &&
-        m.cantidad_final > m.cantidad_inicio
-    )
-    pasos.push({
-      id: 'masas',
-      titulo: 'Masas y unidades',
-      detalle: `${anotadas} de ${estado.masas.length}`,
-      estado:
-        anotadas === estado.masas.length && !conError
-          ? 'completo'
-          : anotadas > 0
-            ? 'parcial'
-            : 'pendiente',
-    })
-  }
-
   const movimientos =
     estado.gastos.length +
     estado.transferencias.length +
@@ -114,14 +99,17 @@ export function calcularPasos(
     estado: estado.dineroFinal > 0 ? 'completo' : movimientos > 0 ? 'parcial' : 'pendiente',
   })
 
+  const avisos = opciones.avisos ?? 0
   pasos.push({
     id: 'revisar',
     titulo: 'Revisar',
     detalle:
       opciones.errores > 0
-        ? `${opciones.errores} pendiente${opciones.errores === 1 ? '' : 's'}`
-        : 'Listo para cerrar',
-    estado: opciones.errores === 0 ? 'completo' : 'pendiente',
+        ? `${opciones.errores} por corregir`
+        : avisos > 0
+          ? `${avisos} por revisar`
+          : 'Listo para cerrar',
+    estado: opciones.errores > 0 ? 'pendiente' : avisos > 0 ? 'parcial' : 'completo',
   })
 
   return pasos
@@ -130,7 +118,6 @@ export function calcularPasos(
 /** Paso al que lleva un mensaje de error de validación */
 export function pasoDeError(error: string): IdPaso {
   const e = error.toLowerCase()
-  if (e.startsWith('masas')) return 'masas'
   if (e.startsWith('bebidas') || e.startsWith('insumos')) return 'comida'
   if (
     e.includes('dinero') ||

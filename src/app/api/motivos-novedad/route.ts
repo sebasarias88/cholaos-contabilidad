@@ -9,8 +9,10 @@ export async function GET(request: Request) {
   const auth = todas ? await requireAdminApi() : await requireAuthApi()
   if (!auth.ok) return auth.response
   const { supabase } = auth.ctx
+  const aplica = searchParams.get('aplica')
   let query = supabase.from('motivos_novedad').select('*').order('orden')
   if (!todas) query = query.eq('activo', true)
+  if (aplica === 'vasos' || aplica === 'masas') query = query.eq('aplica_a', aplica)
 
   const { data, error } = await query
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
@@ -25,6 +27,7 @@ export async function POST(request: Request) {
   const body = (await request.json()) as CrearMotivoNovedadPayload
   const descripcion = body.descripcion?.trim()
   const emoji = body.emoji?.trim().slice(0, 8) || '⚪'
+  const aplica_a = body.aplica_a === 'masas' ? 'masas' : 'vasos'
 
   if (!descripcion) {
     return NextResponse.json({ error: 'La descripción es requerida' }, { status: 400 })
@@ -33,6 +36,7 @@ export async function POST(request: Request) {
   const { data: ultimo } = await supabase
     .from('motivos_novedad')
     .select('orden')
+    .eq('aplica_a', aplica_a)
     .order('orden', { ascending: false })
     .limit(1)
     .maybeSingle()
@@ -46,6 +50,7 @@ export async function POST(request: Request) {
       emoji,
       orden,
       activo: true,
+      aplica_a,
     })
     .select()
     .single()

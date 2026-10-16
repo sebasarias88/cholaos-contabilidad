@@ -8,7 +8,8 @@ const CAMPOS_USUARIO = 'id, nombre, rol, activo, created_at'
 const BLOQUEO_INDEFINIDO = '876000h' // ~100 años
 
 /**
- * PUT /api/usuarios/[id] — body parcial { nombre?, activo?, password? }
+ * PUT /api/usuarios/[id] — body parcial { nombre?, activo?, password?, rol? }
+ * - rol: cambiar entre cajera (empleado) y pizzero.
  * - El admin puede cambiar su propio nombre, pero no desactivarse.
  * - password: restablece la contraseña de un empleado.
  */
@@ -44,6 +45,13 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
   if (body.activo !== undefined) {
     if (esPropio) return jsonError('No puedes desactivar tu propia cuenta', 400)
     update.activo = Boolean(body.activo)
+  }
+  if (body.rol !== undefined) {
+    if (esPropio || objetivo.rol === 'admin') {
+      return jsonError('No se puede cambiar el rol del admin', 400)
+    }
+    if (body.rol !== 'empleado' && body.rol !== 'pizzero') return jsonError('Rol inválido', 400)
+    update.rol = body.rol
   }
 
   const password = body.password !== undefined ? String(body.password) : null

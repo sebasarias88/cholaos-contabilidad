@@ -4,14 +4,14 @@ import {
   respuestaErrorRpc,
   sanitizarCierreParaEmpleado,
 } from '@/lib/cierre/api'
-import { jsonError, leerJson, requireAuthApi } from '@/lib/api-auth'
+import { jsonError, leerJson, requireCajaApi } from '@/lib/api-auth'
 import { esFechaISO, hoyColombia } from '@/lib/fechas'
 import { NextResponse } from 'next/server'
 import type { CierreDia, GuardarCierreResponse } from '@/types'
 
 // GET — admin: ?fecha= o ?desde=&hasta= | empleado: solo ?fecha=hoy
 export async function GET(request: Request) {
-  const auth = await requireAuthApi()
+  const auth = await requireCajaApi()
   if (!auth.ok) return auth.response
   const { supabase, esAdmin } = auth.ctx
 
@@ -55,7 +55,7 @@ export async function GET(request: Request) {
 
 // POST — guarda avance (finalizar=false) o cierra el día (finalizar=true) en una transacción
 export async function POST(request: Request) {
-  const auth = await requireAuthApi()
+  const auth = await requireCajaApi()
   if (!auth.ok) return auth.response
   const { supabase, esAdmin } = auth.ctx
 

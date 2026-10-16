@@ -3,6 +3,7 @@
 import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Check, ChevronDown, UserPlus } from 'lucide-react'
+import { posicionarMenu } from '@/components/ui/Select'
 import { claveNombre, coincideNombre, etiquetaTipoPersona, TIPOS_PERSONA } from '@/lib/descuentos'
 import { toastError } from '@/lib/toast'
 import type { PersonaDescuento, TipoPersonaDescuento } from '@/types'
@@ -105,10 +106,7 @@ export function SelectorPersona({
       const menu = menuRef.current
       const input = inputRef.current
       if (menu && input) {
-        const rect = input.getBoundingClientRect()
-        menu.style.top = `${rect.bottom + 4}px`
-        menu.style.left = `${rect.left}px`
-        menu.style.width = `${Math.max(rect.width, 240)}px`
+        posicionarMenu(menu, input.getBoundingClientRect(), { maxAlto: 288, anchoMin: 240 })
       }
       raf = requestAnimationFrame(sync)
     }

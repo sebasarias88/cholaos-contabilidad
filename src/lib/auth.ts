@@ -36,9 +36,23 @@ export async function requireAuth(): Promise<Usuario> {
   return usuario
 }
 
+/** Página de inicio de cada rol (el pizzero solo usa Pizzería) */
+export function inicioDeRol(rol: Usuario['rol']) {
+  if (rol === 'admin') return '/dashboard'
+  if (rol === 'pizzero') return '/dashboard/pizzeria'
+  return '/dashboard/cierre'
+}
+
 /** Rutas solo admin (productos, reportes, configuración, historiales) */
 export async function requireAdmin(): Promise<Usuario> {
   const usuario = await requireAuth()
-  if (usuario.rol !== 'admin') redirect('/dashboard/cierre')
+  if (usuario.rol !== 'admin') redirect(inicioDeRol(usuario.rol))
+  return usuario
+}
+
+/** Cierre y caja: admin o cajera (el pizzero no entra) */
+export async function requireCaja(): Promise<Usuario> {
+  const usuario = await requireAuth()
+  if (usuario.rol !== 'admin' && usuario.rol !== 'empleado') redirect(inicioDeRol(usuario.rol))
   return usuario
 }

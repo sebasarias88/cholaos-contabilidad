@@ -9,11 +9,12 @@ import { BotonAcciones } from '@/components/ui/BotonAcciones'
 import { useMenuAcciones } from '@/hooks/useMenuAcciones'
 import { Input } from '@/components/ui/Input'
 import { Modal } from '@/components/ui/Modal'
+import { PildorasFiltro } from '@/components/ui/PildorasFiltro'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { fadeUp, staggerContainer } from '@/lib/animations'
 import { esMotivoPredefinido } from '@/lib/motivos-novedad'
 import { toastError, toastLoading, toastSuccess } from '@/lib/toast'
-import type { MotivoNovedad } from '@/types'
+import type { AplicaMotivo, MotivoNovedad } from '@/types'
 
 type MotivoForm = {
   descripcion: string
@@ -22,6 +23,21 @@ type MotivoForm = {
 
 const FORM_VACIO: MotivoForm = { descripcion: '', emoji: '⚪' }
 
+const SECCIONES: { id: AplicaMotivo; label: string; ayuda: string; ejemplo: string }[] = [
+  {
+    id: 'vasos',
+    label: 'Vasos y bebidas',
+    ayuda: 'Motivos para vasos y bebidas que no se vendieron en el cierre del día.',
+    ejemplo: 'Ej. Vaso roto en transporte',
+  },
+  {
+    id: 'masas',
+    label: 'Pizzería',
+    ayuda: 'Motivos para pizzas que salieron sin venderse (consumo del personal, se quemó…).',
+    ejemplo: 'Ej. Pedido devuelto',
+  },
+]
+
 export function GestionMotivosNovedad() {
   const [motivos, setMotivos] = useState<MotivoNovedad[]>([])
   const [loading, setLoading] = useState(true)
@@ -29,6 +45,8 @@ export function GestionMotivosNovedad() {
   const [modalOpen, setModalOpen] = useState(false)
   const [editando, setEditando] = useState<MotivoNovedad | null>(null)
   const [form, setForm] = useState<MotivoForm>(FORM_VACIO)
+  const [aplica, setAplica] = useState<AplicaMotivo>('vasos')
+  const seccion = SECCIONES.find((s) => s.id === aplica) ?? SECCIONES[0]
   const menu = useMenuAcciones()
 
   const cargar = useCallback(() => {
@@ -90,7 +108,11 @@ export function GestionMotivosNovedad() {
     setGuardando(true)
     const toastId = toastLoading(editando ? 'Guardando cambios...' : 'Creando motivo...')
 
-    const payload = esPredefinido ? { emoji } : { descripcion, emoji }
+    const payload = esPredefinido
+      ? { emoji }
+      : editando
+        ? { descripcion, emoji }
+        : { descripcion, emoji, aplica_a: aplica }
 
     const res = await fetch(
       editando ? `/api/motivos-novedad/${editando.id}` : '/api/motivos-novedad',
@@ -139,8 +161,9 @@ export function GestionMotivosNovedad() {
     cargar()
   }
 
-  const activos = motivos.filter((m) => m.activo)
-  const inactivos = motivos.filter((m) => !m.activo)
+  const deSeccion = motivos.filter((m) => (m.aplica_a ?? 'vasos') === aplica)
+  const activos = deSeccion.filter((m) => m.activo)
+  const inactivos = deSeccion.filter((m) => !m.activo)
   const motivoMenu = motivos.find((m) => m.id === menu.menuId)
 
   function filaMotivo(m: MotivoNovedad, atenuado = false) {
@@ -182,14 +205,25 @@ export function GestionMotivosNovedad() {
       >
         <div>
           <h2 className="font-display text-text-primary text-xl font-bold">Motivos de novedad</h2>
-          <p className="text-text-secondary mt-1 text-sm">
-            Motivos para vasos que no se vendieron en el cierre del día.
-          </p>
+          <p className="text-text-secondary mt-1 text-sm">{seccion.ayuda}</p>
         </div>
         <Button type="button" size="sm" onClick={abrirNuevo} className="shrink-0">
           <Plus size={16} aria-hidden />
           Agregar
         </Button>
+      </motion.div>
+
+      <motion.div variants={fadeUp}>
+        <PildorasFiltro
+          opciones={SECCIONES}
+          valor={aplica}
+          onChange={(id) => {
+            menu.close()
+            setAplica(id)
+          }}
+          id="motivos-aplica"
+          etiqueta="Tipo de motivo"
+        />
       </motion.div>
 
       {loading ? (
@@ -229,7 +263,7 @@ export function GestionMotivosNovedad() {
       <Modal
         open={modalOpen}
         onClose={cerrarModal}
-        title={editando ? 'Editar motivo' : 'Nuevo motivo de novedad'}
+        title={editando ? 'Editar motivo' : `Nuevo motivo · ${seccion.label}`}
       >
         <form onSubmit={guardarMotivo} className="space-y-4">
           <motion.div variants={fadeUp} className="space-y-1.5">
@@ -258,7 +292,7 @@ export function GestionMotivosNovedad() {
             label="Descripción"
             value={form.descripcion}
             onChange={(e) => setForm((f) => ({ ...f, descripcion: e.target.value }))}
-            placeholder="Ej. Vaso roto en transporte"
+            placeholder={seccion.ejemplo}
             disabled={editando ? esMotivoPredefinido(editando) : false}
             required={!editando || !esMotivoPredefinido(editando)}
           />

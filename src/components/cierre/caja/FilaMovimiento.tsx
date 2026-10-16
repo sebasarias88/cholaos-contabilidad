@@ -66,7 +66,7 @@ export function FilaMovimientoEditable({
           onChange={(e) => edicion.onChange(item.id, e.target.value, item.monto)}
           placeholder={edicion.placeholder}
           aria-label="Descripción"
-          className="input placeholder:text-text-secondary min-w-0 flex-1"
+          className="input placeholder:text-text-secondary min-w-[5rem] flex-1"
         />
       ) : (
         <Select

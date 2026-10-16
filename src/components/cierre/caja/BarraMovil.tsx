@@ -41,7 +41,8 @@ export function BarraMovil({
                 </motion.span>
               ) : (
                 <span className="text-cocoa-muted truncate text-xs font-semibold">
-                  Debe haber en caja
+                  <span className="hidden min-[360px]:inline">Debe haber en caja</span>
+                  <span className="min-[360px]:hidden">En caja</span>
                 </span>
               )}
             </div>
@@ -57,7 +58,7 @@ export function BarraMovil({
               aria-label="Guardar avance"
               onClick={() => void cierre.guardar(false)}
               disabled={guardando !== null}
-              className="focus-ring border-cocoa-3 flex h-12 w-12 items-center justify-center rounded-[14px] border disabled:opacity-50"
+              className="focus-ring border-cocoa-3 flex h-12 w-12 shrink-0 items-center justify-center rounded-[14px] border disabled:opacity-50"
             >
               {guardando === 'avance' ? (
                 <motion.span
@@ -76,7 +77,7 @@ export function BarraMovil({
               whileTap={{ scale: 0.96 }}
               onClick={onBoton}
               disabled={guardando !== null}
-              className="focus-ring bg-brand shadow-brand flex min-h-12 items-center gap-2 rounded-[14px] px-5 font-extrabold text-white disabled:opacity-60"
+              className="focus-ring bg-brand shadow-brand flex min-h-12 shrink-0 items-center gap-2 rounded-[14px] px-4 font-extrabold text-white disabled:opacity-60 min-[360px]:px-5"
             >
               {textoBoton}
               <ArrowRight size={18} />

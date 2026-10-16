@@ -4,6 +4,37 @@ import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Check, ChevronDown } from 'lucide-react'
 
+/**
+ * Pega un menú flotante al campo. Si abajo no cabe (campo al final de la pantalla,
+ * típico en celular), lo abre hacia arriba.
+ */
+export function posicionarMenu(
+  menu: HTMLElement,
+  rect: DOMRect,
+  opciones: { maxAlto?: number; anchoMin?: number } = {}
+) {
+  const maxAlto = opciones.maxAlto ?? 256
+  const margen = 8
+  const altoPantalla = window.visualViewport?.height ?? window.innerHeight
+  const anchoPantalla = window.visualViewport?.width ?? window.innerWidth
+  const altoContenido = Math.min(menu.scrollHeight, maxAlto)
+  const abajo = altoPantalla - rect.bottom - margen
+  const arriba = rect.top - margen
+  const haciaArriba = abajo < altoContenido && arriba > abajo
+
+  const disponible = Math.max(120, Math.min(maxAlto, haciaArriba ? arriba : abajo))
+  menu.style.maxHeight = `${disponible}px`
+  const alto = Math.min(altoContenido, disponible)
+  menu.style.top = haciaArriba
+    ? `${Math.max(margen, rect.top - 4 - alto)}px`
+    : `${rect.bottom + 4}px`
+
+  const ancho = Math.min(Math.max(rect.width, opciones.anchoMin ?? 0), anchoPantalla - margen * 2)
+  menu.style.width = `${ancho}px`
+  menu.style.left = `${Math.min(Math.max(margen, rect.left), anchoPantalla - margen - ancho)}px`
+  menu.dataset.lado = haciaArriba ? 'arriba' : 'abajo'
+}
+
 export type SelectOption = {
   value: string
   label: string
@@ -61,10 +92,7 @@ export function Select({
       const currentMenu = menuRef.current
       const currentTrigger = triggerRef.current
       if (!currentMenu || !currentTrigger) return
-      const rect = currentTrigger.getBoundingClientRect()
-      currentMenu.style.top = `${rect.bottom + 4}px`
-      currentMenu.style.left = `${rect.left}px`
-      currentMenu.style.width = `${rect.width}px`
+      posicionarMenu(currentMenu, currentTrigger.getBoundingClientRect())
     }
 
     function trapWheel(e: WheelEvent) {

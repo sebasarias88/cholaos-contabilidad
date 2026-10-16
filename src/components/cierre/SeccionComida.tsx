@@ -34,8 +34,10 @@ function Fila({
 }) {
   return (
     <div className="flex items-center justify-between gap-3 py-2.5">
-      <div className="min-w-0">
-        <p className="text-text-primary truncate text-[15px] font-bold">{nombre}</p>
+      <div className="min-w-0 flex-1">
+        <p className="text-text-primary line-clamp-2 text-[15px] leading-snug font-bold break-words">
+          {nombre}
+        </p>
         <p className="text-text-secondary truncate text-xs font-semibold tabular-nums">
           {precio != null ? formatPesos(precio) : '—'}
           {detalle ? ` · ${detalle}` : ''}
@@ -78,7 +80,7 @@ export function SeccionComida({
           layout
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
-          className="card px-4 py-3 sm:px-5"
+          className="card min-w-0 px-4 py-3 sm:px-5"
         >
           <h3 className="font-display text-text-primary pt-1 text-lg font-bold">
             {producto.nombre}
@@ -113,7 +115,7 @@ export function SeccionComida({
             layout
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
-            className="card px-4 py-3 sm:px-5"
+            className="card min-w-0 px-4 py-3 sm:px-5"
           >
             <h3 className="font-display text-text-primary pt-1 text-lg font-bold">{g.titulo}</h3>
             <div className="divide-bg-border divide-y">
